@@ -13,7 +13,11 @@
 PATH=/sbin:/bin:/usr/bin
 
 LEVEL2="hostname.sh& udev& mountall.sh mountdevsubfs.sh dbus& slim" 
-LEVEL1="hostname.sh& mountkernfs.sh checkroot.sh checkfs.sh udev mountdevsubfs.sh" 
+LEVEL1="hostname.sh& mountkernfs.sh udev checkroot.sh checkfs.sh udev mountdevsubfs.sh console-setup" 
+
+mount -t proc proc /proc "-onodev,noexec,nosuid"
+
+cat /proc/deferred_initcalls &> /dev/null &
 
 # read env
 if grep -qw single /proc/cmdline; then
@@ -22,9 +26,11 @@ else
 SCRIPTS=$LEVEL2
 fi
 
+echo "Starting .... $SCRIPTS"
+
 case "$1" in
   start|"")
-	cat /proc/deferred_initcalls &> /dev/null &
+	mount -t sysfs sys /sys "-onodev,noexec,nosuid"
 	for script in $SCRIPTS
 	do
 	cmd=${script::-1}
