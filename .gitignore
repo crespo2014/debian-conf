@@ -1,0 +1,11 @@
+boot
+sbin
+bin
+usr
+lib
+var
+tmp
+opt
+proc
+sys
+
