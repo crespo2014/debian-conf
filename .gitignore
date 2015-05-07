@@ -1,14 +1,14 @@
-boot
-sbin
-bin
-usr
-lib
-var
-tmp
-opt
-proc
-sys
+boot/
+sbin/
+bin/
+usr/
+lib/
+var/
+tmp/
+opt/
+proc/
+sys/
 etc/init.d/.depend.*
 etc/rc?.d/
-
+etc/
 
