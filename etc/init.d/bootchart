@@ -1,0 +1,59 @@
+#! /bin/sh
+### BEGIN INIT INFO
+# Provides:          bootchart
+# Required-Start:    $remote_fs $all
+# Required-Stop:
+# Default-Start:     1 2 3 4 5
+# Default-Stop:
+# Short-Description: Stop bootchartd
+# Description:       This script stops the bootchartd daemon after
+#                    the system came up.
+### END INIT INFO
+
+# Author: Jörg Sommer <joerg@alea.gnuu.de>
+
+# Do NOT "set -e"
+
+PATH=/sbin:/usr/sbin:/bin:/usr/bin
+NAME=bootchartd
+DAEMON=/sbin/$NAME
+SCRIPTNAME=/etc/init.d/bootchart
+
+# Exit if the package is not installed
+[ -x "$DAEMON" ] || exit 0
+
+# Read configuration variable file if it is present
+[ -r /etc/bootchartd.conf ] && . /etc/bootchartd.conf
+
+# If bootchartd stops itself, we don't have to do anything
+[ "$AUTO_STOP_LOGGER" = yes ] && exit 0
+
+# Load the VERBOSE setting and other rcS variables
+. /lib/init/vars.sh
+
+# Define LSB log_* functions.
+# Depend on lsb-base (>= 3.0-6) to ensure that this file is present.
+. /lib/lsb/init-functions
+
+case "$1" in
+  start)
+    if pgrep -x $NAME > /dev/null; then
+        [ "$VERBOSE" != no ] && \
+          log_daemon_msg "Stopping boot process analyser" "$NAME"
+
+        if $DAEMON stop; then
+            [ "$VERBOSE" != no ] && log_end_msg 0
+        else
+        	[ "$VERBOSE" != no ] && log_end_msg 1
+        fi
+    fi
+    ;;
+  stop|restart|force-reload)
+    ;;
+  *)
+    echo "Usage: $SCRIPTNAME {start}" >&2
+    exit 3
+    ;;
+esac
+
+:
