@@ -11,4 +11,7 @@ sys/
 etc/init.d/.depend.*
 etc/rc?.d/
 etc/
+dev/
+home/
+/*
 
