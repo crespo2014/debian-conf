@@ -2,7 +2,7 @@
 
 ### BEGIN INIT INFO
 # Provides:		sshd
-# Required-Start:	
+# Required-Start:       networking
 # Required-Stop:	
 # Default-Start:	2 3 4 5
 # Default-Stop:		
