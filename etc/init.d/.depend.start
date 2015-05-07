@@ -1,4 +1,4 @@
-TARGETS = rsyslog virtualbox-guest-utils vboxadd slim killprocs motd atd acct dbus vboxadd-service exim4 ssh cron rsync acpid saned bootlogs single rmnologin rc.local bootchart
+TARGETS = rsyslog virtualbox-guest-utils vboxadd slim killprocs motd atd acct dbus vboxadd-service exim4 ssh cron rsync acpid saned bootlogs bootchart single rmnologin rc.local
 INTERACTIVE =
 atd: rsyslog
 acct: rsyslog
@@ -10,7 +10,7 @@ cron: rsyslog
 rsync: rsyslog
 acpid: rsyslog
 saned: rsyslog dbus
+bootchart: rsyslog atd virtualbox-guest-utils acct saned dbus vboxadd-service vboxadd exim4 slim bootlogs killprocs motd ssh cron rsync acpid
 single: killprocs bootlogs motd
 rmnologin: rsyslog atd virtualbox-guest-utils acct saned dbus vboxadd-service vboxadd exim4 slim bootlogs motd ssh cron rsync acpid
 rc.local: rsyslog atd virtualbox-guest-utils acct saned dbus vboxadd-service vboxadd exim4 slim bootlogs motd ssh cron rsync acpid
-bootchart: rsyslog atd virtualbox-guest-utils acct saned dbus vboxadd-service vboxadd exim4 slim bootlogs killprocs motd ssh cron rsync acpid

@@ -8,4 +8,6 @@ tmp
 opt
 proc
 sys
+etc/init.d/.depend.*
+
 
