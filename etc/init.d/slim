@@ -6,8 +6,8 @@
 
 ### BEGIN INIT INFO
 # Provides:          slim
-# Required-Start:    $local_fs $remote_fs
-# Required-Stop:     $local_fs $remote_fs
+# Required-Start:    $local_fs 
+# Required-Stop:     $local_fs 
 # Should-Start:      xfs $named slapd
 # Should-Stop:       xfs $named slapd
 # Default-Start:     2 3 4 5
