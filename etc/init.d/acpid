@@ -1,8 +1,8 @@
 #!/bin/sh
 ### BEGIN INIT INFO
 # Provides:          acpid
-# Required-Start:    $remote_fs $syslog
-# Required-Stop:     $remote_fs $syslog
+# Required-Start:    $local_fs
+# Required-Stop:     $local_fs
 # X-Start-Before:    kdm gdm3 xdm
 # X-Stop-After:      kdm gdm3 xdm
 # Default-Start:     2 3 4 5
