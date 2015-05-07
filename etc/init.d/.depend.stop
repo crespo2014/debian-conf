@@ -1,0 +1,11 @@
+TARGETS = virtualbox-guest-utils slim atd vboxadd-service exim4 saned alsa-utils urandom sendsigs vboxadd rsyslog umountnfs.sh hwclock.sh networking umountfs umountroot halt reboot
+sendsigs: alsa-utils atd virtualbox-guest-utils saned exim4 slim
+vboxadd: vboxadd-service
+rsyslog: sendsigs atd saned exim4
+umountnfs.sh: rsyslog alsa-utils atd virtualbox-guest-utils saned exim4 slim sendsigs
+hwclock.sh: rsyslog atd
+networking: exim4 umountnfs.sh slim
+umountfs: hwclock.sh alsa-utils atd virtualbox-guest-utils saned urandom exim4 umountnfs.sh slim networking
+umountroot: umountfs
+halt: umountroot
+reboot: umountroot
