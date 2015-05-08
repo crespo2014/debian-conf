@@ -1,7 +1,7 @@
 #!/bin/sh -e
 ### BEGIN INIT INFO
 # Provides:          networking ifupdown
-# Required-Start:   udev 
+# Required-Start:   udev desktop
 # Required-Stop:     
 # Default-Start:     S 2 3 4 5
 # Default-Stop:      0 6

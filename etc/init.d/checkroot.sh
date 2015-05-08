@@ -1,7 +1,7 @@
 #! /bin/sh
 ### BEGIN INIT INFO
 # Provides:          checkroot
-# Required-Start:    mountdevsubfs hostname
+# Required-Start:    
 # Required-Stop:     
 # Should-Start:      keymap hwclockfirst hdparm bootlogd
 # Should-stop:
