@@ -1,3 +1,9 @@
+\.*
+core
+media/
+run/
+initrd.img
+vmlinuz
 boot/
 sbin/
 bin/
@@ -11,5 +17,5 @@ sys/
 etc/init.d/.depend.*
 dev/
 home/
-
-
+etc/*
+!etc/rc?.d/
