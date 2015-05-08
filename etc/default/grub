@@ -6,7 +6,7 @@
 GRUB_DEFAULT=0
 GRUB_TIMEOUT=3
 GRUB_DISTRIBUTOR=`lsb_release -i -s 2> /dev/null || echo Debian`
-GRUB_CMDLINE_LINUX_DEFAULT="quiet rootfstype=ext4 rw init=/sbin/bootchartd"
+GRUB_CMDLINE_LINUX_DEFAULT="quiet rootfstype=ext4 rw init=/sbin/bootchartd nomodeset"
 #init=/bin/systemd" 
 GRUB_CMDLINE_LINUX=""
 
