@@ -19,3 +19,4 @@ dev/
 home/
 etc/*
 etc/rc?.d/
+!etc/insserv/
