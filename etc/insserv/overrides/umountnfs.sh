@@ -2,7 +2,7 @@
 ### BEGIN INIT INFO
 # Provides:          umountnfs
 # Required-Start:
-# Required-Stop:     umountfs $network network-manager $desktop
+# Required-Stop:     umountfs $network network-manager 
 # Should-Stop:       $network $portmap nfs-common
 # Default-Start:
 # Default-Stop:      0 6
