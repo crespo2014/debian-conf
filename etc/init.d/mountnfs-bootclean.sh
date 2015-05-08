@@ -1,7 +1,7 @@
 #! /bin/sh
 ### BEGIN INIT INFO
 # Provides:          mountnfs-bootclean
-# Required-Start:    $local_fs mountnfs
+# Required-Start:    mountnfs
 # Required-Stop:
 # Default-Start:     S
 # Default-Stop:
