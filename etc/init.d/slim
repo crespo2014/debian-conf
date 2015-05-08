@@ -6,7 +6,7 @@
 
 ### BEGIN INIT INFO
 # Provides:          slim
-# Required-Start:    $local_fs 
+# Required-Start:    dbus
 # Required-Stop:     $local_fs 
 # Should-Start:      xfs $named slapd
 # Should-Stop:       xfs $named slapd

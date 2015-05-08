@@ -18,4 +18,4 @@ etc/init.d/.depend.*
 dev/
 home/
 etc/*
-!etc/rc?.d/
+etc/rc?.d/
