@@ -13,7 +13,7 @@ do
 node=$(echo $line | cut -d ':' -f 1)
 for parent in $(echo $line | cut -d ':' -f 2)
 do
- echo " \"$parent\" -> \"$node\""
+ echo " \"$parent\" -> \"${node%.sh}\""
 done
 done 
 
@@ -21,9 +21,9 @@ grep ^\\$  /etc/insserv.conf | \
 while read line
 do
 node=$(echo $line | cut -d ' ' -f 1)
-for parent in $(echo $line | cut -d ' ' -f 2)
+for parent in $(echo $line | cut -d ' ' -f 2-)
 do
- echo " \"$parent\" ->  \"$node\" "
+ echo " \"${parent#+}\" ->  \"$node\" "
 done
 done
 
