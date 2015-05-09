@@ -1,14 +1,16 @@
-#!/bin/sh
+#!/bin/bash
 #
 # Bootchart logger script
 # Ziga Mahkovec  <ziga.mahkovec@klika.si>
+# Michael Meeks  <michael.meeks@novell.com>
 #
-# This script is used for data collection for the bootchart
-# boot performance visualization tool (http://www.bootchart.org).
+# This script is used for data collection for the bootchart2
+# boot performance visualization tool.
 #
 # To profile the boot process, bootchartd should be called instead of
 # /sbin/init.  Modify the kernel command line to include:
-# init=/sbin/bootchartd
+#
+# init=/sbin/bootchartd initcall_debug printk.time=y quiet
 #
 # bootchartd will then start itself in background and exec /sbin/init
 # (or an alternative init process if specified using bootchart_init=)
@@ -17,252 +19,194 @@
 # $ /sbin/bootchartd start; sleep 30; /sbin/bootchartd stop
 #
 
-PATH="/sbin:/bin:/usr/sbin:/usr/bin:$PATH"
-VERSION="0.8"
+# Use a directory we know will be there, such that we can mount
+# our 'proc' without having to touch a (potentially) read-only
+# file-system.
+LIBDIR="/lib"
+TMPFS="${LIBDIR}/bootchart/tmpfs"
+COLLECTOR_BIN="${LIBDIR}/bootchart/bootchart-collector"
 
-# Lock file
-BOOTLOG_LOCK=".lock"
+# some initrds don't have usleep etc.
+USLEEP="$COLLECTOR_BIN --usleep"
+
+# we need to find our tools
+PATH="/sbin:/bin:/usr/sbin:/usr/bin:$PATH"
+
+# Defaults, in case we can't find our configuration
+SAMPLE_HZ=50
+BUILDLOG_DEST=/var/log/bootchart.tgz
+AUTO_RENDER="no"
+AUTO_RENDER_DIR="/var/log"
+AUTO_RENDER_FORMAT="png"
+
+# The processes we have to wait for
+EXIT_PROC="kdm_greet xterm konsole gnome-terminal metacity mutter gnome-shell compiz ldm icewm-session enlightenment xfwm4 openbox xfce4-panel"
 
 # Read configuration.
 CONF="/etc/bootchartd.conf"
 if [ -f $PWD/bootchartd.conf ]; then
 	. $PWD/bootchartd.conf
 elif [ -f $CONF ]; then
-        . $CONF
+	. $CONF
 else
-        echo "$CONF missing"
-        exit 1
+	echo "$CONF missing"
 fi
-
 
 # Start the boot logger.
 start()
 {
-	if ! [ -r /proc/uptime ]; then
-        	mount -n -t proc none /proc
-        fi
+	# If in init start ourselves in our familiar system
+	if [ -n "$INIT_PROCESS" ]; then
+#		echo "bootchartd started in init" >> kmsg
+		$COLLECTOR_BIN $SAMPLE_HZ
 
-        # If running as init process, the files in /tmp are very prone to be
-        # removed by a cleanup init script. Due to this, we can't use /tmp.
-        # But /mnt should be unused at the moment of start. We can mount
-        # a tmpfs there and immediately release it using a lazy umount, so
-        # it doesn't disturb anyone else.
-        # If not running as an init process, we can't touch /mnt. It might
-        # be used by anyone else.
-        if [ -n "$IN_INIT" ]; then
-            LOG_DIR=/mnt
-            LAZY_UMOUNT=1
-            mount -n -t tmpfs ${TMPFS_SIZE:+-o size=$TMPFS_SIZE} \
-              none "$LOG_DIR" >/dev/null || exit 1
-            cd "$LOG_DIR"
-            > "$BOOTLOG_LOCK"
-            umount -nfl "$LOG_DIR"
-        else
-            LOG_DIR="$( mktemp -dt bootchart.XXXXXX 2>/dev/null )" || \
-              exit 1
-            cd "$LOG_DIR"
-            > "$BOOTLOG_LOCK"
-        fi
-	
-	#
-	# Run loggers in background
-	#
-
-	# Set the stop() trap for the first process
-	( trap trapstop USR1
-	  log_output "cat /proc/stat" proc_stat.log ) &
-
-	( trap '' USR1
-	  # /proc/diskstats is available in 2.6 kernels
-	  log_output "cat /proc/diskstats" proc_diskstats.log ) &
-
-	( trap '' USR1
-	  log_output "cat /proc/*/stat" proc_ps.log ) &
-	#log_output "ps -eww -o pid,ppid,s,pcpu,comm,cmd" ps.log &
-
-	# Uncomment this line for diskless stations
-	#log_output "cat /proc/net/dev" proc_netdev.log &
-
-	if [ -n "$IN_INIT" ]; then
-		if [ "$AUTO_STOP_LOGGER" = "yes" ]; then
-			# If we were called during init, wait for the boot process to end
-			wait_boot &
-		fi
-	elif [ "$#" -gt 0 ]; then
-		# If a command was passed, run it
-		# (used for profiling specific applications)
-		echo "profile.process = $( basename $1 )" >> header
-		$@
-		stop
+	# Otherwise, manually launched to profile something
 	else
-		echo "profile.process = (all)" >> header
+		# bail out, if already running
+		pidof bootchart-collector && exit 0
+#		echo "bootchartd started manually" >> kmsg
+		$COLLECTOR_BIN -r $SAMPLE_HZ &
+
+		if [ "$#" -gt 0 ]; then
+			# If a command was passed, run it
+			# (used for profiling specific applications)
+			echo "profile.process = $( basename $1 )" >> header
+			$@
+			stop
+		else
+			echo "no command passed, you need to manually stop the service sometime"
+		fi
 	fi
-}
-
-
-# Run the command ($1) every $SAMPLE_PERIOD seconds and append output to
-# file ($2).  Mostly pure bash, so we avoid creating an excessive number of
-# processes (thus polluting the process tree).
-log_output()
-{
-	local cmd="$1"
-	local logfile="$2"
-	while [ -f "$BOOTLOG_LOCK" ]; do
-		# Write the time (in jiffies).
-		read uptime < /proc/uptime
-		uptime=${uptime%% [0-9]*}
-		uptime=${uptime%.*}${uptime#*.}
-		echo $uptime
-
-		# Log the command output
-		eval $cmd 2>/dev/null
-		echo
-		sleep $SAMPLE_PERIOD
-	done  >> "$logfile" || stop
 }
 
 # Wait for the boot process to end.
 wait_boot()
 {
-	local runlevel=$( sed -n '/^ *#/d; /initdefault/!d;s/.*:\(.*\):initdefault:.*/\1/g; p; q' /etc/inittab )
+	# Wait for /proc first - without it we have issues
+	while [ ! -e /proc/cmdline ]; do
+		$USLEEP 5000
+	done
 
-	# The processes we have to wait for
-	local exit_proc="gdmgreeter gdm-binary kdm_greet kdm xfce4-panel"
-	# early_login in FC4 starts gdm early, so fall back to mingetty
-	local early_login="no"
-	grep -q early_login /proc/cmdline && early_login="yes"
-	if [ "$runlevel" -eq "2" -o "$runlevel" -eq "3" -o "$early_login" = "yes" ]; then
-		exit_proc="mingetty agetty rungetty getty fgetty"
-	fi
-	while [ -f "$BOOTLOG_LOCK" ]; do
-		if [ -n "$( pidof $exit_proc )" ]; then
-			# Give the exit process some time to start
-			sleep 5
-			# Flush the log files
+	while true; do
+		if [ -n "$EXIT_PROC" -a -n "$( pidof $EXIT_PROC )" ]; then
+			# give an unambiguous settle afterwards - so we get
+			# more post-login data for slow systems
+			$USLEEP 20000000
+
+			# Write / flush the log files
 			stop
 			return
 		fi
-		sleep 2
+		$USLEEP 1000000
 	done;
 }
 
-trapstop()
-{
-  stop
-}
-
-# Stop the boot logger.  The lock file is removed to force the loggers in
-# background to exit.  Some final log files are created and then all log files
-# from the tmpfs are packaged and stored in $BOOTLOG_DEST.
+# Extract the log data from the running bootchart collector
+# process (via ptrace) - fun. Store logs into $BOOTLOG_DEST.
 stop()
 {
-	if [ ! -f "$BOOTLOG_LOCK" ]; then
-		echo "${0##*/} not running"
-		return
-	fi
-	# Prevent concurrent stop() calls
-	rm -f "$BOOTLOG_LOCK" || return
-	sleep $SAMPLE_PERIOD
-	sleep $SAMPLE_PERIOD
-
-	# Stop process accounting if configured
-	local pacct=
-	if [ "$PROCESS_ACCOUNTING" = "yes" ]; then
-		accton off
-		pacct=kernel_pacct
+	tmpdir=`mktemp -d /tmp/bootchart.XXXXXXXXXX`
+	if [ "z$tmpdir" = "z" ]; then
+		echo "Failed to generate directory for logging"
+		exit 1
 	fi
 
-	# Write system information
-	log_header
-
-	# Package log files
-	tar -zcf "$BOOTLOG_DEST" header $pacct *.log
-	if [ -z "$LAZY_UMOUNT" ]; then
-		rm "$LOG_DIR"/*
-		rmdir "$LOG_DIR"
+	if ! $COLLECTOR_BIN --dump $tmpdir; then
+		echo "Can't extract boot chart from collector"
+		exit 1
 	fi
+
+	cd $tmpdir
+	if [ ! -e proc_stat.log ]; then
+		echo "Can't find bootchart output in $tmpdir - aborting"
+		exit 1
+	fi
+
+	# Archive it all up into the bootchart output
+	# expect dmesg log only if bootchartd was started as an init process
+	if [ -n "$INIT_PROCESS" ] ; then
+		tar -zcf "$BOOTLOG_DEST" header dmesg *.log
+	else
+		tar -zcf "$BOOTLOG_DEST" header *.log
+	fi
+
+	rm -Rf $tmpdir
 
 	# Render the chart if configured (and the renderer is installed)
-	[ "$AUTO_RENDER" = "yes" -a -x /usr/bin/bootchart ] && \
-		/usr/bin/bootchart -o "$AUTO_RENDER_DIR" -f $AUTO_RENDER_FORMAT "$BOOTLOG_DEST"
-}
+	if [ "$AUTO_RENDER" = "yes" -a -x /usr/bin/pybootchartgui ]; then
+		cd $AUTO_RENDER_DIR
+		/usr/bin/pybootchartgui -o "$AUTO_RENDER_DIR"/bootchart.$AUTO_RENDER_FORMAT -f $AUTO_RENDER_FORMAT "$BOOTLOG_DEST"
+	fi
 
-
-# Log some basic information about the system.
-log_header()
-{
-	(
-		echo "version = $VERSION"
-		echo "title = Boot chart for $( hostname | sed q ) ($( date ))"
-		echo "system.uname = $( uname -srvm | sed q )"
-		if [ -f /etc/gentoo-release ]; then
-			echo "system.release = $( sed q /etc/gentoo-release )"
-		elif [ -f /etc/SuSE-release ]; then
-			echo "system.release = $( sed q /etc/SuSE-release )"
-		elif [ -f /etc/debian_version ]; then
-			echo "system.release = Debian GNU/$( uname -s ) $( cat /etc/debian_version )"
-		elif [ -f /etc/frugalware-release ]; then
-			echo "system.release = $( sed q /etc/frugalware-release )"
-		elif [ -f /etc/pardus-release ]; then
-			echo "system.release = $( sed q /etc/pardus-release )"
-		else
-			echo "system.release = $( sed 's/\\.//g;q' /etc/issue )"
-		fi
-
-		# Get CPU count
-		local cpucount=$(grep -c '^processor' /proc/cpuinfo)
-		if [ $cpucount -gt 1 -a -n "$(grep 'sibling.*2' /proc/cpuinfo)" ]; then
-			# Hyper-Threading enabled
-			cpucount=$(( $cpucount / 2 ))
-		fi
-		if grep -q '^model name' /proc/cpuinfo; then
-			echo "system.cpu = $( grep '^model name' /proc/cpuinfo | sed q )"\
-			     "($cpucount)"
-		else
-			echo "system.cpu = $( grep '^cpu' /proc/cpuinfo | sed q )"\
-			     "($cpucount)"
-		fi
-
-		echo "system.kernel.options = $( sed q /proc/cmdline )"
-	) >> header
+	# execute custom post-collect (and possibly post-render) command (which could get params from the conf file by itself if needed)
+	if [ -x "$CUSTOM_POST_CMD" ]; then
+		"$CUSTOM_POST_CMD"
+	fi
 }
 
 if [ $$ -eq 1 ]; then
-	# Started by the kernel.  Start the logger in background and exec
-	# init(1).
-	IN_INIT="yes"
+	# Either started by the kernel - in which case, we start the
+	# logger in background and exec init [ re-using this pid (1) ]
+	# Or - started after the initrd has completed, in which case
+	# we try to do nothing much.
+	INIT_PROCESS="yes"
 	echo "Starting bootchart logging"
-	start
-	
+
+	init="/sbin/init"
+
+	# Are we running in the initrd ?
+	if [ -x /init -o -x /linuxrc ]; then
+		IN_INITRD="yes"
+		[ -x /linuxrc ] && init="/linuxrc"
+		[ -x /init ] && init="/init"
+		start &
+	else # running inside the main system
+		echo "bootchart: no initrd used; starting"
+		start &
+		wait_boot &
+		# wait a little, until the collector is going, before allowing
+		# the rest of the system to charge ahead, so we catch it
+		$USLEEP 250000
+		echo "bootchart continuing boot" >> $TMPFS/kmsg
+	fi
+
 	# Optionally, an alternative init(1) process may be specified using
 	# the kernel command line (e.g. "bootchart_init=/sbin/initng")
-	init="${bootchart_init}"
-	if [ -z "$init" ]; then
-		init="/sbin/init"
-	fi
+	[ -n "$bootchart_init" ] && init="$bootchart_init"
+	for i in $@; do
+		if [ "${i%%=*}" = "bootchart_init" ]; then
+			init="${i#*=}"
+			break
+		fi
+		if [ "${i%%=*}" = "init" ]; then
+			_init=${i#*=}
+			if test "$_init" != "/sbin/bootchartd"; then
+				init="$_init"
+				break
+			fi
+		fi
+	done
+	export PATH=$OLDPATH
+
+	# switch to - either the initrd's init, or the main system's
 	exec $init $*
 fi
 
 case "$1" in
-	"init")
-		# Started by the init script
-		IN_INIT="yes"
-		echo "Starting bootchart logging"
-		start
-		;;
 	"start")
 		# Started by the user
 		shift
 		start $@
 		;;
+	"wait")
+		# Wait for boot
+		wait_boot
+		;;
 	"stop")
-		# We get the signal, too. But we ignore it.
-		trap : USR1
-		# Signal all background processes to stop logging
-		killall --exact -USR1 bootchartd
+		stop
 		;;
 	*)
-		echo "Usage: $0 {init|start|stop}"
+		echo "Usage: $0 {wait|start|stop}"
 		;;
 esac
 
