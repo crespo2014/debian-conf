@@ -1,8 +1,8 @@
 #! /bin/sh
 ### BEGIN INIT INFO
 # Provides:          network-manager
-# Required-Start:    dbus udev $desktop
-# Required-Stop:     dbus udev $desktop
+# Required-Start:    dbus $desktop
+# Required-Stop:     dbus $desktop
 # Should-Start:	     $syslog
 # Should-Stop:       $syslog
 # Default-Start:     2 3 4 5
