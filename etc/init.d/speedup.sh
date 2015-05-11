@@ -24,10 +24,11 @@ case "$1" in
 	/etc/init.d/hostname.sh start &
 	if [ "$RUNLEVEL" = 2 ]; then
 	mount -t proc "" /proc "-onodev,noexec,nosuid"
+	/etc/init.d/early-readahead start &
 	mount -t sysfs "" /sys "-onodev,noexec,nosuid"
 	/etc/init.d/udev start &
 	/etc/init.d/mountall.sh 
-	/etc/init.d/early-readahead start 
+	/etc/init.d/mountdevsubfs.sh start 
 	/etc/init.d/dbus start &
 	/etc/init.d/slim start
 	else
