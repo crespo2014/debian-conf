@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /bin/bash
 ### BEGIN INIT INFO
 # Provides:		modules proc sysfs desktop         
 # Required-Start:	
@@ -12,30 +12,29 @@
 
 PATH=/sbin:/bin:/usr/bin
 
+LEVEL2="hostname.sh& udev& mountall.sh mountdevsubfs.sh dbus& slim" 
+LEVEL1="hostname.sh& mountkernfs.sh checkroot.sh checkfs.sh udev mountdevsubfs.sh" 
+
 # read env
 if grep -qw single /proc/cmdline; then
-RUNLEVEL=1
+SCRIPTS=$LEVEL1
 else
-RUNLEVEL=2
+SCRIPTS=$LEVEL2
 fi
 
 case "$1" in
   start|"")
-	/etc/init.d/hostname.sh start &
-	if [ "$RUNLEVEL" = 2 ]; then
-	mount -t proc "" /proc "-onodev,noexec,nosuid"
-	/etc/init.d/early-readahead start &
-	mount -t sysfs "" /sys "-onodev,noexec,nosuid"
-	/etc/init.d/udev start &
-	/etc/init.d/mountall.sh 
-	/etc/init.d/mountdevsubfs.sh start 
-	/etc/init.d/dbus start &
-	/etc/init.d/slim start
-	else
-	/etc/init.d/mountkernfs.sh start
-	/etc/init.d/checkroot.sh start
-	/etc/init.d/checkfs.sh start
+	cat /proc/deferred_initcalls &> /dev/null &
+	for script in $SCRIPTS
+	do
+	cmd=${script::-1}
+	cmd_end=${script: -1}
+	if [ "$cmd_end" != "&" ]; then
+	  cmd=$cmd$cmd_end
+	  cmd_end=
 	fi
+	/etc/init.d/$cmd start $cmd_end
+	done
 	cat /proc/deferred_initcalls &> /dev/null &
 	exit 0
 	;;
