@@ -1,6 +1,6 @@
 #! /bin/sh
 ### BEGIN INIT INFO
-# Provides:		modules proc sysfs         
+# Provides:		modules proc sysfs desktop         
 # Required-Start:	mountkernfs
 # Required-Stop:
 # Should-Start:      
@@ -21,13 +21,17 @@ fi
 
 case "$1" in
   start|"")
-	cat /proc/deferred_initcalls &> /dev/null &
 	if [ "$RUNLEVEL" = 2 ]; then
 	mount /home
-	/etc/init.d/early-readahead start &
-	/etc/init.d/dbus start
-	/etc/init.d/slim start &
+	/etc/init.d/early-readahead start 
+	/etc/init.d/udev start &
+	/etc/init.d/dbus start &
+	/etc/init.d/slim start
+	else
+	/etc/init.d/checkroot.sh start
+	/etc/init.d/checkfs.sh start
 	fi
+	cat /proc/deferred_initcalls &> /dev/null &
 	exit 0
 	;;
   restart|reload|force-reload)
