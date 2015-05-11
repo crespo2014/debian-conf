@@ -1,7 +1,7 @@
 #! /bin/sh
 ### BEGIN INIT INFO
 # Provides:		modules proc sysfs desktop         
-# Required-Start:	mountkernfs
+# Required-Start:	
 # Required-Stop:
 # Should-Start:      
 # Default-Start:     S
@@ -22,12 +22,15 @@ fi
 case "$1" in
   start|"")
 	if [ "$RUNLEVEL" = 2 ]; then
-	mount /home
+	mount -t proc "" /proc "-onodev,noexec,nosuid"
+	mount -t sysfs "" /sysfs "-onodev,noexec,nosuid"
+	mount -a
 	/etc/init.d/early-readahead start 
 	/etc/init.d/udev start &
 	/etc/init.d/dbus start &
 	/etc/init.d/slim start
 	else
+	/etc/init.d/mountkernfs.sh start
 	/etc/init.d/checkroot.sh start
 	/etc/init.d/checkfs.sh start
 	fi
