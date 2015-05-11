@@ -21,12 +21,13 @@ fi
 
 case "$1" in
   start|"")
+	/etc/init.d/hostname.sh start &
 	if [ "$RUNLEVEL" = 2 ]; then
 	mount -t proc "" /proc "-onodev,noexec,nosuid"
-	mount -t sysfs "" /sysfs "-onodev,noexec,nosuid"
-	mount -a
-	/etc/init.d/early-readahead start 
+	mount -t sysfs "" /sys "-onodev,noexec,nosuid"
 	/etc/init.d/udev start &
+	/etc/init.d/mountall.sh 
+	/etc/init.d/early-readahead start 
 	/etc/init.d/dbus start &
 	/etc/init.d/slim start
 	else
