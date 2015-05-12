@@ -16,18 +16,22 @@ LOG=/dev/kmsg
 
 function init_1() {
   SCRIPTS="hostname.sh \
- mountkernfs.sh udev\
+ mountkernfs.sh \
+ udev\
+ procps \
  keyboard-setup \
  mountdevsubfs.sh \
  hdparm \
  hwclock.sh \
  checkroot.sh \
+ checkfs.sh \
  checkroot-bootclean.sh \
+ mountall.sh \
+ mountall-bootclean.sh \
  kbd \
  console-setup \
  alsa-utils \
- pppd-dns \
- procps \
+ pppd-dns \ 
  udev-mtab \
  urandom \
  x11-common \
@@ -38,6 +42,7 @@ function init_1() {
  bootmisc.sh \
  motd \
  bootlogs \
+ dbus \
  network-manager \
  ssh \
  single"
@@ -56,10 +61,14 @@ function init_2() {
   early-readahead \
   W \
   udev& \
-  mountall.sh &\
-  x11-common &\
+  mountall.sh& \
+  x11-common& \
   mountdevsubfs.sh \
+  hwclock.sh& \
+  hdparam& \
   W \
+  deferred_init.sh& \
+  later-readahead \
   dbus& \
   slim \
   W \
