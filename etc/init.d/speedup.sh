@@ -1,6 +1,6 @@
 #! /bin/bash
 ### BEGIN INIT INFO
-# Provides:		modules proc sysfs desktop         
+# Provides:	      init procfs sysfs	         
 # Required-Start:	
 # Required-Stop:
 # Should-Start:      
@@ -11,12 +11,23 @@
 ### END INIT INFO
 
 PATH=/sbin:/bin:/usr/bin
-LOG=/dev/kmsg
+#LOG=/dev/kmsg &>/dev/msg  &>>file
+LOG=
+
+/etc/init.d/hostname.sh start 
+/etc/init.d/mountkernfs.sh start 
+
+if grep -qw safe /proc/cmdline; then
+BACKG=0
+echo "Safe Mode Initialization ... "
+else
+BACKG=1
+fi
 
 # using W to wait for all background to finish  
 if grep -qw single /proc/cmdline; then
-SCRIPTS="hostname.sh \
- mountkernfs.sh \
+SCRIPTS=" \
+ deferred_init.sh \
  udev \
  procps \
  keyboard-setup \
@@ -45,26 +56,28 @@ SCRIPTS="hostname.sh \
  dbus \
  network-manager \
  ssh \
+ wicd \
  single \
- deferred_init.sh& "
+ "
 else
-SCRIPTS="hostname.sh \
- procfs.sh \
- deferred_init.sh& \
- early-readahead& \
+SCRIPTS="\
+ early-readahead \
  udev& \
+ later-readahead& \
+ mountdevsubfs.sh \
+ hdparm& \
  mountall.sh& \
- mtab.sh& \
- mountdevsubfs.sh& \
- hwclock.sh& \
- hdparam& \
- deferred_init.sh& \
- x11-common& \
- later-readahead \
+ kbd& \
+ console-setup& \
+ urandom \
+ x11-common \
+ procps& \
  dbus& \
  W \
- slim \
+ slim& \
  W \
+ deferred_init.sh \
+ hwclock.sh \
  stop-readahead-fedora \
  acct \
  urandom \
@@ -73,10 +86,13 @@ SCRIPTS="hostname.sh \
  cron \
  dbus \
  exim4 \
- motd rsync \
+ motd \
+ rsync \
  bootlogs \
  networking \
  network-manager \
+ wicd \
+ stop-readahead-fedora \
  ssh \
  saned \
  rpcbind \
@@ -90,6 +106,7 @@ function init() {
   pid=
   for script in $SCRIPTS
   do
+    echo $script 
     cmd_end=${script: -1}
 	if [ "$script" = "W" ]; then
 	  for id in $pid
@@ -98,10 +115,10 @@ function init() {
 	  done
 	  pid=
 	else	
-      if [ "$cmd_end" != "&" ]; then
-	    /etc/init.d/$script start &>>$LOG
+      if [ "$cmd_end" != "&" ] || [ "$BACKG" = "0" ] ; then
+	    [ -x /etc/init.d/$script ] && /etc/init.d/$script start $LOG
 	  else
-	    /etc/init.d/${script::-1} start &>>$LOG &
+	    [ -x /etc/init.d/${script::-1} ] && /etc/init.d/${script::-1} start $LOG &
 	    pid="$pid $!"
       fi 
 	fi
