@@ -13,7 +13,7 @@
 PATH=/sbin:/bin:/usr/bin
 
 function init_1() {
-  SCRIPTS="hostname.sh mountkernfs.sh udev checkroot.sh checkfs.sh udev mountdevsubfs.sh muntall.sh console-setup"
+  SCRIPTS="hostname.sh mountkernfs.sh udev keyboard-setup mountdevsubfs.sh hdparm hwclock.sh checkroot.sh checkroot-bootclean.sh kbd console-setup alsa-utils pppd-dns procps udev-mtab urandom x11-common networking rpcbind mountnfs.sh mountnfs-bootclean.sh bootmisc.sh motd bootlogs single"
   for script in $SCRIPTS
   do
     /etc/init.d/$script start
@@ -25,7 +25,7 @@ function init_2() {
   mount -t proc proc /proc "-onodev,noexec,nosuid"
   mount -t sysfs sys /sys "-onodev,noexec,nosuid"
   cat /proc/deferred_initcalls &> /dev/null &
-  SCRIPTS="hostname.sh udev& mountall.sh mountdevsubfs.sh dbus& slim" 
+  SCRIPTS="hostname.sh early-readahead udev& mountall.sh mountdevsubfs.sh dbus& slim stop-readahead-fedora acct acpid atd cron dbus exim4 motd rsync bootlogs network-manager saned rpcbind rc.local rmnologin " 
   for script in $SCRIPTS
   do
     cmd=${script::-1}
