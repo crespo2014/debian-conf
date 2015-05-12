@@ -13,11 +13,12 @@
 PATH=/sbin:/bin:/usr/bin
 
 LEVEL2="hostname.sh& udev& mountall.sh mountdevsubfs.sh dbus& slim" 
-LEVEL1="hostname.sh& mountkernfs.sh udev checkroot.sh checkfs.sh udev mountdevsubfs.sh console-setup" 
+LEVEL1="hostname.sh& mountkernfs.sh udev checkroot.sh checkfs.sh udev mountdevsubfs.sh muntall.sh console-setup" 
 
 mount -t proc proc /proc "-onodev,noexec,nosuid"
+mount -t sysfs sys /sys "-onodev,noexec,nosuid"
 
-cat /proc/deferred_initcalls &> /dev/null &
+#cat /proc/deferred_initcalls &> /dev/null &
 
 # read env
 if grep -qw single /proc/cmdline; then
@@ -30,7 +31,6 @@ echo "Starting .... $SCRIPTS"
 
 case "$1" in
   start|"")
-	mount -t sysfs sys /sys "-onodev,noexec,nosuid"
 	for script in $SCRIPTS
 	do
 	cmd=${script::-1}
