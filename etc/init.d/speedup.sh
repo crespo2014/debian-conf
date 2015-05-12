@@ -51,20 +51,19 @@ else
 SCRIPTS="hostname.sh \
  procfs.sh \
  deferred_init.sh& \
- early-readahead& \
+ early-readahead \
  udev& \
  mountall.sh& \
+ W \
+ later-readahead \
  mtab.sh& \
  mountdevsubfs.sh& \
  hwclock.sh& \
  hdparam& \
  deferred_init.sh& \
  x11-common& \
- later-readahead \
- dbus& \
- W \
+ dbus \
  slim \
- W \
  stop-readahead-fedora \
  acct \
  urandom \
