@@ -62,13 +62,12 @@ SCRIPTS=" \
 else
 SCRIPTS="\
  early-readahead \
- udev& \
+ udev# \
  later-readahead& \
  mountdevsubfs.sh \
  hdparm& \
  mountall.sh& \
  kbd& \
- console-setup& \
  urandom \
  x11-common \
  procps& \
@@ -80,26 +79,22 @@ SCRIPTS="\
  hwclock.sh \
  stop-readahead-fedora \
  acct \
- urandom \
  acpid \
  atd \
  cron \
- dbus \
- exim4 \
  motd \
- rsync \
- bootlogs \
  networking \
  network-manager \
  wicd \
  stop-readahead-fedora \
+ ntp \
  ssh \
  saned \
  rpcbind \
  rc.local \
  rmnologin \
  bootchart \
- bootchart-done" 
+ bootchart-done#" 
 fi
 
 function init() {  
@@ -108,20 +103,24 @@ function init() {
   do
     echo $script 
     cmd_end=${script: -1}
-	if [ "$script" = "W" ]; then
-	  for id in $pid
-	  do
-	    wait $id
-	  done
-	  pid=
-	else	
-      if [ "$cmd_end" != "&" ] || [ "$BACKG" = "0" ] ; then
-	    [ -x /etc/init.d/$script ] && /etc/init.d/$script start $LOG
-	  else
-	    [ -x /etc/init.d/${script::-1} ] && /etc/init.d/${script::-1} start $LOG &
-	    pid="$pid $!"
-      fi 
-	fi
+    if [ "$script" = "W" ]; then
+      for id in $pid
+      do
+        wait $id
+      done
+      pid=
+    else
+      if [ "$cmd_end" = "&" ]; then
+        [ -x /etc/init.d/${script::-1} ] && /etc/init.d/${script::-1} start $LOG &
+        pid="$pid $!"
+      else
+      if [ "$cmd_end" = "#" ]; then
+        [ -x /etc/init.d/${script::-1} ] && /etc/init.d/${script::-1} start $LOG &
+      else
+        [ -x /etc/init.d/$script ] && /etc/init.d/$script start $LOG      
+      fi
+      fi
+    fi
   done
 }
 
