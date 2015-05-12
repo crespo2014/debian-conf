@@ -1,9 +1,9 @@
 #! /bin/sh
 ### BEGIN INIT INFO
-# Provides:		modules          
+# Provides:			modules          
 # Required-Start:	mountkernfs
 # Required-Stop:
-# Should-Start:      glibc
+# Should-Start:      
 # Default-Start:     S
 # Default-Stop:
 # Short-Description: 
@@ -11,10 +11,6 @@
 ### END INIT INFO
 
 PATH=/sbin:/bin
-
-. /lib/init/vars.sh
-. /lib/lsb/init-functions
-
 
 case "$1" in
   start|"")

@@ -11,13 +11,13 @@
 ### END INIT INFO
 
 PATH=/sbin:/bin:/usr/bin
-
 LOG=/dev/kmsg
 
-function init_1() {
-  SCRIPTS="hostname.sh \
+# using W to wait for all background to finish  
+if grep -qw single /proc/cmdline; then
+SCRIPTS="hostname.sh \
  mountkernfs.sh \
- udev\
+ udev \
  procps \
  keyboard-setup \
  mountdevsubfs.sh \
@@ -31,7 +31,7 @@ function init_1() {
  kbd \
  console-setup \
  alsa-utils \
- pppd-dns \ 
+ pppd-dns \
  udev-mtab \
  urandom \
  x11-common \
@@ -45,53 +45,48 @@ function init_1() {
  dbus \
  network-manager \
  ssh \
- single"
-  for script in $SCRIPTS
-  do
-    /etc/init.d/$script start &>>$LOG
-  done
-  cat /proc/deferred_initcalls &>>$LOG &
-}
+ single \
+ deferred_init.sh& "
+else
+SCRIPTS="hostname.sh \
+ procfs.sh \
+ deferred_init.sh& \
+ early-readahead& \
+ udev& \
+ mountall.sh& \
+ mtab.sh& \
+ mountdevsubfs.sh& \
+ hwclock.sh& \
+ hdparam& \
+ deferred_init.sh& \
+ x11-common& \
+ later-readahead \
+ dbus& \
+ W \
+ slim \
+ W \
+ stop-readahead-fedora \
+ acct \
+ urandom \
+ acpid \
+ atd \
+ cron \
+ dbus \
+ exim4 \
+ motd rsync \
+ bootlogs \
+ networking \
+ network-manager \
+ ssh \
+ saned \
+ rpcbind \
+ rc.local \
+ rmnologin \
+ bootchart \
+ bootchart-done" 
+fi
 
-function init_2() {
-  mount -t proc proc /proc "-onodev,noexec,nosuid"
-  mount -t sysfs sys /sys "-onodev,noexec,nosuid"
-  cat /proc/deferred_initcalls &> /dev/null &
-  SCRIPTS="hostname.sh& \
-  early-readahead \
-  W \
-  udev& \
-  mountall.sh& \
-  x11-common& \
-  mountdevsubfs.sh \
-  hwclock.sh& \
-  hdparam& \
-  W \
-  deferred_init.sh& \
-  later-readahead \
-  dbus& \
-  slim \
-  W \
-  stop-readahead-fedora \
-  acct \
-  urandom \
-  acpid \
-  atd \
-  cron \
-  dbus \
-  exim4 \
-  motd rsync \
-  bootlogs \
-  networking \
-  network-manager \
-  ssh \
-  saned \
-  rpcbind \
-  rc.local \
-  rmnologin \
-  bootchart \
-  bootchart-done" 
-# using W to wait for all background to finish  
+function init() {  
   pid=
   for script in $SCRIPTS
   do
@@ -115,11 +110,7 @@ function init_2() {
 
 case "$1" in
   start|"")
-  	if grep -qw single /proc/cmdline; then
-  	init_1
-  	else
-  	init_2
-  	fi
+	init
   	exit 0
 	;;
   restart|reload|force-reload)
