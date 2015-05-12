@@ -12,37 +12,41 @@
 
 PATH=/sbin:/bin:/usr/bin
 
-LEVEL2="hostname.sh& udev& mountall.sh mountdevsubfs.sh dbus& slim" 
-LEVEL1="hostname.sh& mountkernfs.sh udev checkroot.sh checkfs.sh udev mountdevsubfs.sh muntall.sh console-setup" 
+function init_1() {
+  SCRIPTS="hostname.sh mountkernfs.sh udev checkroot.sh checkfs.sh udev mountdevsubfs.sh muntall.sh console-setup"
+  for script in $SCRIPTS
+  do
+    /etc/init.d/$script start
+  done
+  cat /proc/deferred_initcalls &
+}
 
-mount -t proc proc /proc "-onodev,noexec,nosuid"
-mount -t sysfs sys /sys "-onodev,noexec,nosuid"
-
-#cat /proc/deferred_initcalls &> /dev/null &
-
-# read env
-if grep -qw single /proc/cmdline; then
-SCRIPTS=$LEVEL1
-else
-SCRIPTS=$LEVEL2
-fi
-
+function init_2() {
+  mount -t proc proc /proc "-onodev,noexec,nosuid"
+  mount -t sysfs sys /sys "-onodev,noexec,nosuid"
+  cat /proc/deferred_initcalls &> /dev/null &
+  SCRIPTS="hostname.sh udev& mountall.sh mountdevsubfs.sh dbus& slim" 
+  for script in $SCRIPTS
+  do
+    cmd=${script::-1}
+    cmd_end=${script: -1}
+    if [ "$cmd_end" != "&" ]; then
+      cmd=$cmd$cmd_end
+      cmd_end=
+    fi 
+    /etc/init.d/$cmd start $cmd_end
+  done
+}
 echo "Starting .... $SCRIPTS"
 
 case "$1" in
   start|"")
-	for script in $SCRIPTS
-	do
-	cmd=${script::-1}
-	cmd_end=${script: -1}
-	if [ "$cmd_end" != "&" ]; then
-	  cmd=$cmd$cmd_end
-	  cmd_end=
-	fi
-	/etc/init.d/$cmd start $cmd_end
-	done
-	cat /proc/deferred_initcalls &> /dev/null &
-	exit 0
+  	if grep -qw single /proc/cmdline; then
+  	init_1
+  	else
+  	init_2
+  	fi
+  	exit 0
 	;;
   restart|reload|force-reload)
 	;;
