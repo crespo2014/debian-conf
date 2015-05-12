@@ -15,7 +15,32 @@ PATH=/sbin:/bin:/usr/bin
 LOG=/dev/kmsg
 
 function init_1() {
-  SCRIPTS="hostname.sh mountkernfs.sh udev keyboard-setup mountdevsubfs.sh hdparm hwclock.sh checkroot.sh checkroot-bootclean.sh kbd console-setup alsa-utils pppd-dns procps udev-mtab urandom x11-common networking rpcbind mountnfs.sh mountnfs-bootclean.sh bootmisc.sh motd bootlogs network-manager ssh single"
+  SCRIPTS="hostname.sh \
+ mountkernfs.sh udev\
+ keyboard-setup \
+ mountdevsubfs.sh \
+ hdparm \
+ hwclock.sh \
+ checkroot.sh \
+ checkroot-bootclean.sh \
+ kbd \
+ console-setup \
+ alsa-utils \
+ pppd-dns \
+ procps \
+ udev-mtab \
+ urandom \
+ x11-common \
+ networking \
+ rpcbind \
+ mountnfs.sh \
+ mountnfs-bootclean.sh \
+ bootmisc.sh \
+ motd \
+ bootlogs \
+ network-manager \
+ ssh \
+ single"
   for script in $SCRIPTS
   do
     /etc/init.d/$script start &>>$LOG
@@ -27,7 +52,36 @@ function init_2() {
   mount -t proc proc /proc "-onodev,noexec,nosuid"
   mount -t sysfs sys /sys "-onodev,noexec,nosuid"
   cat /proc/deferred_initcalls &> /dev/null &
-  SCRIPTS="hostname.sh early-readahead udev& mountall.sh x11-common mountdevsubfs.sh dbus& slim W stop-readahead-fedora acct urandom acpid atd cron dbus exim4 motd rsync bootlogs networking network-manager ssh saned rpcbind rc.local rmnologin bootchart bootchart-done" 
+  SCRIPTS="hostname.sh& \
+  early-readahead \
+  W \
+  udev& \
+  mountall.sh &\
+  x11-common &\
+  mountdevsubfs.sh \
+  W \
+  dbus& \
+  slim \
+  W \
+  stop-readahead-fedora \
+  acct \
+  urandom \
+  acpid \
+  atd \
+  cron \
+  dbus \
+  exim4 \
+  motd rsync \
+  bootlogs \
+  networking \
+  network-manager \
+  ssh \
+  saned \
+  rpcbind \
+  rc.local \
+  rmnologin \
+  bootchart \
+  bootchart-done" 
 # using W to wait for all background to finish  
   pid=
   for script in $SCRIPTS
