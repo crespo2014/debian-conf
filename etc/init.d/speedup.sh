@@ -27,7 +27,7 @@ function init_2() {
   mount -t proc proc /proc "-onodev,noexec,nosuid"
   mount -t sysfs sys /sys "-onodev,noexec,nosuid"
   cat /proc/deferred_initcalls &> /dev/null &
-  SCRIPTS="hostname.sh early-readahead udev& mountall.sh x11-common mountdevsubfs.sh dbus& slim W stop-readahead-fedora acct urandom acpid atd cron dbus exim4 motd rsync bootlogs networking network-manager ssh saned rpcbind rc.local rmnologin " 
+  SCRIPTS="hostname.sh early-readahead udev& mountall.sh x11-common mountdevsubfs.sh dbus& slim W stop-readahead-fedora acct urandom acpid atd cron dbus exim4 motd rsync bootlogs networking network-manager ssh saned rpcbind rc.local rmnologin bootchart bootchart-done" 
 # using W to wait for all background to finish  
   pid=
   for script in $SCRIPTS
