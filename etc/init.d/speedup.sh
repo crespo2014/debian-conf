@@ -82,28 +82,29 @@ mount_shm mount_noupdate
 #mount /mnt/data
 
 SCRIPTS="\
+ deferred_init.sh# \
  hostname.sh& \
  fs.sh& \
- early-readahead \
- later-readahead \
+ early-readahead% \
+ later-readahead% \
  udev# \
- deferred_init.sh# \
  mountdevsubfs.sh# \
  hdparm# \
- kbd# \
  x11-common \
  procps# \
  dbus# \
+ acpid# \
  W \
  nodm \
  stop-readahead-fedora \
  sleep.sh \
+ sleep.sh \
+ kbd# \
  urandom \
  hwclock.sh \
  networking \
  network-manager \
  acct \
- acpid \
  atd \
  cron \
  motd \

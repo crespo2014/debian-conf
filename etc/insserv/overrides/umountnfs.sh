@@ -2,8 +2,8 @@
 ### BEGIN INIT INFO
 # Provides:          umountnfs
 # Required-Start:
-# Required-Stop:     umountfs network-manager networking $desktop $network
-# Should-Stop:       $network $portmap nfs-common 
+# Required-Stop:     umountfs wicd nodm network-manager networking $desktop $network
+# Should-Stop:        
 # Default-Start:
 # Default-Stop:      0 6
 # Short-Description: Unmount all network filesystems except the root fs.

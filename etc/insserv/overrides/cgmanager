@@ -1,0 +1,15 @@
+#! /bin/sh
+### BEGIN INIT INFO
+# Provides:          cgmanager
+# Required-Start:    
+# Required-Stop:     
+# Default-Start:    2 3 4 5
+# Default-Stop:     0 1 6
+# Short-Description: Cgroup manager daemon
+# Description:
+#  The cgroup manager accepts cgroup administration requests
+#  over dbus, honoring privilege by root users in mapped user
+#  namespaces over the non-root mapped uids.  This allows safe
+#  nesting of lxc containers by unprivileged users.
+### END INIT INFO
+
