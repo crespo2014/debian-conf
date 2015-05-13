@@ -1,6 +1,6 @@
 #! /bin/bash
 ### BEGIN INIT INFO
-# Provides:		modules proc sysfs desktop         
+# Provides:	      init procfs sysfs	         
 # Required-Start:	
 # Required-Stop:
 # Should-Start:      
@@ -11,12 +11,29 @@
 ### END INIT INFO
 
 PATH=/sbin:/bin:/usr/bin
-LOG=/dev/kmsg
+
+. /lib/init/vars.sh
+. /lib/init/tmpfs.sh
+. /lib/lsb/init-functions
+. /lib/init/mount-functions.sh
+
+VERBOSE=no
+
+domount mount_noupdate proc "" /proc proc "-onodev,noexec,nosuid"
+
+if grep -qw safe /proc/cmdline; then
+BACKG=0
+echo "Safe Mode Initialization ... "
+else
+BACKG=1
+fi
 
 # using W to wait for all background to finish  
 if grep -qw single /proc/cmdline; then
-SCRIPTS="hostname.sh \
+SCRIPTS=" \
+ hostname.sh \
  mountkernfs.sh \
+ deferred_init.sh \
  udev \
  procps \
  keyboard-setup \
@@ -45,65 +62,72 @@ SCRIPTS="hostname.sh \
  dbus \
  network-manager \
  ssh \
+ wicd \
  single \
- deferred_init.sh& "
+ "
 else
-SCRIPTS="hostname.sh \
- procfs.sh \
- deferred_init.sh& \
+SCRIPTS="\
+ hostname.sh& \
+ fs.sh \
  early-readahead \
- udev& \
- mountall.sh& \
- W \
- later-readahead \
- mtab.sh& \
- mountdevsubfs.sh& \
- hwclock.sh& \
- hdparam& \
- deferred_init.sh& \
+ udev# \
+ later-readahead# \
+ deferred_init.sh# \
+ mountdevsubfs.sh# \
+ hdparm# \
+ kbd# \
+ urandom& \
  x11-common& \
- dbus \
- slim \
+ procps# \
+ dbus# \
+ W \
+ slim& \
+ W \
+ hwclock.sh \
  stop-readahead-fedora \
  acct \
- urandom \
  acpid \
  atd \
  cron \
- dbus \
- exim4 \
- motd rsync \
- bootlogs \
+ motd \
  networking \
  network-manager \
+ wicd \
+ stop-readahead-fedora \
+ ntp \
  ssh \
  saned \
  rpcbind \
  rc.local \
  rmnologin \
  bootchart \
- bootchart-done" 
+ bootchart-done#" 
 fi
 
 function init() {  
   pid=
   for script in $SCRIPTS
   do
+    echo $script 
     cmd_end=${script: -1}
-	if [ "$script" = "W" ]; then
-	  for id in $pid
-	  do
-	    wait $id
-	  done
-	  pid=
-	else	
-      if [ "$cmd_end" != "&" ]; then
-	    /etc/init.d/$script start &>>$LOG
-	  else
-	    /etc/init.d/${script::-1} start &>>$LOG &
-	    pid="$pid $!"
-      fi 
-	fi
+    if [ "$script" = "W" ]; then
+      for id in $pid
+      do
+        wait $id
+      done
+      pid=
+    else
+      if [ "$cmd_end" = "&" ]; then
+        [ -x /etc/init.d/${script::-1} ] && /etc/init.d/${script::-1} start $LOG &
+        pid="$pid $!"
+      else
+      if [ "$cmd_end" = "#" ]; then
+        [ -x /etc/init.d/${script::-1} ] && /etc/init.d/${script::-1} start $LOG &
+      else
+        [ -x /etc/init.d/$script ] && /etc/init.d/$script start $LOG      
+      fi
+      fi
+    fi
   done
 }
 
