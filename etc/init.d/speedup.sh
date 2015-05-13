@@ -25,6 +25,9 @@ BACKG=1
 fi
 
 # using W to wait for all background to finish  
+# using # to run in background not wait
+# using % to disable
+
 if grep -qw single /proc/cmdline; then
 SCRIPTS=" \
  deferred_init.sh \
@@ -61,9 +64,9 @@ SCRIPTS=" \
  "
 else
 SCRIPTS="\
- early-readahead \
+ early-readahead% \
  udev# \
- later-readahead# \
+ later-readahead \
  mountdevsubfs.sh# \
  hdparm# \
  mountall.sh# \
@@ -117,7 +120,11 @@ function init() {
       if [ "$cmd_end" = "#" ]; then
         [ -x /etc/init.d/${script::-1} ] && /etc/init.d/${script::-1} start $LOG &
       else
+      if [ "$cmd_end" = "%" ]; then
+        echo "$script OFF"
+      else
         [ -x /etc/init.d/$script ] && /etc/init.d/$script start $LOG      
+      fi
       fi
       fi
     fi
