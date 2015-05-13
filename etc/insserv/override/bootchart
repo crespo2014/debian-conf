@@ -1,0 +1,11 @@
+#! /bin/sh
+### BEGIN INIT INFO
+# Provides:          bootchart
+# Required-Start:    $remote_fs $all
+# Required-Stop:
+# Default-Start:     
+# Default-Stop:
+# Short-Description: Stop bootchartd
+# Description:       This script stops the bootchartd daemon after
+#                    the system came up.
+### END INIT INFO

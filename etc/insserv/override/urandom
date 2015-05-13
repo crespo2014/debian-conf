@@ -1,0 +1,11 @@
+#! /bin/sh
+### BEGIN INIT INFO
+# Provides:          urandom
+# Required-Start:    $local_fs $time
+# Required-Stop:     $local_fs
+# Default-Start:     
+# Default-Stop:      0 6
+# Short-Description: Save and restore random seed between restarts.
+# Description:       This script saves the random seed between restarts.
+#                    It is called from the boot, halt and reboot scripts.
+### END INIT INFO

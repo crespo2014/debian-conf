@@ -1,0 +1,12 @@
+#!/bin/sh
+set -e
+### BEGIN INIT INFO
+# Provides:          early-readahead
+# Required-Start:    
+# Required-Stop:
+# Should-Start:      mountkernfs
+# X-Start-Before:    udev mountdevsubfs
+# Default-Start:     
+# Default-Stop:
+# Short-Description: init script for readahead-fedora
+### END INIT INFO

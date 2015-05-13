@@ -1,0 +1,11 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          slim
+# Required-Start:    $local_fs 
+# Required-Stop:     $local_fs 
+# Should-Start:      xfs $named slapd
+# Should-Stop:       xfs $named slapd
+# Default-Start:     
+# Default-Stop:      0 1 6
+# Short-Description: Start/stop the SLiM daemon.
+### END INIT INFO

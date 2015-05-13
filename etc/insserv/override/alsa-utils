@@ -1,0 +1,19 @@
+#!/bin/sh
+#
+# alsa-utils initscript
+#
+### BEGIN INIT INFO
+# Provides:          alsa-utils
+# Required-Start:    $local_fs $remote_fs
+# Required-Stop:     $remote_fs
+# Default-Start:     
+# Default-Stop:      0 1 6
+# Short-Description: Restore and store ALSA driver settings
+# Description:       This script stores and restores mixer levels on
+#                    shutdown and bootup.On sysv-rc systems: to
+#                    disable storing of mixer levels on shutdown,
+#                    remove /etc/rc[06].d/K50alsa-utils.  To disable
+#                    restoring of mixer levels on bootup, rename the
+#                    "S50alsa-utils" symbolic link in /etc/rcS.d/ to
+#                    "K50alsa-utils".
+### END INIT INFO

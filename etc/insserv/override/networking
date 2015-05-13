@@ -1,0 +1,10 @@
+#!/bin/sh -e
+### BEGIN INIT INFO
+# Provides:          networking ifupdown
+# Required-Start:    mountkernfs $local_fs urandom
+# Required-Stop:     $local_fs
+# Default-Start:     
+# Default-Stop:      0 6
+# Short-Description: Raise network interfaces.
+# Description:       Prepare /run/network directory, ifstate file and raise network interfaces, or take them down.
+### END INIT INFO
