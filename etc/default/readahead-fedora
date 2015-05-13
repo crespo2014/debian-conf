@@ -1,0 +1,30 @@
+# enable readahead at system startup
+READAHEAD="yes"
+
+# enable (at least monthly) readahead list collection
+READAHEAD_COLLECT="yes"
+
+# collect x seconds more after everything has been started
+READAHEAD_EXTRA_COLLECT="10"
+
+# enable to run readahead in the background instead of blocking
+# useful for SSDs
+#RUN_IN_BACKGROUND="yes"
+
+# Force the I/O priority of readahead. Leave commented to pick the best
+# priority based on the RUN_IN_BACKGROUND setting.
+# Possibilities: "idle", "best-effort", "real-time"
+#IO_PRIORITY="best-effort"
+
+# Don't preload files bigger than x KiBs
+# leave commented to use readahead's built-in default
+#MAX_FILE_SIZE=10240
+
+# Nice priority for the collector. Default: 5
+# The value is not validated, setting it incorrectly may prevent the
+# collector from running. Do NOT set it to a negative integer.
+NICE_COLLECTOR=5
+
+# Sort the files lists at shutdown, to leave them in an optimum state
+# for next boot. Disable with "no".
+SORT_AT_SHUTDOWN="yes"
