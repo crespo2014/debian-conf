@@ -46,6 +46,7 @@ SCRIPTS=" \
  checkroot-bootclean.sh \
  mountall.sh \
  mountall-bootclean.sh \
+ kmod \
  kbd \
  console-setup \
  alsa-utils \

@@ -1,7 +1,7 @@
 #! /bin/sh
 ### BEGIN INIT INFO
 # Provides:          mountall-bootclean
-# Required-Start:    mountall
+# Required-Start:    
 # Required-Stop:
 # Default-Start:     
 # Default-Stop:

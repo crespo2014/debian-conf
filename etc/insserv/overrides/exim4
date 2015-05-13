@@ -1,11 +1,4 @@
 #! /bin/sh
-# /etc/init.d/exim4
-#
-# Written by Miquel van Smoorenburg <miquels@drinkel.ow.org>.
-# Modified for Debian GNU/Linux by Ian Murdock <imurdock@gnu.ai.mit.edu>.
-# Modified for exim by Tim Cutts <timc@chiark.greenend.org.uk>
-# Modified for exim4 by Andreas Metzler <ametzler@downhill.at.eu.org>
-#                   and Marc Haber <mh+debian-packages@zugschlus.de>
 
 ### BEGIN INIT INFO
 # Provides:          exim4

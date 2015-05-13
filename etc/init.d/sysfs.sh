@@ -4,7 +4,7 @@
 # Required-Start:
 # Required-Stop:
 # Should-Start:      
-# Default-Start:     S
+# Default-Start:     
 # Default-Stop:
 # Short-Description: Mount proc virtual file systems.
 # Description:       Mount initial set of virtual filesystems the kernel

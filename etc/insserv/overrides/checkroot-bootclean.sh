@@ -1,7 +1,7 @@
 #! /bin/sh
 ### BEGIN INIT INFO
 # Provides:          checkroot-bootclean
-# Required-Start:    checkroot
+# Required-Start:    
 # Required-Stop:
 # Default-Start:     
 # Default-Stop:

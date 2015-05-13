@@ -1,7 +1,7 @@
 #! /bin/sh
 ### BEGIN INIT INFO
 # Provides:          mtab
-# Required-Start:    checkroot
+# Required-Start:    
 # Required-Stop:
 # Default-Start:     
 # Default-Stop:

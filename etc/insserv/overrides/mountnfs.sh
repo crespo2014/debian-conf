@@ -2,8 +2,8 @@
 ### BEGIN INIT INFO
 # Provides:          mountnfs
 # Required-Start:    $network
-# Required-Stop:
-# Should-Start:      $network $portmap nfs-common  udev-mtab
+# Required-Stop:	 network-manager networking $desktop $network
+# Should-Start:      $portmap nfs-common  udev-mtab
 # Default-Start:     
 # Default-Stop:
 # Short-Description: Wait for network file systems to be mounted

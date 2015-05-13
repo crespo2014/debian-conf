@@ -1,7 +1,7 @@
 #! /bin/sh
 ### BEGIN INIT INFO
 # Provides:          checkfs
-# Required-Start:    checkroot
+# Required-Start:    
 # Required-Stop:
 # Should-Start:      mtab
 # Default-Start:     
