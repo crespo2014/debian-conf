@@ -1,0 +1,14 @@
+#! /bin/sh
+
+### BEGIN INIT INFO
+# Provides:          rsyncd
+# Required-Start:    $remote_fs $syslog
+# Required-Stop:     $remote_fs $syslog
+# Should-Start:      $named
+# Default-Start:     
+# Default-Stop:      
+# Short-Description: fast remote file copy program daemon
+# Description:       rsync is a program that allows files to be copied to and
+#                    from remote machines in much the same way as rcp.
+#                    This provides rsyncd daemon functionality.
+### END INIT INFO

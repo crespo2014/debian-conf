@@ -1,0 +1,11 @@
+#!/bin/sh
+
+### BEGIN INIT INFO
+# Provides:          hdparm
+# Required-Start:    
+# Required-Stop:
+# Should-Start:      udev
+# Default-Start:     
+# Default-Stop:
+# Short-Description: Tune IDE hard disks
+### END INIT INFO

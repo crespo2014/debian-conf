@@ -1,0 +1,14 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          motd
+# Required-Start:    $local_fs
+# Required-Stop:
+# Should-Start:
+# Default-Start:     
+# Default-Stop:
+# Short-Description: Create dynamic part of /etc/motd
+# Description:       /etc/motd is user-editable and static.  This script
+#                    creates the initial dynamic part, by default the
+#                    output of uname, and stores it in /var/run/motd.dynamic.
+#                    Both parts are output by pam_motd.
+### END INIT INFO

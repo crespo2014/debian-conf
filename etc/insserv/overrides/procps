@@ -1,0 +1,11 @@
+#! /bin/sh
+### BEGIN INIT INFO
+# Provides:          procps
+# Required-Start:    $local_fs
+# Required-Stop:
+# Should-Start:      udev module-init-tools
+# Default-Start:     
+# Default-Stop:
+# Short-Description: Configure kernel parameters at boottime
+# Description:  Loads kernel parameters that are specified in /etc/sysctl.conf
+### END INIT INFO

@@ -1,0 +1,13 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          acpid
+# Required-Start:    $remote_fs $syslog
+# Required-Stop:     $remote_fs $syslog
+# X-Start-Before:    kdm gdm3 xdm
+# X-Stop-After:      kdm gdm3 xdm
+# Default-Start:     
+# Default-Stop:      
+# Short-Description: Start the Advanced Configuration and Power Interface daemon
+# Description:       Provide a socket for X11, hald and others to multiplex
+#                    kernel ACPI events.
+### END INIT INFO

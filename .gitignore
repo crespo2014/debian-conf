@@ -20,4 +20,5 @@ home/
 etc/*
 etc/rc?.d/
 !etc/insserv/
+!root/*
 mnt/

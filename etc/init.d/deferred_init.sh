@@ -1,10 +1,10 @@
 #! /bin/sh
 ### BEGIN INIT INFO
 # Provides:			modules          
-# Required-Start:	mountkernfs
+# Required-Start:	
 # Required-Stop:
 # Should-Start:      
-# Default-Start:     S
+# Default-Start:     
 # Default-Stop:
 # Short-Description: 
 # Description:       

@@ -2,10 +2,10 @@
 READAHEAD="yes"
 
 # enable (at least monthly) readahead list collection
-READAHEAD_COLLECT="yes"
+READAHEAD_COLLECT="no"
 
 # collect x seconds more after everything has been started
-READAHEAD_EXTRA_COLLECT="10"
+READAHEAD_EXTRA_COLLECT="1"
 
 # enable to run readahead in the background instead of blocking
 # useful for SSDs

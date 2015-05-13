@@ -11,11 +11,16 @@
 ### END INIT INFO
 
 PATH=/sbin:/bin:/usr/bin
-#LOG=/dev/kmsg &>/dev/msg  &>>file
-LOG=
 
-/etc/init.d/hostname.sh start 
-/etc/init.d/mountkernfs.sh start 
+. /lib/init/vars.sh
+. /lib/init/tmpfs.sh
+. /lib/lsb/init-functions
+. /lib/init/mount-functions.sh
+
+VERBOSE=no
+
+domount mount_noupdate proc "" /proc proc "-onodev,noexec,nosuid"
+
 
 if grep -qw safe /proc/cmdline; then
 BACKG=0
@@ -30,6 +35,8 @@ fi
 
 if grep -qw single /proc/cmdline; then
 SCRIPTS=" \
+ hostname.sh \
+ mountkernfs.sh \
  deferred_init.sh \
  udev \
  procps \
@@ -42,6 +49,7 @@ SCRIPTS=" \
  checkroot-bootclean.sh \
  mountall.sh \
  mountall-bootclean.sh \
+ kmod \
  kbd \
  console-setup \
  alsa-utils \
@@ -63,33 +71,43 @@ SCRIPTS=" \
  single \
  "
 else
+# Desktop mode do initial task
+domount mount_noupdate sysfs "" /sys sysfs "-onodev,noexec,nosuid"
+mount_run mount_noupdate
+mount_lock mount_noupdate
+mount_tmp mount_noupdate
+mount_shm mount_noupdate
+
+#mount /home
+#mount /mnt/data
+
 SCRIPTS="\
- early-readahead% \
- udev# \
+ hostname.sh& \
+ fs.sh& \
+ early-readahead \
  later-readahead \
+ udev# \
+ deferred_init.sh# \
  mountdevsubfs.sh# \
  hdparm# \
- mountall.sh# \
  kbd# \
- urandom \
- fs.sh \
  x11-common \
  procps# \
- dbus& \
- slim& \
+ dbus# \
  W \
- deferred_init.sh \
- hwclock.sh \
+ nodm \
  stop-readahead-fedora \
+ sleep.sh \
+ urandom \
+ hwclock.sh \
+ networking \
+ network-manager \
  acct \
  acpid \
  atd \
  cron \
  motd \
- networking \
- network-manager \
  wicd \
- stop-readahead-fedora \
  ntp \
  ssh \
  saned \
@@ -104,7 +122,6 @@ function init() {
   pid=
   for script in $SCRIPTS
   do
-    echo $script 
     cmd_end=${script: -1}
     if [ "$script" = "W" ]; then
       for id in $pid
@@ -114,16 +131,16 @@ function init() {
       pid=
     else
       if [ "$cmd_end" = "&" ]; then
-        [ -x /etc/init.d/${script::-1} ] && /etc/init.d/${script::-1} start $LOG &
+        [ -x /etc/init.d/${script::-1} ] && /etc/init.d/${script::-1} start &>/dev/kmsg &
         pid="$pid $!"
       else
       if [ "$cmd_end" = "#" ]; then
-        [ -x /etc/init.d/${script::-1} ] && /etc/init.d/${script::-1} start $LOG &
+        [ -x /etc/init.d/${script::-1} ] && /etc/init.d/${script::-1} start &>/dev/kmsg &
       else
       if [ "$cmd_end" = "%" ]; then
         echo "$script OFF"
       else
-        [ -x /etc/init.d/$script ] && /etc/init.d/$script start $LOG      
+        [ -x /etc/init.d/$script ] && /etc/init.d/$script start &>/dev/kmsg      
       fi
       fi
       fi
@@ -133,18 +150,18 @@ function init() {
 
 case "$1" in
   start|"")
-	init
-  	exit 0
-	;;
+    init
+    exit 0
+    ;;
   restart|reload|force-reload)
-	;;
+    ;;
   stop)
-	# No-op
-	;;
+    # No-op
+    ;;
   status)
-	;;
+    ;;
   *)
-	;;
+   ;;
 esac
 
 :
