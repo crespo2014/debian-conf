@@ -63,16 +63,15 @@ else
 SCRIPTS="\
  early-readahead \
  udev# \
- later-readahead& \
- mountdevsubfs.sh \
- hdparm& \
+ later-readahead# \
+ mountdevsubfs.sh# \
+ hdparm# \
  mountall.sh& \
- kbd& \
+ kbd# \
  urandom \
  x11-common \
- procps& \
+ procps# \
  dbus& \
- W \
  slim& \
  W \
  deferred_init.sh \
