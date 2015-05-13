@@ -1,6 +1,6 @@
 #! /bin/sh
 ### BEGIN INIT INFO
-# Provides:         sysfs run lock
+# Provides:         run lock
 # Required-Start:
 # Required-Stop:
 # Should-Start:      

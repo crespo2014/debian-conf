@@ -71,37 +71,38 @@ else
 domount mount_noupdate sysfs "" /sys sysfs "-onodev,noexec,nosuid"
 mount_run mount_noupdate
 mount_lock mount_noupdate
-mount_shm mount_noupdate
 mount_tmp mount_noupdate
+mount_shm mount_noupdate
+
+#mount /home
+#mount /mnt/data
 
 SCRIPTS="\
  hostname.sh& \
  fs.sh& \
  early-readahead \
+ later-readahead \
  udev# \
- later-readahead# \
  deferred_init.sh# \
  mountdevsubfs.sh# \
  hdparm# \
  kbd# \
+ x11-common& \
  W \
  procps# \
  dbus# \
- x11-common \
- slim& \
- W \
- stop-readahead-fedora \
+ slim \
  urandom \
  hwclock.sh \
+ networking \
+ network-manager \
+ stop-readahead-fedora \
  acct \
  acpid \
  atd \
  cron \
  motd \
- networking \
- network-manager \
  wicd \
- stop-readahead-fedora \
  ntp \
  ssh \
  saned \
@@ -140,18 +141,18 @@ function init() {
 
 case "$1" in
   start|"")
-	init
-  	exit 0
-	;;
+    init
+    exit 0
+    ;;
   restart|reload|force-reload)
-	;;
+    ;;
   stop)
-	# No-op
-	;;
+    # No-op
+    ;;
   status)
-	;;
+    ;;
   *)
-	;;
+   ;;
 esac
 
 :

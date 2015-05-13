@@ -4,7 +4,7 @@
 # Required-Start:	mountkernfs
 # Required-Stop:
 # Should-Start:      
-# Default-Start:     S
+# Default-Start:     
 # Default-Stop:
 # Short-Description: 
 # Description:       

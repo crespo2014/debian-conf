@@ -4,7 +4,7 @@
 # Required-Start:
 # Required-Stop:
 # Should-Start:      
-# Default-Start:     S
+# Default-Start:     
 # Default-Stop:
 # Short-Description: Mount all file system 
 ### END INIT INFO
@@ -20,8 +20,12 @@ MNTMODE=mount_noupdate
 
 case "$1" in
     start)
-        mount /home
-        mount /mnt/data
+#      mount_run mount_noupdate
+#      mount_lock mount_noupdate
+#      mount_shm mount_noupdate
+#      mount_tmp mount_noupdate
+      mount /home
+      mount /mnt/data
         ;;
     stop)
         ;;
