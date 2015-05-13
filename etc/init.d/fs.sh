@@ -20,12 +20,6 @@ MNTMODE=mount_noupdate
 
 case "$1" in
     start)
-        mount_run "$MNTMODE"
-        mount_lock "$MNTMODE"
-		mount_shm "$MNTMODE"
-		mount_tmp "$MNTMODE"
-        domount "$MNTMODE" sysfs "" /sys sysfs "-onodev,noexec,nosuid"
-		#domount "$MNTMODE" proc "" /proc proc "-onodev,noexec,nosuid"
         mount /home
         mount /mnt/data
         ;;
@@ -38,4 +32,4 @@ case "$1" in
     *)
         ;;
 esac
-exit 0
+

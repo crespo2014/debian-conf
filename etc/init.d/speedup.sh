@@ -21,6 +21,7 @@ VERBOSE=no
 
 domount mount_noupdate proc "" /proc proc "-onodev,noexec,nosuid"
 
+
 if grep -qw safe /proc/cmdline; then
 BACKG=0
 echo "Safe Mode Initialization ... "
@@ -66,9 +67,16 @@ SCRIPTS=" \
  single \
  "
 else
+# Desktop mode do initial task
+domount mount_noupdate sysfs "" /sys sysfs "-onodev,noexec,nosuid"
+mount_run mount_noupdate
+mount_lock mount_noupdate
+mount_shm mount_noupdate
+mount_tmp mount_noupdate
+
 SCRIPTS="\
  hostname.sh& \
- fs.sh \
+ fs.sh& \
  early-readahead \
  udev# \
  later-readahead# \
@@ -76,15 +84,15 @@ SCRIPTS="\
  mountdevsubfs.sh# \
  hdparm# \
  kbd# \
- urandom& \
- x11-common& \
+ W \
  procps# \
  dbus# \
- W \
+ x11-common \
  slim& \
  W \
- hwclock.sh \
  stop-readahead-fedora \
+ urandom \
+ hwclock.sh \
  acct \
  acpid \
  atd \
@@ -108,7 +116,6 @@ function init() {
   pid=
   for script in $SCRIPTS
   do
-    echo $script 
     cmd_end=${script: -1}
     if [ "$script" = "W" ]; then
       for id in $pid
@@ -118,13 +125,13 @@ function init() {
       pid=
     else
       if [ "$cmd_end" = "&" ]; then
-        [ -x /etc/init.d/${script::-1} ] && /etc/init.d/${script::-1} start $LOG &
+        [ -x /etc/init.d/${script::-1} ] && /etc/init.d/${script::-1} start &>/dev/kmsg &
         pid="$pid $!"
       else
       if [ "$cmd_end" = "#" ]; then
-        [ -x /etc/init.d/${script::-1} ] && /etc/init.d/${script::-1} start $LOG &
+        [ -x /etc/init.d/${script::-1} ] && /etc/init.d/${script::-1} start &>/dev/kmsg &
       else
-        [ -x /etc/init.d/$script ] && /etc/init.d/$script start $LOG      
+        [ -x /etc/init.d/$script ] && /etc/init.d/$script start &>/dev/kmsg      
       fi
       fi
     fi
