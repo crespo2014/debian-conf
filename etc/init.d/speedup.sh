@@ -88,16 +88,17 @@ SCRIPTS="\
  mountdevsubfs.sh# \
  hdparm# \
  kbd# \
- x11-common& \
- W \
+ x11-common \
  procps# \
  dbus# \
- slim \
+ W \
+ nodm \
+ stop-readahead-fedora \
+ sleep.sh \
  urandom \
  hwclock.sh \
  networking \
  network-manager \
- stop-readahead-fedora \
  acct \
  acpid \
  atd \

@@ -22,4 +22,4 @@
 # http://jeffhoogland.blogspot.ie/2011/12/howto-get-right-to-x-with-no-display.html
 
 
-/bin/login -f lester tty1 /dev/tty1 2>&1
+# /bin/login -f lester tty1 /dev/tty1 2>&1
