@@ -66,9 +66,10 @@ SCRIPTS="\
  later-readahead# \
  mountdevsubfs.sh# \
  hdparm# \
- mountall.sh& \
+ mountall.sh# \
  kbd# \
  urandom \
+ fs.sh \
  x11-common \
  procps# \
  dbus& \
