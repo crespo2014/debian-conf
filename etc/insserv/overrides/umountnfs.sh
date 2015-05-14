@@ -2,7 +2,7 @@
 ### BEGIN INIT INFO
 # Provides:          umountnfs
 # Required-Start:
-# Required-Stop:     umountfs wicd nodm network-manager networking $desktop $network
+# Required-Stop:     dbus slim umountfs wicd nodm network-manager networking $desktop $network
 # Should-Stop:        
 # Default-Start:
 # Default-Stop:      0 6

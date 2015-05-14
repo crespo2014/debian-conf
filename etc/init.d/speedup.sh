@@ -82,37 +82,36 @@ mount_shm mount_noupdate
 #mount /mnt/data
 
 SCRIPTS="\
- deferred_init.sh# \
+ early-readahead \
  hostname.sh& \
- fs.sh& \
- early-readahead% \
- later-readahead% \
- udev# \
- mountdevsubfs.sh# \
- hdparm# \
- x11-common \
+ fs.sh \
+ nodm \
+ later-readahead \
+ mountdevsubfs.sh \
+ x11-common# \
  procps# \
  dbus# \
- acpid# \
- W \
- nodm \
+ udev# \
  stop-readahead-fedora \
- sleep.sh \
- sleep.sh \
- kbd# \
+ kbd \
+ acpid \
  urandom \
+ sleep.sh \
+ sleep.sh \
+ sleep.sh \
+ sleep.sh \
+ sleep.sh \
+ sleep.sh \
+ deferred_init.sh \
  hwclock.sh \
  networking \
  network-manager \
  acct \
- atd \
- cron \
+ hdparm \
  motd \
  wicd \
  ntp \
  ssh \
- saned \
- rpcbind \
  rc.local \
  rmnologin \
  bootchart \
@@ -132,16 +131,22 @@ function init() {
       pid=
     else
       if [ "$cmd_end" = "&" ]; then
-        [ -x /etc/init.d/${script::-1} ] && /etc/init.d/${script::-1} start &>/dev/kmsg &
-        pid="$pid $!"
+        if [ -x /etc/init.d/${script::-1} ]; then
+          /etc/init.d/${script::-1} start &>/dev/kmsg &
+          pid="$pid $!"
+        fi
       else
       if [ "$cmd_end" = "#" ]; then
-        [ -x /etc/init.d/${script::-1} ] && /etc/init.d/${script::-1} start &>/dev/kmsg &
+        if [ -x /etc/init.d/${script::-1} ]; then
+          /etc/init.d/${script::-1} start &>/dev/kmsg &
+        fi
       else
       if [ "$cmd_end" = "%" ]; then
         echo "$script OFF"
       else
-        [ -x /etc/init.d/$script ] && /etc/init.d/$script start &>/dev/kmsg      
+        if [ -x /etc/init.d/$script ]; then 
+          /etc/init.d/$script start &>/dev/kmsg
+        fi
       fi
       fi
       fi
