@@ -39,10 +39,7 @@ SCRIPTS=" \
  mountkernfs.sh \
  deferred_init.sh \
  udev \
- procps \
- keyboard-setup \
  mountdevsubfs.sh \
- hdparm \
  hwclock.sh \
  checkroot.sh \
  checkfs.sh \
@@ -50,20 +47,12 @@ SCRIPTS=" \
  mountall.sh \
  mountall-bootclean.sh \
  kmod \
- kbd \
- console-setup \
- alsa-utils \
- pppd-dns \
  udev-mtab \
- urandom \
  x11-common \
- networking \
- rpcbind \
  mountnfs.sh \
  mountnfs-bootclean.sh \
  bootmisc.sh \
  motd \
- bootlogs \
  dbus \
  network-manager \
  ssh \
