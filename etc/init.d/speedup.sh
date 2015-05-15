@@ -72,6 +72,7 @@ SCRIPTS=" \
  "
 else
 # Desktop mode do initial task
+/sbin/bootchartd start
 domount mount_noupdate sysfs "" /sys sysfs "-onodev,noexec,nosuid"
 mount_run mount_noupdate
 mount_lock mount_noupdate
@@ -82,13 +83,13 @@ SCRIPTS="\
  early-readahead \
  hostname.sh \
  udev# \
+ x11-common# \
  fs.sh \
+ dbus# \
  nodm \
  deferred_init.sh \
- later-readahead \
- mountdevsubfs.sh \
- x11-common# \
- dbus# " 
+ mountdevsubfs.sh \ 
+" 
 fi
 
 function init() {  

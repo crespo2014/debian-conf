@@ -21,5 +21,6 @@ etc/*
 etc/rc?.d/
 !etc/insserv/
 !root/*
-!etc/sysctl.d/
+!etc/sysctl.d/*
 mnt/
+!etc/X11/xorg.conf.d/*
