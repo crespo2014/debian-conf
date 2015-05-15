@@ -78,9 +78,6 @@ mount_lock mount_noupdate
 mount_tmp mount_noupdate
 mount_shm mount_noupdate
 
-#mount /home
-#mount /mnt/data
-
 SCRIPTS="\
  early-readahead \
  hostname.sh \

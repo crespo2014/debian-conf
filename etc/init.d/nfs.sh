@@ -2,7 +2,7 @@
 ### BEGIN INIT INFO
 # Provides:          nfs
 # Required-Start:    
-# Required-Stop:     sendsigs $desktop $network networking wicd network-manager dbus udev 
+# Required-Stop:     $local_fs $x-display-manager sendsigs $desktop $network networking wicd network-manager dbus udev 
 # Default-Start:     
 # Default-Stop:      0 1 6
 # Short-Description: Unmount network file system
