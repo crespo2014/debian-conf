@@ -1,9 +1,9 @@
 #! /bin/sh
 ### BEGIN INIT INFO
 # Provides:          mtab
-# Required-Start:    
+# Required-Start:    init
 # Required-Stop:
-# Default-Start:     
+# Default-Start:     S
 # Default-Stop:
 # Short-Description: Update mtab file.
 # Description:       Update the mount program's mtab file after

@@ -1,8 +1,8 @@
 #!/bin/sh
 ### BEGIN INIT INFO
 # Provides:          dbus
-# Required-Start:    $syslog
-# Required-Stop:     $syslog
+# Required-Start:    $remote_fs $syslog
+# Required-Stop:     $remote_fs $syslog
 # Default-Start:     
 # Default-Stop:
 # Short-Description: D-Bus systemwide message bus

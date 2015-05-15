@@ -1,9 +1,0 @@
-#! /bin/sh
-### BEGIN INIT INFO
-# Provides:          rc.local
-# Required-Start:    $all
-# Required-Stop:
-# Default-Start:     
-# Default-Stop:
-# Short-Description: Run /etc/rc.local if it exist
-### END INIT INFO

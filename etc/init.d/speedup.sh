@@ -6,7 +6,7 @@
 # Should-Start:      
 # Default-Start:     S
 # Default-Stop:
-# Short-Description: 
+# Short-Description: It provides udev dbus 
 # Description:  SpeedUp boot speed by doing early initialization of some task
 ### END INIT INFO
 
@@ -83,7 +83,7 @@ mount_shm mount_noupdate
 
 SCRIPTS="\
  early-readahead \
- hostname.sh& \
+ hostname.sh \
  udev# \
  fs.sh \
  nodm \
@@ -91,25 +91,7 @@ SCRIPTS="\
  later-readahead \
  mountdevsubfs.sh \
  x11-common# \
- procps# \
- dbus# \
- stop-readahead-fedora \
- kbd# \
- acpid# \
- urandom# \
- hwclock.sh# \
- networking \
- network-manager \
- acct \
- hdparm \
- motd \
- wicd \
- ntp \
- ssh \
- rc.local \
- rmnologin \
- bootchart \
- bootchart-done#" 
+ dbus# " 
 fi
 
 function init() {  

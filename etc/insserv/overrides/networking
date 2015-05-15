@@ -1,9 +1,9 @@
 #!/bin/sh -e
 ### BEGIN INIT INFO
 # Provides:          networking ifupdown
-# Required-Start:    $local_fs 
+# Required-Start:    init $local_fs urandom
 # Required-Stop:     $local_fs
-# Default-Start:     
+# Default-Start:     S
 # Default-Stop:      0 6
 # Short-Description: Raise network interfaces.
 # Description:       Prepare /run/network directory, ifstate file and raise network interfaces, or take them down.

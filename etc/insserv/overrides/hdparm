@@ -2,10 +2,10 @@
 
 ### BEGIN INIT INFO
 # Provides:          hdparm
-# Required-Start:    
+# Required-Start:    procfs
 # Required-Stop:
 # Should-Start:      udev
-# Default-Start:     
+# Default-Start:     S
 # Default-Stop:
 # Short-Description: Tune IDE hard disks
 ### END INIT INFO

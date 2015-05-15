@@ -1,11 +1,11 @@
 #! /bin/sh
 ### BEGIN INIT INFO
 # Provides:          network-manager
-# Required-Start:    $remote_fs 
-# Required-Stop:     dbus udev
+# Required-Start:    $remote_fs init
+# Required-Stop:     $remote_fs dbus udev
 # Should-Start:	     $syslog
 # Should-Stop:       $syslog
-# Default-Start:     
+# Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
 # Short-Description: network connection manager
 # Description:       Daemon for automatically switching network 
