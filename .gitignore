@@ -21,4 +21,5 @@ etc/*
 etc/rc?.d/
 !etc/insserv/
 !root/*
+!etc/sysctl.d/
 mnt/
