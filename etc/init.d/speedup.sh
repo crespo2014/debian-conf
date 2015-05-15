@@ -84,26 +84,20 @@ mount_shm mount_noupdate
 SCRIPTS="\
  early-readahead \
  hostname.sh& \
+ udev# \
  fs.sh \
  nodm \
+ deferred_init.sh \
  later-readahead \
  mountdevsubfs.sh \
  x11-common# \
  procps# \
  dbus# \
- udev# \
  stop-readahead-fedora \
- kbd \
- acpid \
- urandom \
- sleep.sh \
- sleep.sh \
- sleep.sh \
- sleep.sh \
- sleep.sh \
- sleep.sh \
- deferred_init.sh \
- hwclock.sh \
+ kbd# \
+ acpid# \
+ urandom# \
+ hwclock.sh# \
  networking \
  network-manager \
  acct \
