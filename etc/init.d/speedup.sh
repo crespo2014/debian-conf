@@ -61,7 +61,7 @@ SCRIPTS=" \
  "
 else
 # Desktop mode do initial task
-/sbin/bootchartd start
+#/sbin/bootchartd start
 /etc/init.d/hostname.sh start
 cat /proc/deferred_initcalls &>/dev/kmsg &
 domount mount_noupdate sysfs "" /sys sysfs "-onodev,noexec,nosuid"
@@ -75,16 +75,19 @@ mount /mnt/data
 
 #embedded udev script
 echo > /sys/kernel/uevent_helper
-udevd --daemon &
+
+start-stop-daemon -b -S --exec /sbin/udevd -- &>/dev/kmsg & 
+#udevd --daemon &
 /etc/init.d/x11-common start &>/dev/kmsg & 
 /etc/init.d/dbus start &>/dev/kmsg &
-/etc/init.d/nodm start &>/dev/kmsg &
+su -c 'startx' lester &
+#/etc/init.d/nodm start &>/dev/kmsg &
 /etc/init.d/mountdevsubfs.sh start &>/dev/kmsg &
 udevadm trigger --action=add &
 sleep 5
 
 SCRIPTS="\
- sleep.sh \ 
+ 
 " 
 fi
 
