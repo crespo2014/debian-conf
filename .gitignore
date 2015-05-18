@@ -20,6 +20,7 @@ home/
 etc/*
 etc/rc?.d/
 !etc/insserv/*
+!etc/insserv/overrides/*
 !etc/sysctl.d/*
 mnt/
 !etc/X11/xorg.conf.d/*
