@@ -183,12 +183,12 @@ void mountproc()
 // Mount home, var remount root
 void mountfs()
 {
-  testrc(mount("", "/", "ext4",MS_NOATIME | MS_NODIRATIME| MS_REMOUNT| MS_SILENT , ""));
-  testrc(mount("", "/run", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
-  testrc(mount("", "/run/lock", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
-  testrc(mount("", "/run/shm", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
-  testrc(mount("", "/tmp", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
-  testrc(mount("", "/dev/pts", "devpts", MS_SILENT |MS_NOSUID | MS_NOEXEC , "gid=5,mode=620"));
+  testrc(mount("/dev/sda5", "/", "ext4",MS_NOATIME | MS_NODIRATIME| MS_REMOUNT| MS_SILENT , ""));
+  testrc(mount("run", "/run", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
+  testrc(mount("lock", "/run/lock", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
+  testrc(mount("shm", "/run/shm", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
+  testrc(mount("tmp", "/tmp", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
+  testrc(mount("pts", "/dev/pts", "devpts", MS_SILENT |MS_NOSUID | MS_NOEXEC , "gid=5,mode=620"));
   testrc(mount("/dev/sda7", "/home", "ext4", MS_NOATIME | MS_NODIRATIME |  MS_SILENT, ""));
   testrc(mount("/dev/sda8", "/mnt/data", "ext4", MS_NOATIME | MS_NODIRATIME |  MS_SILENT, ""));
 }
