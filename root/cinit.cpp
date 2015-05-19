@@ -167,26 +167,30 @@ void threadFnc(linux_init* lnx)
   }
 }
 
+inline void testrc(int r)
+{
+//  if (r < 0)
+//    printf("Operation failed with code %d \n",errno);
+}
+
 // mount proc
 void mountproc()
 {
-  int r = mount("", "/proc", "proc", MS_NOATIME | MS_NODIRATIME | MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, "");
-  printf("mount proc failed with code : %d ",errno);
-  r = mount("", "/sys", "sysfs", MS_NOATIME | MS_NODIRATIME | MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, "");
+  testrc(mount("", "/proc", "proc", MS_NOATIME | MS_NODIRATIME | MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
+  testrc(mount("", "/sys", "sysfs", MS_NOATIME | MS_NODIRATIME | MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
 }
 
 // Mount home, var remount root
 void mountfs()
 {
-  int r;
-  r = mount("", "/", "ext4",MS_NOATIME | MS_NODIRATIME| MS_REMOUNT| MS_SILENT , "");
-  r = mount("", "/run", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, "");
-  r = mount("", "/run/lock", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, "");
-  r = mount("", "/run/shm", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, "");
-  r = mount("", "/tmp", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, "");
-  r = mount("", "/dev/pts", "devpts", MS_SILENT |MS_NOSUID | MS_NOEXEC , "gid=5,mode=620");
-  r = mount("/dev/sda7", "/home", "ext4", MS_NOATIME | MS_NODIRATIME |  MS_SILENT, "");
-  r = mount("/dev/sda8", "/mnt/data", "ext4", MS_NOATIME | MS_NODIRATIME |  MS_SILENT, "");
+  testrc(mount("", "/", "ext4",MS_NOATIME | MS_NODIRATIME| MS_REMOUNT| MS_SILENT , ""));
+  testrc(mount("", "/run", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
+  testrc(mount("", "/run/lock", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
+  testrc(mount("", "/run/shm", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
+  testrc(mount("", "/tmp", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
+  testrc(mount("", "/dev/pts", "devpts", MS_SILENT |MS_NOSUID | MS_NOEXEC , "gid=5,mode=620"));
+  testrc(mount("/dev/sda7", "/home", "ext4", MS_NOATIME | MS_NODIRATIME |  MS_SILENT, ""));
+  testrc(mount("/dev/sda8", "/mnt/data", "ext4", MS_NOATIME | MS_NODIRATIME |  MS_SILENT, ""));
 }
 
 void deferred()
@@ -195,7 +199,7 @@ void deferred()
   char buffer[10];
   pFile = fopen("/proc/deferred_initcalls", "r");
   if (pFile == NULL)
-    printf("Error opening file /proc/deferred_initcalls");
+    printf("Error opening file /proc/deferred_initcalls \n");
   else
   {
     fread(buffer, sizeof(buffer), 1, pFile);
@@ -222,7 +226,7 @@ void udev()
   pFile = fopen("/sys/kernel/uevent_helper", "w");
   if (pFile == NULL)
   {
-    printf("Error opening file /sys/kernel/uevent_helper");
+    printf("Error opening file /sys/kernel/uevent_helper \n");
   } else
   {
     fwrite("", 1, 1, pFile);
@@ -297,11 +301,11 @@ int main()
 {
   task tasks[] = {    //
       { mountproc, procfs_id },    //
-          { bootchartd, bootchart_id },    //
+          { bootchartd, bootchart_id,procfs_id },    //
+          { hostname, hostname_id,bootchart_id },    //
           { deferred, deferred_id, bootchart_id },    //
           { mountfs, fs_id },    //
           { udev, udev_id, fs_id },    //
-          { hostname, hostname_id },    //
           { startx, x11_id, fs_id },    //
           { waitall, wait_id, x11_id }, //
           { bootchartd_stop, bootchart_end_id, wait_id },    //
