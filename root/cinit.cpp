@@ -203,7 +203,7 @@ void deferred()
     printf("Error opening file /proc/deferred_initcalls \n");
   else
   {
-    fread(buffer, sizeof(buffer), 1, pFile);
+    fread(buffer,1, sizeof(buffer), pFile);
     fclose(pFile);
   }
 }
@@ -275,7 +275,7 @@ void hostname()
   FILE * pFile = fopen("/etc/hostname", "r");
   if (pFile != NULL)
   {
-    r = fread(buffer, sizeof(buffer), 1, pFile);
+    r = fread(buffer,1, sizeof(buffer), pFile);
     if (r > 0)
     {
       buffer[r] = 0;
@@ -308,9 +308,9 @@ int main()
   task tasks[] = {    //
       { mountproc, procfs_id },    //
           { bootchartd, bootchart_id,procfs_id },    //
-          { hostname, hostname_id,bootchart_id },    //
+          { hostname, hostname_id },    //
           { deferred, deferred_id, bootchart_id },    //
-          { mountfs, fs_id },    //
+          { mountfs, fs_id,hostname_id },    //
           { udev, udev_id, fs_id },    //
           { startx, x11_id, fs_id },    //
           { udev_trigger,udev_trigger_id,x11_id }, //

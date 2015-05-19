@@ -61,32 +61,32 @@ SCRIPTS=" \
  "
 else
 # Desktop mode do initial task
-
-cat /proc/deferred_initcalls &
-mount / -o remount,noatime,nodiratime
-domount mount_noupdate sysfs "" /sys sysfs "-onodev,noexec,nosuid"
-mount_run mount_noupdate
-mount_lock mount_noupdate
-mount_tmp mount_noupdate
-mount_shm mount_noupdate
-mount /home
-mount /mnt/data
 LOGFILE=/var/log/init.log
-
 touch $LOGFILE
+LOGFILE=/dev/kmsg
+/root/cinit &>>$LOGFILE
+cat /proc/deferred_initcalls &
+#mount / -o remount,noatime,nodiratime
+#domount mount_noupdate sysfs "" /sys sysfs "-onodev,noexec,nosuid"
+#mount_run mount_noupdate
+#mount_lock mount_noupdate
+#mount_tmp mount_noupdate
+#mount_shm mount_noupdate
+#mount /home
+#mount /mnt/data
 /sbin/bootchartd start >> $LOGFILE
 #/etc/init.d/early-readahead start &>>$LOGFILE &
-/etc/init.d/hostname.sh start &>>$LOGFILE
+#/etc/init.d/hostname.sh start &>>$LOGFILE
 
 /etc/init.d/mountdevsubfs.sh start &>>$LOGFILE &
 
 #embedded udev script
-echo > /sys/kernel/uevent_helper
-start-stop-daemon -b -S --exec /sbin/udevd -- &>>$LOGFILE & 
+#echo > /sys/kernel/uevent_helper
+#start-stop-daemon -b -S --exec /sbin/udevd -- &>>$LOGFILE & 
 #udevd --daemon &
 #/etc/init.d/x11-common start &>>$LOGFILE
 
-su -c 'startx' lester &>>$LOGFILE &
+#su -c 'startx' lester &>>$LOGFILE &
 
 #/etc/init.d/nodm start &>>$LOGFILE
 /etc/init.d/dbus start &>>$LOGFILE & 
