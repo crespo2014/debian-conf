@@ -9,12 +9,14 @@
 #include <condition_variable>
 #include <mutex>
 #include <thread>
+#include <chrono>
 #include <cstring>
 #include <sys/mount.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <stdarg.h>
+
 
 #define TASK_ID(x)	\
 	x(none)\
@@ -102,7 +104,6 @@ public:
     std::unique_lock<std::mutex> lock(mtx);
     if (prev != nullptr)
     {
-      printf("E %s\n", getTaskName(prev->id));
       prev->status = done;
       cond_var.notify_all();
     }
@@ -117,7 +118,6 @@ public:
           if (it->parent == nullptr || it->parent->status == done)
           {
             it->status = running;
-            printf("S %s\n", getTaskName(it->id));
             return it;
           }
           towait = true;
@@ -164,7 +164,11 @@ void threadFnc(linux_init* lnx)
   task* t = nullptr;
   while ((t = lnx->peekTask(t)) != nullptr)
   {
+    printf("S %s\n", getTaskName(t->id));
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     t->fnc();
+    std::chrono::steady_clock::time_point end= std::chrono::steady_clock::now();
+    printf("E %s %d msec \n", getTaskName(t->id),std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count());
   }
 }
 
