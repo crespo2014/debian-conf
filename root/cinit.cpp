@@ -31,6 +31,7 @@
 	x(x11)\
 	x(udev_add)\
 	x(udev_mtab)\
+	x(udev_trigger)\
 	x(wait)\
 	x(dbus)\
 	
@@ -232,8 +233,13 @@ void udev()
     fwrite("", 1, 1, pFile);
     fclose(pFile);
   }
+  const char* arg[] = { "/sbin/udevd", "--daemon", (char*) nullptr };
+  linux_init::launch(true, arg);
+}
 
-  const char* arg[] = { "/sbin/udevadm", "trigger", " --action=add", (char*) nullptr };
+void udev_trigger()
+{
+  const char* arg[] = { "/sbin/udevadm", "trigger", "--action=add", (char*) nullptr };
   linux_init::launch(true, arg);
 }
 
@@ -307,6 +313,7 @@ int main()
           { mountfs, fs_id },    //
           { udev, udev_id, fs_id },    //
           { startx, x11_id, fs_id },    //
+          { udev_trigger,udev_trigger_id,x11_id }, //
           { waitall, wait_id, x11_id }, //
           { bootchartd_stop, bootchart_end_id, wait_id },    //
       };
