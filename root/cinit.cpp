@@ -235,8 +235,8 @@ void udev()
     fwrite("", 1, 1, pFile);
     fclose(pFile);
   }
-  const char* arg[] = { "/sbin/udevd", "--daemon", (char*) nullptr };
-  linux_init::launch(true, arg);
+  const char* arg[] = { "/sbin/udevd", (char*) nullptr };
+  linux_init::launch(false, arg);
 }
 
 void udev_trigger()
@@ -247,7 +247,7 @@ void udev_trigger()
 
 void startx()
 {
-  const char* arg[] = { "/bin/su", "-c", "startx", "lester", (char*) nullptr };
+  const char* arg[] = { "/bin/su","-l", "-c", "startx", "lester", (char*) nullptr };
   linux_init::launch(false, arg);
   /*
    const char* arg[] = {"/usr/bin/startx",(char*)nullptr};
@@ -310,11 +310,11 @@ int main()
 {
   task tasks[] = {    //
       { mountproc, procfs_id },    //
-          { bootchartd, bootchart_id,procfs_id },    //
+          //{ bootchartd, bootchart_id,procfs_id },    //
           { hostname, hostname_id },    //
-          { deferred, deferred_id, bootchart_id },    //
+          { deferred, deferred_id, x11_id },    //
           { mountfs, fs_id,hostname_id },    //
-          { udev, udev_id, fs_id },    //
+          { udev, udev_id, x11_id},    //
           { startx, x11_id, fs_id },    //
           { udev_trigger,udev_trigger_id,x11_id }, //
 //          { waitall, wait_id, x11_id }, //
