@@ -320,7 +320,7 @@ int main()
           { startx, x11_id, fs_id },    //
           { udev_trigger,udev_trigger_id,x11_id }, //
 //          { waitall, wait_id, x11_id }, //
-          { bootchartd_stop, bootchart_end_id, udev_trigger_id },    //
+//          { bootchartd_stop, bootchart_end_id, udev_trigger_id },    //
       };
 
   linux_init lnx(tasks, tasks + sizeof(tasks) / sizeof(*tasks));
