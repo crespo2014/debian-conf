@@ -201,13 +201,11 @@ void mountfs()
 void deferred()
 {
   FILE * pFile;
-  char buffer[10];
   pFile = fopen("/proc/deferred_initcalls", "r");
   if (pFile == NULL)
     printf("Error opening file /proc/deferred_initcalls \n");
   else
   {
-    fread(buffer,1, sizeof(buffer), pFile);
     fclose(pFile);
   }
 }

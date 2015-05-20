@@ -75,7 +75,7 @@ cat /proc/deferred_initcalls &
 #mount_shm mount_noupdate
 #mount /home
 #mount /mnt/data
-/sbin/bootchartd start >> $LOGFILE
+/sbin/bootchartd start &>>$LOGFILE
 /etc/init.d/early-readahead start &>>$LOGFILE &
 #/etc/init.d/hostname.sh start &>>$LOGFILE
 
