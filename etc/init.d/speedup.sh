@@ -57,6 +57,7 @@ SCRIPTS=" \
  network-manager \
  ssh \
  wicd \
+ console-setup \
  single \
  "
 else
@@ -75,7 +76,7 @@ cat /proc/deferred_initcalls &
 #mount /home
 #mount /mnt/data
 /sbin/bootchartd start >> $LOGFILE
-#/etc/init.d/early-readahead start &>>$LOGFILE &
+/etc/init.d/early-readahead start &>>$LOGFILE &
 #/etc/init.d/hostname.sh start &>>$LOGFILE
 
 /etc/init.d/mountdevsubfs.sh start &>>$LOGFILE &
