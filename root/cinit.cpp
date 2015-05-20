@@ -181,7 +181,7 @@ inline void testrc(int r)
 // mount proc
 void mountproc()
 {
-  testrc(mount("", "/proc", "proc", MS_NOATIME | MS_NODIRATIME | MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
+//  testrc(mount("", "/proc", "proc", MS_NOATIME | MS_NODIRATIME | MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
   testrc(mount("", "/sys", "sysfs", MS_NOATIME | MS_NODIRATIME | MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
 }
 
@@ -288,6 +288,7 @@ void hostname()
     fclose(pFile);
   }
   sethostname(name, strlen(name));
+  printf("Host:%s",name);
 }
 
 // Wait for all task in running state
@@ -318,8 +319,8 @@ int main()
           { udev, udev_id, fs_id },    //
           { startx, x11_id, fs_id },    //
           { udev_trigger,udev_trigger_id,x11_id }, //
-          { waitall, wait_id, x11_id }, //
-         // { bootchartd_stop, bootchart_end_id, wait_id },    //
+//          { waitall, wait_id, x11_id }, //
+          { bootchartd_stop, bootchart_end_id, udev_trigger_id },    //
       };
 
   linux_init lnx(tasks, tasks + sizeof(tasks) / sizeof(*tasks));
