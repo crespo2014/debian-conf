@@ -245,8 +245,48 @@ void udev_trigger()
   linux_init::launch(true, arg);
 }
 
+/*
+startxfc4 script c++ translation
+*/
+
+void startxfce4()
+{/*
+	std::string str;
+	const char* env = getenv("XDG_CONFIG_HOME");	
+	const char* app = "xfce4";
+	if (env == nullptr)
+	{
+		env = "$HOME/.config"
+	}
+	str.append(env);
+	str.append("xfce4");
+	setenv("BASEDIR");
+*/
+}
+
 void startx()
 {
+	/*
+  // Prepare environment to run X server xinit, required files ~/.xinitrc ~/xserverrc 
+  lester   31477 27677  0 11:06 pts/0    00:00:00 /bin/sh /usr/bin/startx
+  lester   31494 31477  0 11:06 pts/0    00:00:00 xinit /etc/X11/xinit/xinitrc -- /etc/X11/xinit/xserverrc :0 -auth /tmp/serverauth.826flacMFH
+  root     31495 31494  5 11:06 tty2     00:00:00 /usr/bin/X -nolisten tcp :0 -auth /tmp/serverauth.826flacMFH
+  
+  TODO:
+  set environment
+  prepare auth file
+  start X with arguments (no wait)
+  start xfce4 ( no wait )	// su -l -c startx-xfc lester
+*/
+	const char* env;
+	unset("DBUS_SESSION_BUS_ADDRESS");
+	unset("SESSION_MANAGER");
+	
+  //setenv
+  //unset
+  //putenv
+  //getenv
+  
   const char* arg[] = { "/bin/su","-l", "-c", "startx", "lester", (char*) nullptr };
   linux_init::launch(false, arg);
   /*
