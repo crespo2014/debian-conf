@@ -2,27 +2,36 @@
 #
 # http://www.linuxfromscratch.org/blfs/view/7.7/x/x7driver.html
 #
-mkdir xorg-src
+# apt-get install autoconf make cmake
+[ -d xorg-src ] || mkdir xorg-src
 cd xorg-src
 export XORG_PREFIX="/opt/X11"
 export XORG_CONFIG="--prefix=$XORG_PREFIX --sysconfdir=/etc \
-    --localstatedir=/var --disable-static"
+    --localstatedir=/var "
+#--disable-static
+	
+PATH=$PATH:$XORG_PREFIX/bin
+PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$XORG_PREFIX/lib/pkgconfig:$XORG_PREFIX/share/pkgconfig  
+LIBRARY_PATH=$LIBRARY_PATH:$XORG_PREFIX/lib             
+C_INCLUDE_PATH=$C_INCLUDE_PATH:$XORG_PREFIX/include         
+CPLUS_INCLUDE_PATH=$CPLUS_INCLUDE_PATH:$XORG_PREFIX/include         
 
-if [ 0 = 1 ]; then	
+ACLOCAL='aclocal -I $XORG_PREFIX/share/aclocal'
+export PATH PKG_CONFIG_PATH ACLOCAL LIBRARY_PATH C_INCLUDE_PATH CPLUS_INCLUDE_PATH	
+
+if [ 1 = 1 ]; then	
 cat > /etc/profile.d/xorg.sh << "EOF"
-XORG_PREFIX="<PREFIX>"
+XORG_PREFIX="/opt/X11"
 XORG_CONFIG="--prefix=$XORG_PREFIX --sysconfdir=/etc --localstatedir=/var --disable-static"
 export XORG_PREFIX XORG_CONFIG
 EOF
 cat >> /etc/profile.d/xorg.sh << "EOF"
 
-pathappend $XORG_PREFIX/bin             PATH
-pathappend $XORG_PREFIX/lib/pkgconfig   PKG_CONFIG_PATH
-pathappend $XORG_PREFIX/share/pkgconfig PKG_CONFIG_PATH
-
-pathappend $XORG_PREFIX/lib             LIBRARY_PATH
-pathappend $XORG_PREFIX/include         C_INCLUDE_PATH
-pathappend $XORG_PREFIX/include         CPLUS_INCLUDE_PATH
+PATH=$PATH:$XORG_PREFIX/bin
+PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$XORG_PREFIX/lib/pkgconfig:$XORG_PREFIX/share/pkgconfig  
+LIBRARY_PATH=$LIBRARY_PATH:$XORG_PREFIX/lib             
+C_INCLUDE_PATH=$C_INCLUDE_PATH:$XORG_PREFIX/include         
+CPLUS_INCLUDE_PATH=$CPLUS_INCLUDE_PATH:$XORG_PREFIX/include         
 
 ACLOCAL='aclocal -I $XORG_PREFIX/share/aclocal'
 
@@ -61,9 +70,9 @@ function install()
   [ $? = 0 ] && [ -f $fname ] && tar --strip-components=1 -xf $fname -C $name
   if [ $? = 0 ]; then
     pushd $name
-    #./configure $XORG_CONFIG
-	#make
-    #make install
+    ./configure $XORG_CONFIG
+	make
+    make install
     popd	
   fi
 	
@@ -166,8 +175,8 @@ do
     ;;
   esac
   make
-  #make check 2>&1 | tee ../$packagedir-make_check.log
-  #make install
+  make check 2>&1 | tee ../$packagedir-make_check.log
+  make install
   /sbin/ldconfig
   cd ..
 done 
@@ -197,8 +206,8 @@ autoreconf -f -i &&
             --with-gallium-drivers="nouveau,r300,r600,radeonsi,svga,swrast" &&
 make
 make install
-#make -C xdemos DEMOS_PREFIX=$XORG_PREFIX
-#make -C xdemos DEMOS_PREFIX=$XORG_PREFIX install
+make -C xdemos DEMOS_PREFIX=$XORG_PREFIX
+make -C xdemos DEMOS_PREFIX=$XORG_PREFIX install
 
 install http://xorg.freedesktop.org/archive/individual/data/xbitmaps-1.1.1.tar.bz2
 
