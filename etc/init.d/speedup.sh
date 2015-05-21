@@ -94,7 +94,7 @@ cat /proc/deferred_initcalls &
 udevadm trigger --action=add &>>$LOGFILE &
 
 SCRIPTS="\
- 
+kmod 
 " 
 fi
 
