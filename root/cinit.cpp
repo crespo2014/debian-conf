@@ -279,9 +279,20 @@ void startx()
   start xfce4 ( no wait )	// su -l -c startx-xfc lester
 */
 	const char* env;
+  constexpr const char* X = "/usr/bin/X";
+  constexpr const char* X_arg = "-nolisten tcp :0 vt7 ";
+  constexpr const char* Xclient ="/usr/bin/xfce4";
+  constexpr const char* home = "/home/lester";
+ 
 	unset("DBUS_SESSION_BUS_ADDRESS");
 	unset("SESSION_MANAGER");
-	
+  std::string str;
+  str = home;
+  str.append("/.Xauthority");
+  setenv("XAUTHORITY",str.c_str());
+  
+
+  	
   //setenv
   //unset
   //putenv
