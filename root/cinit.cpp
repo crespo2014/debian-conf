@@ -89,6 +89,7 @@ public:
   // class methods 
   linux_init() 
   {
+	  startXserver();
 	task tasks[] = {    //
 	
     { &linux_init::mountproc, procfs_id },    //
@@ -176,8 +177,7 @@ public:
 	  arg.reserve(10);
 	  bool b_single_colon = false;
 	  bool b_arg = true;
-	  arg.push_back(cmd);
-	  arg.push_back(cmd);
+	  //arg.push_back(cmd);	// command will be push again
 	  char *cptr = cmd;
 	  do
 	  {
@@ -210,6 +210,7 @@ public:
 		  }
 
 	  } while(*cptr != 0);
+	  arg.push_back(nullptr);
 	  return launch(wait,arg.data());
   }
   // do not forget (char*) nullptr as last argument
@@ -373,18 +374,15 @@ public:
 	}
 	// call xauth to add display 0 and cookie add :0 . xxxxxx
 	env = getenv(env_mcookie);
-	if (env)
+	if (env == nullptr)
 	{
+		env = "Failed!!!";
 		// error
 	}
-	snprintf(tmp_str,sizeof(tmp_str)-1,"add :%d . %s",x_display_id,env_mcookie);
-	const char* cmd_xauth[] = { xauth, "-q","-f",tmp_str, (char*) nullptr };
-	launch(true, cmd_xauth);
-    
-//    const char* cmd_su[] = { "/bin/su","-l", "-c", "startx", "lester", (char*) nullptr };
-//    linux_init::launch(false, cmd_su);
+	snprintf(tmp_str,sizeof(tmp_str)-1,"/usr/bin/xauth -q -f %s add :%d . %s",srv_auth_file, x_display_id,env);
+	execute(tmp_str);
 	
-	snprintf(tmp_str,sizeof(tmp_str)-1,"/usr/bin/X -auth %s -nolisten tcp :%d vt%d ",srv_auth_file,x_display_id,x_vt_id);
+	snprintf(tmp_str,sizeof(tmp_str)-1,"/usr/bin/X :%d -nolisten tcp -auth %s vt0%d",x_display_id,srv_auth_file,x_vt_id);
 	execute(tmp_str,false);
     /*
      const char* arg[] = {"/usr/bin/startx",(char*)nullptr};
