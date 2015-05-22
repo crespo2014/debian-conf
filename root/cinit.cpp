@@ -11,11 +11,13 @@
 #include <thread>
 #include <chrono>
 #include <cstring>
+#include <vector>
 #include <sys/mount.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <stdarg.h>
+#include <stdlib.h>
 
 
 #define TASK_ID(x)	\
@@ -59,6 +61,7 @@ enum task_status
 };
 
 
+static char srv_auth_file[]="serverauth.XXXXXX";
 
 class linux_init
 {
@@ -94,7 +97,7 @@ public:
     { &linux_init::deferred, deferred_id, x11_id },    //
     { &linux_init::mountfs, fs_id,hostname_id },    //
     { &linux_init::udev, udev_id, x11_id},    //
-    { &linux_init::startx, x11_id, fs_id },    //
+    { &linux_init::startXserver, x11_id, fs_id },    //
     { &linux_init::udev_trigger,udev_trigger_id,x11_id }, //
 //        { waitall, wait_id, x11_id }, //
 //        { bootchartd_stop, bootchart_end_id, udev_trigger_id },    //
@@ -161,6 +164,53 @@ public:
       }
     } while (towait);
     return nullptr;
+  }
+  /*
+   * Execute a command received as list of space separate parameters
+   * wait for command to finish
+   * no fork the current process
+   */
+  int execute(char* cmd,bool wait = true,bool nofork = false)
+  {
+	  std::vector<char*> arg;
+	  arg.reserve(10);
+	  bool b_single_colon = false;
+	  bool b_arg = true;
+	  arg.push_back(cmd);
+	  arg.push_back(cmd);
+	  char *cptr = cmd;
+	  do
+	  {
+		  // find letter
+		  while(*cptr == ' ' && *cptr != 0)
+			  ++cptr;
+		  if (*cptr == '\'')		// argument with delimiters
+		  {
+			  ++cptr;
+			  arg.push_back(cptr);
+			  while(*cptr != '\'' && *cptr != 0)
+			    ++cptr;
+			  if (*cptr == '\'')
+			  {
+				  *cptr = 0;
+				  ++cptr;
+			  }
+		  }
+		  else if (*cptr != 0)
+		  {
+			  arg.push_back(cptr);
+			  //next space
+			  while(*cptr != ' ' && *cptr != 0)
+			  	++cptr;
+			  if (*cptr == ' ')
+			  {
+				  *cptr = 0;
+				  ++cptr;
+			  }
+		  }
+
+	  } while(*cptr != 0);
+	  return launch(wait,arg.data());
   }
   // do not forget (char*) nullptr as last argument
   static int launch(bool wait, const char * const * argv)
@@ -292,7 +342,7 @@ public:
   */
   }
   
-  void startx()
+  void startXserver()
   {
   	/*
     // Prepare environment to run X server xinit, required files ~/.xinitrc ~/xserverrc 
@@ -309,11 +359,11 @@ public:
 	char tmp_str[255];
   	const char* env;
     
-    char srv_auth_file[]="serverauth.XXXXXX";
+
 	const char*
    
   	unsetenv(env_dbus_session);
-  	unsetenv(env_session_manager);
+	//unsetenv(env_session_manager);
 	snprintf(tmp_str,sizeof(tmp_str)-1,"/home/%s/.Xauthority",user_name);
     setenv(env_authority,tmp_str,true);
     int auth_file_fd = mkstemp(srv_auth_file);		// create file	file has to be delete when evrything is done, but for just one x server keep it in tmp is ok  
@@ -328,13 +378,14 @@ public:
 		// error
 	}
 	snprintf(tmp_str,sizeof(tmp_str)-1,"add :%d . %s",x_display_id,env_mcookie);
-	const char* arg[] = { xauth, "-q","-f",tmp_str, (char*) nullptr };
-	launch(true, arg);
+	const char* cmd_xauth[] = { xauth, "-q","-f",tmp_str, (char*) nullptr };
+	launch(true, cmd_xauth);
     
-    const char* arg[] = { "/bin/su","-l", "-c", "startx", "lester", (char*) nullptr };
-    linux_init::launch(false, arg);
+//    const char* cmd_su[] = { "/bin/su","-l", "-c", "startx", "lester", (char*) nullptr };
+//    linux_init::launch(false, cmd_su);
 	
-	snprintf(tmp_str,sizeof(tmp_str)-1,"-nolisten tcp :%d vt%d ",x_display_id,x_vt_id);
+	snprintf(tmp_str,sizeof(tmp_str)-1,"/usr/bin/X -auth %s -nolisten tcp :%d vt%d ",srv_auth_file,x_display_id,x_vt_id);
+	execute(tmp_str,false);
     /*
      const char* arg[] = {"/usr/bin/startx",(char*)nullptr};
      pid_t pid = fork();
@@ -397,6 +448,8 @@ public:
   std::condition_variable cond_var;
   task* begin, *end;
 };
+
+
 
 /*
  Execution list plus dependencies.
