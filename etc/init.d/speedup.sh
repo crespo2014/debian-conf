@@ -66,6 +66,9 @@ LOGFILE=/var/log/init.log
 touch $LOGFILE
 LOGFILE=/dev/kmsg
 #/etc/init.d/early-readahead start &>>$LOGFILE &
+# prepare env for cinit executable
+init_mcookie=`/usr/bin/mcookie`
+
 /root/cinit &>>$LOGFILE
 cat /proc/deferred_initcalls &
 #mount / -o remount,noatime,nodiratime
