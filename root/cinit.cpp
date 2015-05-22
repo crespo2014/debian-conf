@@ -306,30 +306,35 @@ public:
     start X with arguments (no wait)
     start xfce4 ( no wait )	// su -l -c startx-xfc lester
   */
+	char tmp_str[255];
   	const char* env;
-    constexpr const char* X = "/usr/bin/X";
-    constexpr const char* X_arg = "-nolisten tcp :0 vt7 ";
-    constexpr const char* Xclient ="/usr/bin/xfce4";
-    constexpr const char* home = "/home/lester";
-    char srv_auth_file[]="serverauth.XXXXXX";
-   
-  	unsetenv("DBUS_SESSION_BUS_ADDRESS");
-  	unsetenv("SESSION_MANAGER");
-    std::string str;
-    str = home;
-    str.append("/.Xauthority");
-    setenv("XAUTHORITY",str.c_str(),true);
-    mktemp(srv_auth_file);
     
-  
-    	
-    //setenv
-    //unset
-    //putenv
-    //getenv
+    char srv_auth_file[]="serverauth.XXXXXX";
+	const char*
+   
+  	unsetenv(env_dbus_session);
+  	unsetenv(env_session_manager);
+	snprintf(tmp_str,sizeof(tmp_str)-1,"/home/%s/.Xauthority",user_name);
+    setenv(env_authority,tmp_str,true);
+    int auth_file_fd = mkstemp(srv_auth_file);		// create file	file has to be delete when evrything is done, but for just one x server keep it in tmp is ok  
+	if (auth_file_fd != -1)
+	{
+		close(auth_file_fd);		
+	}
+	// call xauth to add display 0 and cookie add :0 . xxxxxx
+	env = getenv(env_mcookie);
+	if (env)
+	{
+		// error
+	}
+	snprintf(tmp_str,sizeof(tmp_str)-1,"add :%d . %s",x_display_id,env_mcookie);
+	const char* arg[] = { xauth, "-q","-f",tmp_str, (char*) nullptr };
+	launch(true, arg);
     
     const char* arg[] = { "/bin/su","-l", "-c", "startx", "lester", (char*) nullptr };
     linux_init::launch(false, arg);
+	
+	snprintf(tmp_str,sizeof(tmp_str)-1,"-nolisten tcp :%d vt%d ",x_display_id,x_vt_id);
     /*
      const char* arg[] = {"/usr/bin/startx",(char*)nullptr};
      pid_t pid = fork();
@@ -376,6 +381,18 @@ public:
     sleep(5);
   }  
 public:
+  constexpr static const char* user_name = "lester";
+  constexpr static const char* xauth = "/usr/bin/xauth";
+  constexpr static const char* X = "/usr/bin/X";
+
+  constexpr static const char* Xclient ="/usr/bin/xfce4";
+  constexpr static const char* home = "/home/lester";
+  constexpr static const char* env_mcookie = "init_mcookie";
+  constexpr static const char* env_dbus_session = "DBUS_SESSION_BUS_ADDRESS";
+  constexpr static const char* env_session_manager =  "SESSION_MANAGER";
+  constexpr static const char* env_authority =   "XAUTHORITY";
+  constexpr static const unsigned x_display_id = 0;
+  constexpr static const unsigned x_vt_id = 7;
   std::mutex mtx;
   std::condition_variable cond_var;
   task* begin, *end;
