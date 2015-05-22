@@ -360,11 +360,9 @@ public:
 	char tmp_str[255];
   	const char* env;
     
-
-	const char*
-   
   	unsetenv(env_dbus_session);
-	//unsetenv(env_session_manager);
+	unsetenv(env_session_manager);
+
 	snprintf(tmp_str,sizeof(tmp_str)-1,"/home/%s/.Xauthority",user_name);
     setenv(env_authority,tmp_str,true);
     int auth_file_fd = mkstemp(srv_auth_file);		// create file	file has to be delete when evrything is done, but for just one x server keep it in tmp is ok  
