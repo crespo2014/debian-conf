@@ -18,7 +18,7 @@
 #include <sys/wait.h>
 #include <stdarg.h>
 #include <stdlib.h>
-
+#include <stdio.h>
 
 #define TASK_ID(x)	\
 	x(none)\
@@ -371,6 +371,9 @@ public:
 		close(auth_file_fd);		
 	}
 	// call xauth to add display 0 and cookie add :0 . xxxxxx
+	auto fd = popen("/usr/bin/mcookie","r");
+
+
 	env = getenv(env_mcookie);
 	if (env == nullptr)
 	{
