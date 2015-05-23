@@ -61,7 +61,8 @@ enum task_status
 };
 
 
-static char srv_auth_file[]="serverauth.XXXXXX";
+static char srv_auth_file[] = "/tmp/serverauth.XXXXXX";
+static char usr_auth_file[] = "/tmp/.user.auth.XXXXXX";
 
 class linux_init
 {
@@ -90,6 +91,7 @@ public:
   linux_init() 
   {
 	  startXserver();
+	  return;
 	task tasks[] = {    //
 	
     { &linux_init::mountproc, procfs_id },    //
@@ -345,60 +347,70 @@ public:
   
   void startXserver()
   {
-  	/*
-    // Prepare environment to run X server xinit, required files ~/.xinitrc ~/xserverrc 
-    lester   31477 27677  0 11:06 pts/0    00:00:00 /bin/sh /usr/bin/startx
-    lester   31494 31477  0 11:06 pts/0    00:00:00 xinit /etc/X11/xinit/xinitrc -- /etc/X11/xinit/xserverrc :0 -auth /tmp/serverauth.826flacMFH
-    root     31495 31494  5 11:06 tty2     00:00:00 /usr/bin/X -nolisten tcp :0 -auth /tmp/serverauth.826flacMFH
-    
-    TODO:
-    set environment
-    prepare auth file
-    start X with arguments (no wait)
-    start xfce4 ( no wait )	// su -l -c startx-xfc lester
-  */
-	char tmp_str[255];
-  	const char* env;
-    
-  	unsetenv(env_dbus_session);
-	unsetenv(env_session_manager);
-
-	snprintf(tmp_str,sizeof(tmp_str)-1,"/home/%s/.Xauthority",user_name);
-    setenv(env_authority,tmp_str,true);
-    int auth_file_fd = mkstemp(srv_auth_file);		// create file	file has to be delete when evrything is done, but for just one x server keep it in tmp is ok  
-	if (auth_file_fd != -1)
-	{
-		close(auth_file_fd);		
-	}
-	// call xauth to add display 0 and cookie add :0 . xxxxxx
-	env = getenv(env_mcookie);
-	if (env == nullptr)
-	{
-		env = "Failed!!!";
-		// error
-	}
-	snprintf(tmp_str,sizeof(tmp_str)-1,"/usr/bin/xauth -q -f %s add :%d . %s",srv_auth_file, x_display_id,env);
-	execute(tmp_str);
-	
-	snprintf(tmp_str,sizeof(tmp_str)-1,"/usr/bin/X :%d -nolisten tcp -auth %s vt0%d",x_display_id,srv_auth_file,x_vt_id);
-	execute(tmp_str,false);
     /*
-     const char* arg[] = {"/usr/bin/startx",(char*)nullptr};
-     pid_t pid = fork();
-     if (pid == -1)
-     {
-     perror("failed to fork");
-     }
-     else if (pid == 0)
-     {
-     // childs
-     seteuid(1000);
-     setegid(1000);
-     setuid(1000);
-     execv(arg[0],(char* const *)arg);
-     _exit(EXIT_FAILURE);
-     }
+     // Prepare environment to run X server xinit, required files ~/.xinitrc ~/xserverrc
+     lester   31477 27677  0 11:06 pts/0    00:00:00 /bin/sh /usr/bin/startx
+     lester   31494 31477  0 11:06 pts/0    00:00:00 xinit /etc/X11/xinit/xinitrc -- /etc/X11/xinit/xserverrc :0 -auth /tmp/serverauth.826flacMFH
+     root     31495 31494  5 11:06 tty2     00:00:00 /usr/bin/X -nolisten tcp :0 -auth /tmp/serverauth.826flacMFH
+
+     TODO:
+     set environment
+     prepare auth file
+     start X with arguments (no wait)
+     start xfce4 ( no wait )	// su -l -c startx-xfc lester
      */
+    char tmp_str[255];
+    const char* env;
+
+    unsetenv(env_dbus_session);
+    unsetenv(env_session_manager);
+
+    int auth_file_fd = mkstemp(srv_auth_file);		// create file	file has to be delete when everything is done, but for just one x server keep it in tmp is ok
+    if (auth_file_fd != -1)
+    {
+      close(auth_file_fd);
+    }
+    // call xauth to add display 0 and cookie add :0 . xxxxxx
+    env = getenv(env_mcookie);
+    if (env == nullptr)
+    {
+      env = "Failed!!!";
+      // error
+    }
+    snprintf(tmp_str, sizeof(tmp_str) - 1, "/usr/bin/xauth -q -f %s add :%d . %s", srv_auth_file, x_display_id, env);
+    execute(tmp_str);
+
+    snprintf(tmp_str, sizeof(tmp_str) - 1, "/usr/bin/X :%d -nolisten tcp -auth %s vt0%d", x_display_id, srv_auth_file, x_vt_id);
+    execute(tmp_str, false);
+    // fork to start a user session
+    pid_t pid = fork();
+    if (pid == -1)
+    {
+      perror("failed to fork");
+    } else if (pid == 0)
+    {
+      // childs
+      seteuid(1000);
+      setegid(1000);
+      setuid(1000);
+      auth_file_fd = mkstemp(usr_auth_file);
+      if (auth_file_fd != -1)
+      {
+        close(auth_file_fd);
+      }
+      setenv(env_authority, usr_auth_file, true);
+      snprintf(tmp_str, sizeof(tmp_str) - 1, "%d", x_display_id);
+      setenv(env_display, tmp_str, true);
+
+      // add auth information to user
+      env = getenv(env_mcookie);
+      snprintf(tmp_str, sizeof(tmp_str) - 1, "/usr/bin/xauth -q add :%d . %s", x_display_id, env == nullptr ? "Failed !!!!" : env);
+      execute(tmp_str);
+
+      snprintf(tmp_str, sizeof(tmp_str) - 1, "/usr/bin/startxfce4");
+      execute(tmp_str, false, false);
+      _exit(EXIT_FAILURE);
+    }
   }
   
   void hostname()
@@ -438,8 +450,9 @@ public:
   constexpr static const char* env_dbus_session = "DBUS_SESSION_BUS_ADDRESS";
   constexpr static const char* env_session_manager =  "SESSION_MANAGER";
   constexpr static const char* env_authority =   "XAUTHORITY";
-  constexpr static const unsigned x_display_id = 0;
-  constexpr static const unsigned x_vt_id = 7;
+  constexpr static const char* env_display =  "DISPLAY";
+  constexpr static const unsigned x_display_id = 1;
+  constexpr static const unsigned x_vt_id = 8;
   std::mutex mtx;
   std::condition_variable cond_var;
   task* begin, *end;
