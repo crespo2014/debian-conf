@@ -41,6 +41,7 @@
 	x(devfs)\
 	x(udev)\
 	x(x11)\
+	x(X)\
 	x(udev_add)\
 	x(udev_mtab)\
 	x(udev_trigger)\
@@ -87,14 +88,7 @@ enum task_status
 static char srv_auth_file[] = "/tmp/.server.auth.XXXXXX";
 static char usr_auth_file[] = "/tmp/.user.auth.XXXXXX";
 static char mcookie[40];
-
-/**
- * Signal indicating that x11 server is up
- */
-void x11_up_sign(int)
-{
-
-}
+static char tstr[512];
 
 class linux_init
 {
@@ -122,20 +116,47 @@ public:
   // class methods 
   linux_init()
   {
-    startXserver();
-    startxfce4();
-    return;
-    task tasks[] = {    //
-
-        { &linux_init::mountproc, procfs_id },    //
-            //{ bootchartd, bootchart_id,procfs_id },    //
-            { &linux_init::hostname, hostname_id },    //
-            { &linux_init::deferred, deferred_id, x11_id },    //
-            { &linux_init::mountfs, fs_id, hostname_id },    //
-            { &linux_init::udev, udev_id, x11_id },    //
-            { &linux_init::startXserver, x11_id, fs_id },    //
-            { &linux_init::startxfce4,xfce4_id, x11_id },    //
-            { &linux_init::udev_trigger, udev_trigger_id, x11_id },    //
+    // mount proc check for single and exit
+    mountproc();
+    bool single =  false;   // single user mode
+    std::vector<char*> cmdline;
+    cmdline.reserve(15);
+    *tstr = 0;
+    auto fd = open("/proc/cmdline",O_RDONLY);
+    if (fd > 0 )
+    {
+      int r = read(fd,tstr,sizeof(tstr) - 1);
+      if (r > 0) tstr[r-1] = 0;     // remove ending \n
+      close(fd);
+      split(tstr,cmdline);
+      for (auto p : cmdline)
+      {
+        if (strcmp(p,"single") == 0 )
+        {
+          single = true;
+          break;
+        }
+      }
+    }
+    else
+    {
+      printf("failed to open /proc/cmdline");
+      single = true;
+    }
+    if (single)
+    {
+      return;
+    }
+    task tasks[] = {
+        { &linux_init::mountsys, sysfs_id },    //
+        { &linux_init::hostname, hostname_id },    //
+        { &linux_init::deferred, deferred_id, x11_id },    //
+        { &linux_init::mountfs, fs_id, hostname_id },    //
+        { &linux_init::udev, udev_id, x11_id },    //
+        { &linux_init::startXserver, X_id, fs_id },    //
+        { &linux_init::startxfce4, xfce4_id, X_id },    //
+        { &linux_init::udev_trigger, udev_trigger_id, xfce4_id },    //
+        //{ bootchartd, bootchart_id,procfs_id },    //
 //        { waitall, wait_id, x11_id }, //
 //        { bootchartd_stop, bootchart_end_id, udev_trigger_id },    //
 
@@ -163,6 +184,43 @@ public:
     t1.join();
     t2.join();
     t3.join();
+  }
+  /*
+   * Split element of string delimiter by spaces
+   */
+  void split(char* list,std::vector<char*>& v)
+  {
+    char *cptr = list;
+    do
+    {
+      // find letter
+      while (*cptr == ' ' && *cptr != 0)
+        ++cptr;
+      if (*cptr == '\'')    // argument with delimiters
+      {
+        ++cptr;
+        v.push_back(cptr);
+        while (*cptr != '\'' && *cptr != 0)
+          ++cptr;
+        if (*cptr == '\'')
+        {
+          *cptr = 0;
+          ++cptr;
+        }
+      } else if (*cptr != 0)
+      {
+        v.push_back(cptr);
+        //next space
+        while (*cptr != ' ' && *cptr != 0)
+          ++cptr;
+        if (*cptr == ' ')
+        {
+          *cptr = 0;
+          ++cptr;
+        }
+      }
+
+    } while (*cptr != 0);
   }
 
   // Peek a new task from list
@@ -210,44 +268,12 @@ public:
   {
     std::vector<char*> arg;
     arg.reserve(10);
-    bool b_single_colon = false;
-    bool b_arg = true;
-    char *cptr = cmd;
-    do
-    {
-      // find letter
-      while (*cptr == ' ' && *cptr != 0)
-        ++cptr;
-      if (*cptr == '\'')		// argument with delimiters
-      {
-        ++cptr;
-        arg.push_back(cptr);
-        while (*cptr != '\'' && *cptr != 0)
-          ++cptr;
-        if (*cptr == '\'')
-        {
-          *cptr = 0;
-          ++cptr;
-        }
-      } else if (*cptr != 0)
-      {
-        arg.push_back(cptr);
-        //next space
-        while (*cptr != ' ' && *cptr != 0)
-          ++cptr;
-        if (*cptr == ' ')
-        {
-          *cptr = 0;
-          ++cptr;
-        }
-      }
-
-    } while (*cptr != 0);
+    split(cmd,arg);
     arg.push_back(nullptr);
     return launch(wait, arg.data(), nofork);
   }
   // do not forget (char*) nullptr as last argument
-  static int launch(bool wait, const char * const * argv, bool nofork = false)
+  int launch(bool wait, const char * const * argv, bool nofork = false)
   {
     if (nofork)
     {
@@ -298,7 +324,14 @@ public:
   // mount proc
   void mountproc()
   {
-    //  testrc(mount("", "/proc", "proc", MS_NOATIME | MS_NODIRATIME | MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
+    testrc(mount("", "/proc", "proc", MS_NOATIME | MS_NODIRATIME | MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
+  }
+  void umountproc()
+  {
+    umount("/proc");
+  }
+  void mountsys()
+  {
     testrc(mount("", "/sys", "sysfs", MS_NOATIME | MS_NODIRATIME | MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
   }
 
@@ -377,6 +410,9 @@ public:
     snprintf(tmp_str, sizeof(tmp_str) - 1,
         "/bin/su -l -c 'export %s=%s;export %s=:%d;exec /usr/bin/startxfce4' lester", env_authority,
         usr_auth_file, env_display, x_display_id);
+    snprintf(tmp_str, sizeof(tmp_str) - 1,
+           "/bin/su -l -c 'export %s=%s;export %s=:%d;exec /etc/xdg/xfce4/xinitrc -- /etc/X11/xinit/xserverrc' lester", env_authority,
+           usr_auth_file, env_display, x_display_id);
     execute(tmp_str, false);
   }
 

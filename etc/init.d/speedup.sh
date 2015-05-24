@@ -19,8 +19,11 @@ PATH=/sbin:/bin:/usr/bin
 
 VERBOSE=no
 
-domount mount_noupdate proc "" /proc proc "-onodev,noexec,nosuid"
+LOGFILE=/var/log/init.log
+touch $LOGFILE
+LOGFILE=/dev/kmsg
 
+/root/cinit &>>$LOGFILE
 
 if grep -qw safe /proc/cmdline; then
 BACKG=0
@@ -62,14 +65,9 @@ SCRIPTS=" \
  "
 else
 # Desktop mode do initial task
-LOGFILE=/var/log/init.log
-touch $LOGFILE
-LOGFILE=/dev/kmsg
+
 #/etc/init.d/early-readahead start &>>$LOGFILE &
 # prepare env for cinit executable
-init_mcookie=`/usr/bin/mcookie`
-
-/root/cinit &>>$LOGFILE
 cat /proc/deferred_initcalls &
 #mount / -o remount,noatime,nodiratime
 #domount mount_noupdate sysfs "" /sys sysfs "-onodev,noexec,nosuid"
