@@ -63,9 +63,13 @@ else
 	log_failure_msg() { echo $@; }
 	log_warning_msg() { echo $@; }
 fi
+
 if [ "$runlevel" = "S" ] ; then
+  /root/cinit
+  [ "$?" = "0" ] && exit 0
   echo "Run level S started "
 fi
+
 #
 # Check if we are able to use make like booting.  It require the
 # insserv package to be enabled. Boot concurrency also requires

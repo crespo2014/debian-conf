@@ -113,11 +113,15 @@ public:
     task_id parent_id;
   };
 
-  // class methods 
-  linux_init()
+  /*
+   * Main fucntion as main entry point
+   * mount proc and keep it
+   */
+  int main()
   {
+    return -1;
+    testrc(mount("", "/proc", "proc", MS_NOATIME | MS_NODIRATIME | MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
     // mount proc check for single and exit
-    mountproc();
     bool single =  false;   // single user mode
     std::vector<char*> cmdline;
     cmdline.reserve(15);
@@ -146,7 +150,7 @@ public:
     if (single)
     {
       printf("Single user mode detected, fastboot aborted");
-      return;
+      return -1;
     }
     task tasks[] = {
         { &linux_init::mountsys, sysfs_id },    //
@@ -185,6 +189,13 @@ public:
     t1.join();
     t2.join();
     t3.join();
+    return 0;
+  }
+
+  // class methods
+  linux_init()
+  {
+
   }
   /*
    * Split element of string delimiter by spaces
@@ -322,11 +333,6 @@ public:
     //    printf("Operation failed with code %d \n",errno);
   }
 
-  // mount proc
-  void mountproc()
-  {
-//    testrc(mount("", "/proc", "proc", MS_NOATIME | MS_NODIRATIME | MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
-  }
   void umountproc()
   {
     umount("/proc");
@@ -538,7 +544,7 @@ public:
   constexpr static const unsigned x_vt_id = 8;
   std::mutex mtx;
   std::condition_variable cond_var;
-  task* begin, *end;
+  task* begin = nullptr, *end = nullptr;
 };
 
 /*
@@ -555,5 +561,5 @@ public:
 int main()
 {
   linux_init lnx;
-  return 0;
+  return lnx.main();
 }
