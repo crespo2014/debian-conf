@@ -17,20 +17,16 @@ PATH=/sbin:/bin:/usr/bin
 . /lib/lsb/init-functions
 . /lib/init/mount-functions.sh
 
+domount mount_noupdate proc "" /proc proc "-onodev,noexec,nosuid"
+
 VERBOSE=no
 
 LOGFILE=/var/log/init.log
 touch $LOGFILE
-LOGFILE=/dev/kmsg
+#LOGFILE=/dev/kmsg
 
-/root/cinit &>>$LOGFILE
+/root/cinit 
 
-if grep -qw safe /proc/cmdline; then
-BACKG=0
-echo "Safe Mode Initialization ... "
-else
-BACKG=1
-fi
 
 # using W to wait for all background to finish  
 # using # to run in background not wait

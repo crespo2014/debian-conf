@@ -145,17 +145,18 @@ public:
     }
     if (single)
     {
+      printf("Single user mode detected, fastboot aborted");
       return;
     }
     task tasks[] = {
         { &linux_init::mountsys, sysfs_id },    //
         { &linux_init::hostname, hostname_id },    //
-        { &linux_init::deferred, deferred_id, x11_id },    //
+        { &linux_init::deferred, deferred_id },    //
         { &linux_init::mountfs, fs_id, hostname_id },    //
-        { &linux_init::udev, udev_id, x11_id },    //
-        { &linux_init::startXserver, X_id, fs_id },    //
-        { &linux_init::startxfce4, xfce4_id, X_id },    //
-        { &linux_init::udev_trigger, udev_trigger_id, xfce4_id },    //
+        { &linux_init::udev, udev_id, fs_id },    //
+    //    { &linux_init::startXserver, X_id, fs_id },    //
+    //    { &linux_init::startxfce4, xfce4_id, X_id },    //
+        { &linux_init::udev_trigger, udev_trigger_id, udev_id },    //
         //{ bootchartd, bootchart_id,procfs_id },    //
 //        { waitall, wait_id, x11_id }, //
 //        { bootchartd_stop, bootchart_end_id, udev_trigger_id },    //
@@ -324,7 +325,7 @@ public:
   // mount proc
   void mountproc()
   {
-    testrc(mount("", "/proc", "proc", MS_NOATIME | MS_NODIRATIME | MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
+//    testrc(mount("", "/proc", "proc", MS_NOATIME | MS_NODIRATIME | MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
   }
   void umountproc()
   {
@@ -408,11 +409,8 @@ public:
         // inotifywait -e create /tmp/.X11-unix
     // inotifywait -t 5 -e create /tmp/.X11-unix;
     snprintf(tmp_str, sizeof(tmp_str) - 1,
-        "/bin/su -l -c 'export %s=%s;export %s=:%d;exec /usr/bin/startxfce4' lester", env_authority,
+        "/bin/su -l -c 'export %s=%s;export %s=:%d;exec /usr/bin/xclock' lester", env_authority,
         usr_auth_file, env_display, x_display_id);
-    snprintf(tmp_str, sizeof(tmp_str) - 1,
-           "/bin/su -l -c 'export %s=%s;export %s=:%d;exec /etc/xdg/xfce4/xinitrc -- /etc/X11/xinit/xserverrc' lester", env_authority,
-           usr_auth_file, env_display, x_display_id);
     execute(tmp_str, false);
   }
 
