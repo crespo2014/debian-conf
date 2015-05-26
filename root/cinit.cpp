@@ -27,13 +27,13 @@
 #include <unistd.h>
 #include <sys/inotify.h>
 #include <fcntl.h>
+#include <sys/stat.h>
+#include <string.h>
 
 #define TASK_ID(x)	\
 	x(none)\
 	x(hostname) \
 	x(deferred) \
-	x(procfs) \
-	x(sysfs) \
 	x(fs)\
 	x(bootchart)\
 	x(bootchart_end)\
@@ -42,12 +42,14 @@
 	x(udev)\
 	x(x11)\
 	x(X)\
+	x(dev_subfs) \
 	x(udev_add)\
 	x(udev_mtab)\
 	x(udev_trigger)\
 	x(wait)\
 	x(dbus)\
 	x(xfce4)\
+	x(init_d)\
 	
 #define TO_STRING(id)                 #id
 #define TO_NAME(id,...)               TO_STRING(id),
@@ -156,14 +158,17 @@ public:
       return -1;
     }
     task tasks[] = {
-        { &linux_init::mountsys, sysfs_id },    //
+        { &linux_init::mountfs, fs_id,hostname_id },    //
         { &linux_init::hostname, hostname_id },    //
         { &linux_init::deferred, deferred_id },    //
-        { &linux_init::mountfs, fs_id, hostname_id },    //
         { &linux_init::udev, udev_id, fs_id },    //
-    //    { &linux_init::startXserver, X_id, fs_id },    //
-    //    { &linux_init::startxfce4, xfce4_id, X_id },    //
+        { &linux_init::mountdevsubfs, dev_subfs_id, udev_id },    //
+        { &linux_init::procps, dev_subfs_id, udev_id },    //
+        //{ &linux_init::startXserver, X_id, dev_subfs_id },    //
+        //{ &linux_init::startxfce4, xfce4_id, X_id },    //
         { &linux_init::udev_trigger, udev_trigger_id, udev_id },    //
+        { &linux_init::init_d, init_d_id, udev_trigger_id },    //
+
         //{ bootchartd, bootchart_id,procfs_id },    //
 //        { waitall, wait_id, x11_id }, //
 //        { bootchartd_stop, bootchart_end_id, udev_trigger_id },    //
@@ -340,22 +345,38 @@ public:
   {
     umount("/proc");
   }
-  void mountsys()
+
+  void readahead()
   {
-    testrc(mount("", "/sys", "sysfs", MS_NOATIME | MS_NODIRATIME | MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
+//    snprintf(tstr, sizeof(tstr) - 1,
+//           "/bin/su -l -c 'export %s=%s;export %s=:%d;exec /usr/bin/xclock' lester", env_authority,
+//           usr_auth_file, env_display, x_display_id);
+//       execute(tmp_str, false);
   }
 
   // Mount home, var remount root
   void mountfs()
   {
+    testrc(mount("", "/sys", "sysfs", MS_NOATIME | MS_NODIRATIME | MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
     testrc(mount("/dev/sda5", "/", "ext4", MS_NOATIME | MS_NODIRATIME | MS_REMOUNT | MS_SILENT, ""));
     testrc(mount("run", "/run", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
     testrc(mount("lock", "/run/lock", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
     testrc(mount("shm", "/run/shm", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
     testrc(mount("tmp", "/tmp", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
-    testrc(mount("pts", "/dev/pts", "devpts", MS_SILENT | MS_NOSUID | MS_NOEXEC, "gid=5,mode=620"));
     testrc(mount("/dev/sda7", "/home", "ext4", MS_NOATIME | MS_NODIRATIME | MS_SILENT, ""));
     testrc(mount("/dev/sda8", "/mnt/data", "ext4", MS_NOATIME | MS_NODIRATIME | MS_SILENT, ""));
+  }
+
+  void mountdevsubfs()
+  {
+    mkdir("/dev/pts",0755);
+    testrc(mount("pts", "/dev/pts", "devpts", MS_SILENT | MS_NOSUID | MS_NOEXEC, "gid=5,mode=620"));
+  }
+
+  void procps()
+  {
+    strcpy(tstr,"/sbin/sysctl -q --system");
+    execute(tstr,true);
   }
 
   void deferred()
@@ -384,6 +405,19 @@ public:
 
   void udev()
   {
+    struct stat buf;
+    if (stat("/sbin/MAKEDEV",&buf) == 0)
+    {
+      symlink("/dev/MAKEDEV","/sbin/MAKEDEV");
+    }else
+    {
+      symlink("/dev/MAKEDEV","/bin/true");
+    }
+    strcpy(tstr,"/bin/mv /dev/.udev/ /run/udev/");
+    execute(tstr,true);
+
+
+
     FILE * pFile;
 
     pFile = fopen("/sys/kernel/uevent_helper", "w");
@@ -392,11 +426,17 @@ public:
       printf("Error opening file /sys/kernel/uevent_helper \n");
     } else
     {
-      fwrite("", 1, 1, pFile);
+      fwrite("", 0, 0, pFile);
       fclose(pFile);
     }
-    const char* arg[] = { "/sbin/udevd", (char*) nullptr };
-    linux_init::launch(false, arg);
+    strcpy(tstr,"udevadm info --cleanup-db");
+    execute(tstr,true);
+    strcpy(tstr,"/sbin/udevd --daemon");
+    execute(tstr,true);
+    strcpy(tstr,"/bin/udevadm trigger --action=add");
+    execute(tstr,true);
+    // do not wai
+    //execute("/bin/udevadm settle",true);
   }
 
   void udev_trigger()
@@ -404,6 +444,25 @@ public:
     const char* arg[] = { "/sbin/udevadm", "trigger", "--action=add", (char*) nullptr };
     linux_init::launch(true, arg);
   }
+
+  // do not execute
+  void udev_finish()
+  {
+    const char* arg[] = {"/lib/udev/udev-finish",nullptr};
+    launch(true,arg);
+  }
+
+  // execute some init script
+  void init_d()
+  {
+    strcpy(tstr,"/etc/init.d/hwclock start");
+    execute(tstr,true);
+    strcpy(tstr,"/etc/init.d/urandom start");
+    execute(tstr,true);
+    strcpy(tstr,"/etc/init.d/networking start");
+    execute(tstr,true);
+  }
+
 
   /*
    startxfc4 script c++ translation
@@ -441,6 +500,8 @@ public:
     const char* env;
     int r;
 
+    mkdir("/tmp/.X11-unix",0777);
+    mkdir("/tmp/.ICE-unix",0777);
     unsetenv(env_dbus_session);
     unsetenv(env_session_manager);
 
