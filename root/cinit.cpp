@@ -164,8 +164,8 @@ public:
         { &linux_init::udev, udev_id, fs_id },    //
         { &linux_init::mountdevsubfs, dev_subfs_id, udev_id },    //
         { &linux_init::procps, dev_subfs_id, udev_id },    //
-        //{ &linux_init::startXserver, X_id, dev_subfs_id },    //
-        //{ &linux_init::startxfce4, xfce4_id, X_id },    //
+        { &linux_init::startXserver, X_id, dev_subfs_id },    //
+        { &linux_init::startxfce4, xfce4_id, X_id },    //
         { &linux_init::udev_trigger, udev_trigger_id, udev_id },    //
         { &linux_init::init_d, init_d_id, udev_trigger_id },    //
 
@@ -500,8 +500,10 @@ public:
     const char* env;
     int r;
 
-    mkdir("/tmp/.X11-unix",0777);
-    mkdir("/tmp/.ICE-unix",0777);
+    mkdir("/tmp/.X11-unix",01777);
+    chmod("/tmp/.X11-unix",01777);
+    mkdir("/tmp/.ICE-unix",01777);
+    chmod("/tmp/.ICE-unix",01777);
     unsetenv(env_dbus_session);
     unsetenv(env_session_manager);
 
