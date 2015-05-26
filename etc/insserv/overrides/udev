@@ -1,9 +1,0 @@
-#!/bin/sh -e
-### BEGIN INIT INFO
-# Provides:          udev
-# Required-Start:     
-# Required-Stop:     
-# Default-Start:     
-# Default-Stop:
-# Short-Description: Start udevd, populate /dev and load drivers.
-### END INIT INFO

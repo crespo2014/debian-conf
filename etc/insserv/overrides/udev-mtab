@@ -1,9 +1,0 @@
-#!/bin/sh -e
-### BEGIN INIT INFO
-# Provides:          udev-mtab
-# Required-Start:    $local_fs
-# Required-Stop:     
-# Default-Start:     
-# Default-Stop:
-# Short-Description: Add to mtab the entry for /dev.
-### END INIT INFO

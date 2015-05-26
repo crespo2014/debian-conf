@@ -1,9 +1,0 @@
-#!/bin/sh
-# /etc/init.d/x11-common: set up the X server and ICE socket directories
-### BEGIN INIT INFO
-# Provides:          x11-common
-# Required-Start:    $remote_fs
-# Required-Stop:     $remote_fs
-# Default-Start:     
-# Default-Stop:
-### END INIT INFO
