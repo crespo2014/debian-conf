@@ -115,14 +115,14 @@ public:
 
   /*
    * Main fucntion as main entry point
-   * mount proc and keep it
+   * mount proc and keep it, the application is enable only if fastboot kernel argument is supplied
+   * single will disable fastboot
    */
   int main()
   {
-    return -1;
     testrc(mount("", "/proc", "proc", MS_NOATIME | MS_NODIRATIME | MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
     // mount proc check for single and exit
-    bool single =  false;   // single user mode
+    bool fast =  false;   
     std::vector<char*> cmdline;
     cmdline.reserve(15);
     *tstr = 0;
@@ -135,21 +135,24 @@ public:
       split(tstr,cmdline);
       for (auto p : cmdline)
       {
-        if (strcmp(p,"single") == 0 )
+        if (strcmp(p,"fastboot") == 0 )
         {
-          single = true;
+          fast = true;
+        } else if (strcmp(p,"single") == 0 )
+        {
+          fast = false;
           break;
         }
+  
       }
     }
     else
     {
       printf("failed to open /proc/cmdline");
-      single = true;
     }
-    if (single)
+    if (!fast)
     {
-      printf("Single user mode detected, fastboot aborted");
+      printf("Fastboot aborted\n");
       return -1;
     }
     task tasks[] = {
