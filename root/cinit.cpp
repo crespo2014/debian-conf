@@ -539,7 +539,7 @@ public:
 
     sigemptyset(&sig_mask);
     sigaddset(&sig_mask, SIGUSR1);
-    sigprocmask(SIG_BLOCK, &sig_mask, &oldmask);
+    pthread_sigmask(SIG_BLOCK, &sig_mask, &oldmask);
     struct timespec sig_timeout = { 10, 0 };    // 5sec
 
     /* start x server and wait for signal */
