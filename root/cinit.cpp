@@ -157,6 +157,14 @@ public:
       printf("Fastboot aborted\n");
       return -1;
     }
+    // block SIGUSR1 on main thread
+    sigset_t sig_mask;
+    sigset_t oldmask;
+
+    sigemptyset(&sig_mask);
+    sigaddset(&sig_mask, SIGUSR1);
+    sigmask(SIG_BLOCK, &sig_mask, &oldmask);
+    
     task tasks[] = {
         { &linux_init::mountfs, fs_id,hostname_id },    //
         { &linux_init::hostname, hostname_id },    //
@@ -543,7 +551,6 @@ public:
     struct timespec sig_timeout = { 10, 0 };    // 5sec
 
     /* start x server and wait for signal */
-    //signal(SIGUSR1, SIG_IGN);
     auto pid = fork();
     if (pid == 0)
     {
@@ -552,7 +559,7 @@ public:
        * reset signal mask and set the X server sigchld to SIG_IGN, that's the
        * magic to make X send the parent the signal.
        */
-      sigprocmask(SIG_SETMASK, &oldmask, nullptr);
+      //sigprocmask(SIG_SETMASK, &oldmask, nullptr);
       signal(SIGUSR1, SIG_IGN);
 
       //-terminate
@@ -560,7 +567,7 @@ public:
       execute(tmp_str, false, true);
       exit(EXIT_FAILURE);
     }
-
+    // wait for signal become pending, only blocked signal can be pending, otherwise the signal will be generated
     r = sigtimedwait(&sig_mask, nullptr, &sig_timeout);
     if (r != SIGUSR1)
     {
