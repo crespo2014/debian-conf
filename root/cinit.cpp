@@ -163,7 +163,8 @@ public:
 
     sigemptyset(&sig_mask);
     sigaddset(&sig_mask, SIGUSR1);
-    sigmask(SIG_BLOCK, &sig_mask, &oldmask);
+    //sigprocmask(SIG_BLOCK, &sig_mask, &oldmask);
+    signal(SIGUSR1,SIG_IGN);
     
     task tasks[] = {
         { &linux_init::mountfs, fs_id,hostname_id },    //
