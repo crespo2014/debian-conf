@@ -50,7 +50,9 @@
 	x(dbus)\
 	x(xfce4)\
 	x(init_d)\
+	x(readahead)\
 	
+
 #define TO_STRING(id)                 #id
 #define TO_NAME(id,...)               TO_STRING(id),
 #define TO_ID(id,...)                 id ## _id,
@@ -169,6 +171,7 @@ public:
     task tasks[] = {
         { &linux_init::mountfs, fs_id,hostname_id },    //
         { &linux_init::hostname, hostname_id },    //
+        { &linux_init::readahead, readahead_id,fs_id },    //
         { &linux_init::deferred, deferred_id },    //
         { &linux_init::udev, udev_id, X_id },    //
         { &linux_init::mountdevsubfs, dev_subfs_id, udev_id },    //
@@ -357,10 +360,8 @@ public:
 
   void readahead()
   {
-//    snprintf(tstr, sizeof(tstr) - 1,
-//           "/bin/su -l -c 'export %s=%s;export %s=:%d;exec /usr/bin/xclock' lester", env_authority,
-//           usr_auth_file, env_display, x_display_id);
-//       execute(tmp_str, false);
+    strcpy(tstr,"/etc/init.d/early-readahead start");
+    execute(tstr,true);
   }
 
   // Mount home, var remount root
