@@ -170,12 +170,12 @@ public:
         { &linux_init::mountfs, fs_id,hostname_id },    //
         { &linux_init::hostname, hostname_id },    //
         { &linux_init::deferred, deferred_id },    //
-        { &linux_init::udev, udev_id, fs_id },    //
+        { &linux_init::udev, udev_id, X_id },    //
         { &linux_init::mountdevsubfs, dev_subfs_id, udev_id },    //
         { &linux_init::procps, dev_subfs_id, udev_id },    //
         { &linux_init::startXserver, X_id, fs_id },    //
         { &linux_init::startxfce4, xfce4_id, X_id },    //
-        { &linux_init::udev_trigger, udev_trigger_id, udev_id },    //
+        { &linux_init::udev_trigger, udev_trigger_id, X_id },    //
         { &linux_init::init_d, init_d_id, udev_trigger_id },    //
 
         //{ bootchartd, bootchart_id,procfs_id },    //
@@ -422,9 +422,9 @@ public:
     {
       symlink("/dev/MAKEDEV","/bin/true");
     }
-    strcpy(tstr,"/bin/mv /dev/.udev/ /run/udev/");
+   /* strcpy(tstr,"/bin/mv /dev/.udev/ /run/udev/");
     execute(tstr,true);
-
+*/
 
 
     FILE * pFile;
