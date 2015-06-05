@@ -51,6 +51,7 @@
 	x(xfce4)\
 	x(init_d)\
 	x(readahead)\
+	x(late_readahead)\
 	
 
 #define TO_STRING(id)                 #id
@@ -180,6 +181,7 @@ public:
         { &linux_init::startxfce4, xfce4_id, X_id },    //
         { &linux_init::udev_trigger, udev_trigger_id, X_id },    //
         { &linux_init::init_d, init_d_id, udev_trigger_id },    //
+        { &linux_init::late_readahead,late_readahead_id,X_id },
 
         //{ bootchartd, bootchart_id,procfs_id },    //
 //        { waitall, wait_id, x11_id }, //
@@ -361,6 +363,12 @@ public:
   void readahead()
   {
     strcpy(tstr,"/etc/init.d/early-readahead start");
+    execute(tstr,true);
+  }
+
+  void late_readahead()
+  {
+    strcpy(tstr,"/etc/init.d/later-readahead start");
     execute(tstr,true);
   }
 
