@@ -93,7 +93,7 @@ enum task_status
 static char srv_auth_file[] = "/tmp/.server.auth.XXXXXX";
 static char usr_auth_file[] = "/tmp/.user.auth.XXXXXX";
 static char mcookie[40];
-static char tstr[512];
+
 
 class linux_init
 {
@@ -125,6 +125,7 @@ public:
    */
   int main()
   {
+    char tstr[255];
     testrc(mount("", "/proc", "proc", MS_NOATIME | MS_NODIRATIME | MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
     // mount proc check for single and exit
     bool fast =  false;   
@@ -334,14 +335,15 @@ public:
   // thread function
   void thread()
   {
+    char tstr[255];
     task* t = nullptr;
     while ((t = peekTask(t)) != nullptr)
     {
-      printf("S %s\n", getTaskName(t->id));
-      std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+      //snprintf(tmp_str, sizeof(tmp_str) - 1,"[%d] S %s\n",std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time).count(), getTaskName(t->id));
+      std::cout << '[' << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time).count() << "] S" << getTaskName(t->id) << std::endl;
       (this->*(t->fnc))();
-      std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-      printf("E %s %d msec \n", getTaskName(t->id), std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count());
+      auto end = std::chrono::steady_clock::now();
+      std::cout << '[' << std::chrono::duration_cast<std::chrono::milliseconds>(end - start_time).count() << "] E " << getTaskName(t->id) << " " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start_time).count() << "ms" <<std::endl;
     }
   }
   static void sthread(linux_init* lnx)
@@ -361,12 +363,14 @@ public:
 
   void readahead()
   {
+    static char tstr[255];
     strcpy(tstr,"/etc/init.d/early-readahead start");
     execute(tstr,true);
   }
 
   void late_readahead()
   {
+    static char tstr[255];
     strcpy(tstr,"/etc/init.d/later-readahead start");
     execute(tstr,true);
   }
@@ -392,6 +396,7 @@ public:
 
   void procps()
   {
+    char tstr[255];
     strcpy(tstr,"/sbin/sysctl -q --system");
     execute(tstr,true);
   }
@@ -422,6 +427,7 @@ public:
 
   void udev()
   {
+    char tstr[255];
     struct stat buf;
     if (stat("/sbin/MAKEDEV",&buf) == 0)
     {
@@ -472,6 +478,7 @@ public:
   // execute some init script
   void init_d()
   {
+    char tstr[255];
     strcpy(tstr,"/etc/init.d/hwclock start");
     execute(tstr,true);
     strcpy(tstr,"/etc/init.d/urandom start");
@@ -619,6 +626,8 @@ public:
   constexpr static const char* env_display = "DISPLAY";
   constexpr static const unsigned x_display_id = 1;
   constexpr static const unsigned x_vt_id = 8;
+
+  const std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now();
   std::mutex mtx;
   std::condition_variable cond_var;
   task* begin = nullptr, *end = nullptr;
