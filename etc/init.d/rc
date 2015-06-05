@@ -21,7 +21,7 @@ export PATH
 echo "test" > /dev/kmsg
 
 if [ "$1" = "S" ] ; then
-  /root/cinit > /proc/
+  /root/cinit 
   [ "$?" = "0" ] && exit 0
 fi
 
