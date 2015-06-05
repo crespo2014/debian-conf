@@ -16,8 +16,12 @@
 PATH=/sbin:/usr/sbin:/bin:/usr/bin
 export PATH
 
+#/bin/mount -t proc /proc -n -o noatime,nodiratime,nodev,noexec,nosuid
+
+echo "test" > /dev/kmsg
+
 if [ "$1" = "S" ] ; then
-  /root/cinit
+  /root/cinit > /proc/
   [ "$?" = "0" ] && exit 0
 fi
 
