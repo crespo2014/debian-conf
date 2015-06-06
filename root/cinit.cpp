@@ -287,7 +287,6 @@ public:
       }
       if (towait)
       {
-        printf("W\n");
         cond_var.wait(lock);
       }
     } while (towait);
@@ -339,11 +338,12 @@ public:
     task* t = nullptr;
     while ((t = peekTask(t)) != nullptr)
     {
-      //snprintf(tmp_str, sizeof(tmp_str) - 1,"[%d] S %s\n",std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time).count(), getTaskName(t->id));
-      std::cout << '[' << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time).count() << "] S" << getTaskName(t->id) << std::endl;
-      (this->*(t->fnc))();
       auto end = std::chrono::steady_clock::now();
-      std::cout << '[' << std::chrono::duration_cast<std::chrono::milliseconds>(end - start_time).count() << "] E " << getTaskName(t->id) << " " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start_time).count() << "ms" <<std::endl;
+      //snprintf(tmp_str, sizeof(tmp_str) - 1,"[%d] S %s\n",std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time).count(), getTaskName(t->id));
+      std::cout << '[' << std::chrono::duration_cast<std::chrono::milliseconds>(end - start_time).count() << "] S " << getTaskName(t->id) << std::endl;
+      (this->*(t->fnc))();
+      auto dur = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - end).count();
+      std::cout << '[' << dur << "] E " << getTaskName(t->id) << " " << dur << "ms" <<std::endl;
     }
   }
   static void sthread(linux_init* lnx)
