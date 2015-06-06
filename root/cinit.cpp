@@ -175,7 +175,7 @@ public:
         { &linux_init::mountfs, fs_id,hostname_id },    //
         { &linux_init::startXserver, X_id, fs_id },    //
         { &linux_init::startxfce4, xfce4_id, X_id },    //
-        { &linux_init::deferred, deferred_id,fs_id },    //
+        { &linux_init::deferred, deferred_id,X_id },    //
         { &linux_init::udev, udev_id, deferred_id },    //
         { &linux_init::mountdevsubfs, dev_subfs_id, udev_id },    //
         { &linux_init::procps, dev_subfs_id, udev_id },    //
