@@ -175,7 +175,7 @@ public:
         { &linux_init::mountfs, fs_id,hostname_id },    //
         { &linux_init::startXserver, X_id, fs_id },    //
         { &linux_init::startxfce4, xfce4_id, X_id },    //
-        { &linux_init::deferred, deferred_id,X_id },    //
+        { &linux_init::deferred, deferred_id,fs_id },    //
         { &linux_init::udev, udev_id, deferred_id },    //
         { &linux_init::mountdevsubfs, dev_subfs_id, udev_id },    //
         { &linux_init::procps, dev_subfs_id, udev_id },    //
@@ -260,7 +260,6 @@ public:
   // Peek a new task from list
   task* peekTask(task* prev)
   {
-    task* it = begin;
     bool towait = false;    // if true means wait for completion, false return current task or null
     std::unique_lock<std::mutex> lock(mtx);
     if (prev != nullptr)
@@ -270,6 +269,7 @@ public:
     }
     do
     {
+      task* it = begin;
       towait = false;
       while (it != end)
       {
@@ -287,6 +287,7 @@ public:
       }
       if (towait)
       {
+	//std::cout << 'T' << std::this_thread::get_id() << " W" << std::endl;
         cond_var.wait(lock);
       }
     } while (towait);
@@ -340,10 +341,15 @@ public:
     {
       auto end = std::chrono::steady_clock::now();
       //snprintf(tmp_str, sizeof(tmp_str) - 1,"[%d] S %s\n",std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time).count(), getTaskName(t->id));
-      std::cout << '[' << std::chrono::duration_cast<std::chrono::milliseconds>(end - start_time).count() << "] S " << getTaskName(t->id) << std::endl;
+      std::cout 
+         //<< 'T' << std::this_thread::get_id() 
+         << " [" << std::chrono::duration_cast<std::chrono::milliseconds>(end - start_time).count() << "]" 
+         << " S " << getTaskName(t->id) << std::endl;
       (this->*(t->fnc))();
-      auto dur = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - end).count();
-      std::cout << '[' << dur << "] E " << getTaskName(t->id) << " " << dur << "ms" <<std::endl;
+      std::cout << '[' 
+        << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time).count() 
+        << "] E " << getTaskName(t->id) << " " 
+        << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - end).count() << "ms" <<std::endl;
     }
   }
   static void sthread(linux_init* lnx)
