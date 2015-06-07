@@ -105,8 +105,8 @@ public:
   class task
   {
   public:
-    task(thread_fnc_typ fnc, task_id id, task_id parent = none_id) :
-        fnc(fnc), parent(nullptr), status(waiting), ms(0), id(id), parent_id(parent)
+    task(thread_fnc_typ fnc, task_id id, task_id parent = none_id, task_id parent2 = none_id) :
+        fnc(fnc), parent(nullptr), status(waiting), ms(0), id(id), parent_id(parent), parent_id2(parent2)
     {
     }
     thread_fnc_typ fnc;
@@ -116,6 +116,7 @@ public:
     // task id for dependencies
     task_id id;
     task_id parent_id;
+    task_id parent_id2;
   };
 
   /*
@@ -172,11 +173,11 @@ public:
     
     task tasks[] = {
         { &linux_init::hostname, hostname_id },    //
-        { &linux_init::mountfs, fs_id,hostname_id },    //
+        { &linux_init::mountfs, fs_id },    //
         { &linux_init::startXserver, X_id, fs_id },    //
         { &linux_init::startxfce4, xfce4_id, X_id },    //
-        { &linux_init::deferred, deferred_id,X_id },    //
-        { &linux_init::udev, udev_id, deferred_id },    //
+        { &linux_init::deferred, deferred_id,udev_id },    //
+        { &linux_init::udev, udev_id, X_id },    //
         { &linux_init::mountdevsubfs, dev_subfs_id, udev_id },    //
         { &linux_init::procps, dev_subfs_id, udev_id },    //
         { &linux_init::udev_trigger, udev_trigger_id, udev_id },    //
@@ -369,16 +370,12 @@ public:
 
   void readahead()
   {
-    static char tstr[255];
-    strcpy(tstr,"/etc/init.d/early-readahead start");
-    execute(tstr,true);
+    execute_c("/etc/init.d/early-readahead start");
   }
 
   void late_readahead()
   {
-    static char tstr[255];
-    strcpy(tstr,"/etc/init.d/later-readahead start");
-    execute(tstr,true);
+    execute_c("/etc/init.d/later-readahead start");
   }
 
   // Mount home, var remount root
@@ -402,9 +399,7 @@ public:
 
   void procps()
   {
-    char tstr[255];
-    strcpy(tstr,"/sbin/sysctl -q --system");
-    execute(tstr,true);
+    execute_c("/sbin/sysctl -q --system");
   }
 
   void deferred()
@@ -421,14 +416,12 @@ public:
 
   void bootchartd()
   {
-    const char* arg[] = { "/sbin/bootchartd", "start", (char*) nullptr };
-    linux_init::launch(true, arg);
+    execute_c("/sbin/bootchartd start");
   }
 
   void bootchartd_stop()
   {
-    const char* arg[] = { "/sbin/bootchartd", "stop", (char*) nullptr };
-    linux_init::launch(true, arg);
+    execute_c("/sbin/bootchartd stop");
   }
 
   void udev()
@@ -458,39 +451,30 @@ public:
       fwrite("", 0, 0, pFile);
       fclose(pFile);
     }
-    strcpy(tstr,"udevadm info --cleanup-db");
-    execute(tstr,true);
-    strcpy(tstr,"/sbin/udevd --daemon");
-    execute(tstr,true);
-    strcpy(tstr,"/bin/udevadm trigger --action=add");
-    execute(tstr,true);
+    execute_c("udevadm info --cleanup-db");
+    execute_c("/sbin/udevd --daemon");
+    execute_c("/bin/udevadm trigger --action=add");
     // do not wai
     //execute("/bin/udevadm settle",true);
   }
 
   void udev_trigger()
   {
-    const char* arg[] = { "/sbin/udevadm", "trigger", "--action=add", (char*) nullptr };
-    linux_init::launch(true, arg);
+    execute_c("/sbin/udevadm trigger --action=add");
   }
 
   // do not execute
   void udev_finish()
   {
-    const char* arg[] = {"/lib/udev/udev-finish",nullptr};
-    launch(true,arg);
+    execute_c("/lib/udev/udev-finish");
   }
 
   // execute some init script
   void init_d()
   {
-    char tstr[255];
-    strcpy(tstr,"/etc/init.d/hwclock start");
-    execute(tstr,true);
-    strcpy(tstr,"/etc/init.d/urandom start");
-    execute(tstr,true);
-    strcpy(tstr,"/etc/init.d/networking start");
-    execute(tstr,true);
+    execute_c("/etc/init.d/hwclock start",true);
+    execute_c("/etc/init.d/urandom start",true);
+    execute_c("/etc/init.d/networking start");
   }
 
 
@@ -509,18 +493,6 @@ public:
 
   void startXserver()
   {
-    /*
-     // Prepare environment to run X server xinit, required files ~/.xinitrc ~/xserverrc
-     lester   31477 27677  0 11:06 pts/0    00:00:00 /bin/sh /usr/bin/startx
-     lester   31494 31477  0 11:06 pts/0    00:00:00 xinit /etc/X11/xinit/xinitrc -- /etc/X11/xinit/xserverrc :0 -auth /tmp/serverauth.826flacMFH
-     root     31495 31494  5 11:06 tty2     00:00:00 /usr/bin/X -nolisten tcp :0 -auth /tmp/serverauth.826flacMFH
-
-     TODO:
-     set environment
-     prepare auth file
-     start X with arguments (no wait)
-     start xfce4 ( no wait )	// su -l -c startx-xfc lester
-     */
     char tmp_str[255];
     const char* env;
     int r;
@@ -565,7 +537,7 @@ public:
     sigemptyset(&sig_mask);
     sigaddset(&sig_mask, SIGUSR1);
     pthread_sigmask(SIG_BLOCK, &sig_mask, &oldmask);
-    struct timespec sig_timeout = { 10, 0 };    // 5sec
+    struct timespec sig_timeout = { 15, 0 };    // 5sec
 
     /* start x server and wait for signal */
     auto pid = fork();
@@ -579,8 +551,8 @@ public:
       //sigprocmask(SIG_SETMASK, &oldmask, nullptr);
       signal(SIGUSR1, SIG_IGN);
 
-      //-terminate
-      snprintf(tmp_str, sizeof(tmp_str) - 1, "/usr/bin/X :%d  -audit 0 -quiet -nolisten tcp -auth %s vt0%d", x_display_id, srv_auth_file, x_vt_id);
+      //-terminate -quiet
+      snprintf(tmp_str, sizeof(tmp_str) - 1, "/usr/bin/X :%d  -audit 0 -logfile /dev/kmsg -nolisten tcp -auth %s vt0%d", x_display_id, srv_auth_file, x_vt_id);
       execute(tmp_str, false, true);
       exit(EXIT_FAILURE);
     }
@@ -610,13 +582,14 @@ public:
       fclose(pFile);
     }
     sethostname(name, strlen(name));
-    printf("Host:%s", name);
   }
 
   // Wait for all task in running state
-  void waitall()
+  int execute_c(const char* ccmd,bool wait = false,bool fork=true)
   {
-    sleep(5);
+    char cmd[512];
+    strcpy(cmd,ccmd);
+    return execute(cmd,wait,!fork);    
   }
 public:
   constexpr static const char* user_name = "lester";

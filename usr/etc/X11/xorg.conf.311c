@@ -13,35 +13,19 @@ Section "Files"
 EndSection
 
 Section "InputDevice"
-    # generated from default
-    Identifier     "Mouse0"
-    Driver         "mouse"
+    Identifier     "touchpad catchall"
+    Driver         "synaptics"
     Option         "Protocol" "auto"
-    Option         "Device" "/dev/psaux"
-    Option         "Emulate3Buttons" "no"
-    Option         "ZAxisMapping" "4 5"
-    Option "TapButton1" "1"
-    Option "TapButton2" "2"
-    Option "TapButton3" "3"
-    Option "VertEdgeScroll" "on"
-    Option "VertTwoFingerScroll" "on"
-    Option "HorizEdgeScroll" "on"
-    Option "HorizTwoFingerScroll" "on"
-    Option "CircularScrolling" "on"
-    Option "CircScrollTrigger" "2"
-    Option "EmulateTwoFingerMinZ" "40"
-    Option "EmulateTwoFingerMinW" "8"
-    Option "CoastingSpeed" "0"
-    Option "FingerLow" "35"
-    Option "FingerHigh" "40"
-
+    Option         "VertEdgeScroll" "1"
+    Option         "HorizEdgeScroll" "1"
+    MatchDevicePath "/dev/input/event*"
 EndSection
 
-Section "InputDevice"
-    # generated from default
-    Identifier     "Keyboard0"
-    Driver         "kbd"
-EndSection
+#Section "InputDevice"
+#    # generated from default
+#    Identifier     "Keyboard0"
+#    Driver         "kbd"
+#EndSection
 
 
 Section "Device"
@@ -62,8 +46,8 @@ Section "Monitor"
     Identifier     "Monitor0"
     VendorName     "Unknown"
     ModelName      "AU Optronics Corporation"
-    HorizSync       30.0 - 75.0
-    VertRefresh     60.0
+    HorizSync       28.0 - 33.0
+    VertRefresh     43.0 - 72.0
     Option         "DPMS" 
     Option         "Enable" "true"
 EndSection
@@ -81,7 +65,7 @@ Section "Screen"
     Option         "BaseMosaic" "off"
     SubSection     "Display"
         Depth       24
-		Modes       "1366x768"
+	Modes       "1366x768"
     EndSubSection
     Option         "NoLogo" "True"
     Option         "DPI" "90 x 90"
