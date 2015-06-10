@@ -176,16 +176,13 @@ public:
         { &linux_init::mountfs, fs_id },    //
         { &linux_init::startXserver, X_id, fs_id },    //
         { &linux_init::startxfce4, xfce4_id, X_id },    //
-        { &linux_init::deferred, deferred_id,udev_id },    //
+        { &linux_init::deferred, deferred_id,fs_id },    //
         { &linux_init::udev, udev_id, X_id },    //
         { &linux_init::mountdevsubfs, dev_subfs_id, udev_id },    //
         { &linux_init::procps, dev_subfs_id, udev_id },    //
-        { &linux_init::udev_trigger, udev_trigger_id, udev_id },    //
-        { &linux_init::init_d, init_d_id, udev_trigger_id },    //
-        //{ &linux_init::late_readahead,late_readahead_id,X_id },
-        // { &linux_init::readahead, readahead_id,fs_id },    //
+        { &linux_init::udev_trigger, udev_trigger_id, init_d_id },    //
+        { &linux_init::init_d, init_d_id, udev_id },    //
         //{ bootchartd, bootchart_id,procfs_id },    //
-//        { waitall, wait_id, x11_id }, //
 //        { bootchartd_stop, bootchart_end_id, udev_trigger_id },    //
 
         };
@@ -439,7 +436,6 @@ public:
     execute(tstr,true);
 */
 
-
     FILE * pFile;
 
     pFile = fopen("/sys/kernel/uevent_helper", "w");
@@ -451,16 +447,18 @@ public:
       fwrite("", 0, 0, pFile);
       fclose(pFile);
     }
+    
+    //sleep(10);
     execute_c("udevadm info --cleanup-db");
     execute_c("/sbin/udevd --daemon");
-    execute_c("/bin/udevadm trigger --action=add");
+    //execute_c("/bin/udevadm trigger --action=add");
     // do not wai
-    //execute("/bin/udevadm settle",true);
+    execute_c("/bin/udevadm settle",true);
   }
 
   void udev_trigger()
   {
-    execute_c("/sbin/udevadm trigger --action=add");
+    execute_c("/sbin/udevadm trigger");
   }
 
   // do not execute
@@ -496,7 +494,7 @@ public:
     char tmp_str[255];
     const char* env;
     int r;
-
+    execute_c("/etc/init.d/acpid start");
     mkdir("/tmp/.X11-unix",01777);
     chmod("/tmp/.X11-unix",01777);
     mkdir("/tmp/.ICE-unix",01777);
