@@ -1,0 +1,5 @@
+remove e4rat source and include project from github buzz/e4rat
+check repo nagisa/e4rat-preload-lite, it seems to have an optimized version
+
+test for file /root/xorg.conf.<hostname> if present the set env XORGCONFIG
+
