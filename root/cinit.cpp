@@ -33,23 +33,24 @@
 #define TASK_ID(x)	\
 	x(none)\
 	x(hostname) \
-	x(deferred) \
+	x(deferred,init_d) \
 	x(fs)\
 	x(bootchart)\
 	x(bootchart_end)\
 	x(read_ahead)\
 	x(devfs)\
-	x(udev)\
-	x(x11)\
-	x(X)\
-	x(dev_subfs) \
+	x(udev,fs)\
+	x(x11,hostname)\
+	x(X,hostname,fs)\
+	x(dev_subfs,udev) \
 	x(udev_add)\
 	x(udev_mtab)\
-	x(udev_trigger)\
+	x(udev_trigger,deferred)\
 	x(wait)\
 	x(dbus)\
-	x(xfce4)\
-	x(init_d)\
+	x(procps,udev)\
+	x(xfce4,X)\
+	x(init_d,X)\
 	x(readahead)\
 	x(late_readahead)\
 	
@@ -57,6 +58,49 @@
 #define TO_STRING(id)                 #id
 #define TO_NAME(id,...)               TO_STRING(id),
 #define TO_ID(id,...)                 id ## _id,
+
+#define DEPENDS_0()
+#define DEPENDS_1(a)
+#define DEPENDS_2(a,b)      MOD_DEPENDENCY_ITEM(a,b),
+#define DEPENDS_3(a,b,...)  DEPENDS_2(a,b) DEPENDS_2(a,__VA_ARGS__)
+#define DEPENDS_4(a,b,...)  DEPENDS_2(a,b) DEPENDS_3(a,__VA_ARGS__)
+#define DEPENDS_5(a,b,...)  DEPENDS_2(a,b) DEPENDS_4(a,__VA_ARGS__)
+#define DEPENDS_6(a,b,...)  DEPENDS_2(a,b) DEPENDS_5(a,__VA_ARGS__)
+#define DEPENDS_7(a,b,...)  DEPENDS_2(a,b) DEPENDS_6(a,__VA_ARGS__)
+#define DEPENDS_8(a,b,...)  DEPENDS_2(a,b) DEPENDS_7(a,__VA_ARGS__)
+#define DEPENDS_9(a,b,...)  DEPENDS_2(a,b) DEPENDS_8(a,__VA_ARGS__)
+#define DEPENDS_10(a,b,...) DEPENDS_2(a,b) DEPENDS_9(a,__VA_ARGS__)
+
+#define TASK_INFO_0(id)                 { none_id,none_id,waiting,0},
+#define TASK_INFO_1(id)                 { none_id,none_id,waiting,0},
+#define TASK_INFO_2(id,parent1)         { parent1 ## _id, none_id,waiting,0 } ,
+#define TASK_INFO_3(id,parent1,parent2) { parent1 ## _id, parent2 ## _id,waiting,0} ,
+
+
+#define GET_10(fnc,n0,n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,...) fnc##n10
+#define COUNT(fnc,...) GET_10(fnc,__VA_ARGS__,10,9,8,7,6,5,4,3,2,1)
+#define CALL_FNC(fnc,...) COUNT(fnc,__VA_ARGS__)(__VA_ARGS__)
+
+#define DEPENDS_BUILD(id,type,...) CALL_FNC(DEPENDS_,id,##__VA_ARGS__)
+
+#define GET_DEPENDS_0()  none,none
+#define GET_DEPENDS_1()  none,none
+
+
+// Fill a table with all modules information
+#define TASK_INFO(...)  CALL_FNC(TASK_INFO_,##__VA_ARGS__)	      
+
+typedef enum
+{
+  TASK_ID(TO_ID)
+} task_id;
+
+enum task_status
+{
+  waiting, running, done,
+};
+
+
 
 void print_error(int r, int no)
 {
@@ -73,10 +117,7 @@ void print_error(int r, int no)
     } \
   } while (0)
 
-typedef enum
-{
-  TASK_ID(TO_ID)
-} task_id;
+
 
 const char* getTaskName(task_id id)
 {
@@ -85,10 +126,6 @@ const char* getTaskName(task_id id)
   return names[id];
 }
 
-enum task_status
-{
-  waiting, running, done,
-};
 
 static char srv_auth_file[] = "/tmp/.server.auth.XXXXXX";
 static char usr_auth_file[] = "/tmp/.user.auth.XXXXXX";
@@ -100,24 +137,23 @@ class linux_init
 public:
   // define type to function
   typedef void (linux_init::*thread_fnc_typ)(void);
-
-  // define task data container`
-  class task
+  struct task_t
   {
-  public:
-    task(thread_fnc_typ fnc, task_id id, task_id parent = none_id, task_id parent2 = none_id) :
-        fnc(fnc), parent(nullptr), status(waiting), ms(0), id(id), parent_id(parent), parent_id2(parent2)
-    {
-    }
     thread_fnc_typ fnc;
-    struct task* parent;    // dependency
-    enum task_status status;
-    unsigned long ms;    // task spend time
-    // task id for dependencies
     task_id id;
-    task_id parent_id;
-    task_id parent_id2;
   };
+  struct task_info_t
+  {
+    // id of dependencies
+    task_id parent_id = none_id;
+    task_id parent_id2 = none_id;
+
+    // id is the position on array
+    enum task_status status = waiting;
+    unsigned long ms = 0;    // task spend time
+  };
+
+  static struct task_info_t task_info[]={ TASK_ID(TASK_INFO) };
 
   /*
    * Main fucntion as main entry point
@@ -174,35 +210,20 @@ public:
     task tasks[] = {
         { &linux_init::hostname, hostname_id },    //
         { &linux_init::mountfs, fs_id },    //
-        { &linux_init::startXserver, X_id, fs_id },    //
-        { &linux_init::startxfce4, xfce4_id, X_id },    //
-        { &linux_init::deferred, deferred_id,fs_id },    //
-        { &linux_init::udev, udev_id, X_id },    //
-        { &linux_init::mountdevsubfs, dev_subfs_id, udev_id },    //
-        { &linux_init::procps, dev_subfs_id, udev_id },    //
-        { &linux_init::udev_trigger, udev_trigger_id, init_d_id },    //
-        { &linux_init::init_d, init_d_id, udev_id },    //
+        { &linux_init::startXserver, X_id },    //
+        { &linux_init::startxfce4, xfce4_id},    //
+        { &linux_init::deferred, deferred_id },    //
+        { &linux_init::udev, udev_id},    //
+        { &linux_init::mountdevsubfs, dev_subfs_id },    //
+        { &linux_init::procps, procps_id},    //
+        { &linux_init::udev_trigger, udev_trigger_id },    //
+        { &linux_init::init_d, init_d_id},    //
         //{ bootchartd, bootchart_id,procfs_id },    //
 //        { bootchartd_stop, bootchart_end_id, udev_trigger_id },    //
 
         };
     begin = tasks;
     end = tasks + sizeof(tasks) / sizeof(*tasks);
-    // resolve dependencies
-    for (auto it_c = begin; it_c != end; ++it_c)
-    {
-      if (it_c->parent_id != none_id)
-      {
-        auto it_p = begin;
-        while (it_p != end && it_p->id != it_c->parent_id)
-          ++it_p;
-        if (it_p == end)
-        {
-          printf("Parent task %s not found", getTaskName(it_c->parent_id));
-        } else
-          it_c->parent = it_p;
-      }
-    }
     std::thread t1(sthread, this);
     std::thread t2(sthread, this);
     std::thread t3(sthread, this);
@@ -258,26 +279,30 @@ public:
   // Peek a new task from list
   task* peekTask(task* prev)
   {
+    struct task_info_t* info;
     bool towait = false;    // if true means wait for completion, false return current task or null
+    task* it = begin;
     std::unique_lock<std::mutex> lock(mtx);
     if (prev != nullptr)
     {
       prev->status = done;
-      cond_var.notify_all();
     }
     do
     {
-      task* it = begin;
+      
       towait = false;
       while (it != end)
       {
+        info = task_info + it->id;
         // find any ready task
-        if (it->status == waiting)
+        if (info->status == waiting)
         {
-          if (it->parent == nullptr || it->parent->status == done)
+          if ((info->parent_id == none_id || task_info[info->parent_id].status == done) &&
+             (info->parent_id2 == none_id || task_info[info->parent_id2].status == done))
           {
-            it->status = running;
-            return it;
+            info->status = running;
+            cond_var.notify_all();   // a task was release and there is available
+	    return it;
           }
           towait = true;
         }
@@ -289,6 +314,7 @@ public:
         cond_var.wait(lock);
       }
     } while (towait);
+    cond_var.notify_all(); // end of task
     return nullptr;
   }
   /*
@@ -452,7 +478,6 @@ public:
     execute_c("udevadm info --cleanup-db");
     execute_c("/sbin/udevd --daemon");
     //execute_c("/bin/udevadm trigger --action=add");
-    // do not wai
     execute_c("/bin/udevadm settle",true);
   }
 
