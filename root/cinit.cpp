@@ -72,10 +72,9 @@
 #define DEPENDS_9(a,b,...)  DEPENDS_2(a,b) DEPENDS_8(a,__VA_ARGS__)
 #define DEPENDS_10(a,b,...) DEPENDS_2(a,b) DEPENDS_9(a,__VA_ARGS__)
 
-#define TASK_INFO_0(id)                 { none_id, none_id, waiting, 0 , 0 },
-#define TASK_INFO_1(id)                 { none_id, none_id, waiting, 0 , 0 },
-#define TASK_INFO_2(id,parent1)         { parent1 ## _id, none_id, waiting, 0 , 0 } ,
-#define TASK_INFO_3(id,parent1,parent2) { parent1 ## _id, parent2 ## _id, waiting, 0 , 0} ,
+#define TASK_INFO_2(fnc,id)                 { fnc, id ## _id, none_id, none_id },
+#define TASK_INFO_3(fnc,id,parent1)         { fnc, id ## _id, parent1 ## _id, none_id } ,
+#define TASK_INFO_4(fnc,id,parent1,parent2) { fnc, id ## _id, parent1 ## _id, parent2 ## _id } ,
 
 #define GET_10(fnc,n0,n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,...) fnc##n10
 #define COUNT(fnc,...) GET_10(fnc,__VA_ARGS__,10,9,8,7,6,5,4,3,2,1)
@@ -87,7 +86,9 @@
 #define GET_DEPENDS_1()  none,none
 
 // Fill a table with all modules information
-#define TASK_INFO(...)  CALL_FNC(TASK_INFO_,##__VA_ARGS__)	      
+#define TASK_INFO(...)  CALL_FNC(TASK_INFO_,##__VA_ARGS__)
+
+#define TASK_DATA(...)
 
 typedef enum
 {
@@ -102,10 +103,14 @@ enum task_status
   done,
 };
 
+/*
+ * This is the dynamic data of the task
+ */
 struct task_status_t
 {
   unsigned child_count;
   enum task_status status;
+  unsigned long ms;    // task spend time
 };
 
 void print_error(int r, int no)
@@ -150,23 +155,13 @@ public:
   };
 
   // Using a class make brakes intialization easy
-  class task_info_t
+  struct task_info_t
   {
-  public:
-    task_info_t(thread_fnc_typ fnc, task_id id, task_id parent_id = none_id, task_id parent_id2 = none_id) :
-        fnc(fnc), id(id), parent_id(parent_id), parent_id2(parent_id2)
-    {
-
-    }
     thread_fnc_typ fnc;
     task_id id;
     // id of dependencies
     task_id parent_id;         // = none_id;
     task_id parent_id2;        // = none_id;
-
-    // id is the position on array
-    unsigned long ms = 0;    // task spend time
-
   };
 
   /*
@@ -224,30 +219,33 @@ public:
     //signal(SIGUSR1,SIG_IGN);
 
     memset(status, 0, sizeof(status));
-
-    task_info_t tasks[] =
+    // static initialization of struct is faster than using object, the compiler will store a table and just copy over
+    // using const all data will be in RO memory really fast
+    static const task_info_t tasks[] =
     {
-    { &linux_init::mountfs, fs_id },    //
-        { &linux_init::hostname, hostname_id, fs_id },    //
-        { &linux_init::startXserver, X_id, hostname_id, fs_id },    //
-        { &linux_init::deferred, deferred_id, init_d_id },    //
-        { &linux_init::udev, udev_id, fs_id },    //
-        { &linux_init::mountdevsubfs, dev_subfs_id, udev_id },    //
-        { &linux_init::procps, procps_id },    //
-        { &linux_init::udev_trigger, udev_trigger_id, deferred_id },    //
-        { &linux_init::startxfce4, xfce4_id, X_id },    //
-        { &linux_init::init_d, init_d_id, X_id },    //
+    TASK_INFO( &linux_init::mountfs, fs)    //
+    TASK_INFO( &linux_init::hostname, hostname, fs)    //
+    TASK_INFO( &linux_init::startXserver, X, hostname, fs)    //
+    TASK_INFO( &linux_init::deferred, deferred, init_d )    //
+    TASK_INFO( &linux_init::udev, udev, fs )    //
+    TASK_INFO( &linux_init::mountdevsubfs, dev_subfs, udev )    //
+    TASK_INFO( &linux_init::procps, procps )    //
+    TASK_INFO( &linux_init::udev_trigger, udev_trigger, deferred )    //
+    TASK_INFO( &linux_init::startxfce4, xfce4, X )     //
+    TASK_INFO( &linux_init::init_d, init_d, X )    //
         };
     begin = tasks;
     end = tasks + sizeof(tasks) / sizeof(*tasks);
     // update child counter
-    for (task_info_t* it = begin; it != end; ++it)
+    for (const task_info_t* it = begin; it != end; ++it)
     {
       status[it->id].status = waiting;
       if (it->parent_id != none_id)
+      {
         ++status[it->parent_id].child_count;
-      if (it->parent_id2 != none_id)
-        ++status[it->parent_id2].child_count;
+        if (it->parent_id2 != none_id)
+          ++status[it->parent_id2].child_count;
+      }
     }
     status[none_id].status = done;
 
@@ -305,7 +303,7 @@ public:
   }
 
   // Peek a new task from list , mark the incoming task as done
-  task_info_t* peekTask(task_info_t* it)
+  const task_info_t* peekTask(const task_info_t* it)
   {
     bool towait;    // if true means wait for completion, false return current task or null
     bool notify = false;
@@ -400,7 +398,7 @@ public:
   void thread()
   {
     char tstr[255];
-    task_info_t* t =  nullptr;
+    const task_info_t* t =  nullptr;
     for (t = peekTask(t); t != nullptr;t = peekTask(t))
     {
       auto end = std::chrono::steady_clock::now();
@@ -670,7 +668,7 @@ public:
   const std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now();
   std::mutex mtx;
   std::condition_variable cond_var;
-  task_info_t* begin = nullptr, *end = nullptr;
+  const task_info_t* begin = nullptr, *end = nullptr;
   // status of all tasks
   struct task_status_t status[task_id::max_id];
 };
