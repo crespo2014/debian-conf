@@ -33,26 +33,27 @@
 #define TASK_ID(x)	\
 	x(none)\
 	x(hostname) \
-	x(deferred,init_d) \
+	x(deferred) \
 	x(fs)\
 	x(bootchart)\
 	x(bootchart_end)\
 	x(read_ahead)\
 	x(devfs)\
-	x(udev,fs)\
+	x(udev)\
 	x(x11,hostname)\
-	x(X,hostname,fs)\
-	x(dev_subfs,udev) \
+	x(X)\
+	x(dev_subfs) \
 	x(udev_add)\
 	x(udev_mtab)\
-	x(udev_trigger,deferred)\
+	x(udev_trigger)\
 	x(wait)\
 	x(dbus)\
-	x(procps,udev)\
-	x(xfce4,X)\
-	x(init_d,X)\
+	x(procps)\
+	x(xfce4)\
+	x(init_d)\
 	x(readahead)\
 	x(late_readahead)\
+	x(max)\
 	
 
 #define TO_STRING(id)                 #id
@@ -97,10 +98,17 @@ typedef enum
 
 enum task_status
 {
-  waiting, running, done,
+  disable = 0, //
+  waiting, //
+  running, //
+  done,
 };
 
-
+struct task_status_t
+{
+  unsigned child_count;
+  enum task_status status;
+};
 
 void print_error(int r, int no)
 {
@@ -131,19 +139,9 @@ static char srv_auth_file[] = "/tmp/.server.auth.XXXXXX";
 static char usr_auth_file[] = "/tmp/.user.auth.XXXXXX";
 static char mcookie[40];
 
-struct task_info_t
-{
-  // id of dependencies
-  task_id parent_id;         // = none_id;
-  task_id parent_id2;        // = none_id;
 
-  // id is the position on array
-  enum task_status status;  // = waiting;
-  unsigned long ms;         // = 0;    // task spend time
-  unsigned child_count;	    // how many task depends on this
-};
 
-struct task_info_t task_info[]={ TASK_ID(TASK_INFO) {} };
+//struct task_info_t task_info[]={ TASK_ID(TASK_INFO) {} };
 
 class linux_init
 {
@@ -154,6 +152,24 @@ public:
   {
     thread_fnc_typ fnc;
     task_id id;
+  };
+
+  class task_info_t
+  {
+  public:
+    task_info_t(thread_fnc_typ fnc, task_id id,task_id parent_id = none_id,task_id parent_id2=none_id) :fnc (fnc),id(id),parent_id(parent_id),parent_id2(parent_id2)
+    {
+
+    }
+    thread_fnc_typ fnc;
+    task_id id;
+    // id of dependencies
+    task_id parent_id;         // = none_id;
+    task_id parent_id2;        // = none_id;
+
+    // id is the position on array
+    unsigned long ms;         // = 0;    // task spend time
+
   };
 
   /*
@@ -208,32 +224,33 @@ public:
     sigprocmask(SIG_BLOCK, &sig_mask, &oldmask);
     //signal(SIGUSR1,SIG_IGN);
     
-    task_t tasks[] = {
-        { &linux_init::hostname, hostname_id },    //
-        { &linux_init::mountfs, fs_id },    //
-        { &linux_init::startXserver, X_id },    //
-        { &linux_init::startxfce4, xfce4_id},    //
-        { &linux_init::deferred, deferred_id },    //
-        { &linux_init::udev, udev_id},    //
-        { &linux_init::mountdevsubfs, dev_subfs_id },    //
-        { &linux_init::procps, procps_id},    //
-        { &linux_init::udev_trigger, udev_trigger_id },    //
-        { &linux_init::init_d, init_d_id},    //
-        //{ bootchartd, bootchart_id,procfs_id },    //
-//        { bootchartd_stop, bootchart_end_id, udev_trigger_id },    //
+    mmemset(status,0,sizeof(status));
 
+    task_info_t tasks[] = {
+        { &linux_init::mountfs,      fs_id },    //
+        { &linux_init::hostname,     hostname_id,fs_id },    //
+        { &linux_init::startXserver, X_id,hostname_id,fs_id },    //
+        { &linux_init::deferred,     deferred_id,init_d_id },    //
+        { &linux_init::udev,         udev_id,fs_id},    //
+        { &linux_init::mountdevsubfs, dev_subfs_id,udev_id },    //
+        { &linux_init::procps,       procps_id},    //
+        { &linux_init::udev_trigger, udev_trigger_id,deferred_id },    //
+        { &linux_init::startxfce4,   xfce4_id,X_id},    //
+        { &linux_init::init_d,      init_d_id,X_id},    //
         };
     begin = tasks;
     end = tasks + sizeof(tasks) / sizeof(*tasks);
     // update child counter
-    for (task_t* it = begin;it != end ; ++it)
+    for (task_info_t* it = begin;it != end ; ++it)
     {
-	struct task_info_t* info = task_info + it->id;
-	if (info->parent_id != none_id)
-	  ++(task_info + info->parent_id)->child_count;
-	if (info->parent_id2 != none_id)
-	  ++(task_info + info->parent_id2)->child_count;
+	status[it->id].status = waiting;
+	if (it->parent_id != none_id)
+	  ++status[it->parent_id].child_count;
+	if (it->parent_id2 != none_id)
+	  ++status[it->parent_id2].child_count;
     }
+    status[none_id].status = done;
+
     std::thread t1(sthread, this);
     std::thread t2(sthread, this);
     std::thread t3(sthread, this);
@@ -287,32 +304,29 @@ public:
   }
 
   // Peek a new task from list
-  task_t* peekTask(task_t* prev)
+  task_info_t* peekTask(task_info_t* prev)
   {
-    struct task_info_t* info;
-    bool towait = false;    // if true means wait for completion, false return current task or null
-    task_t* it = begin;
+    bool towait;    // if true means wait for completion, false return current task or null
+    task_info_t* it;
     std::unique_lock<std::mutex> lock(mtx);
     if (prev != nullptr)
     {
-    	info = task_info + prev->id;
-    	info->status = done;
-    	if (info->child_count > 1)
+	status[prev->id].status = done;
+    	if (status[prev->id].child_count > 1)
     		 cond_var.notify_all();	// more than one task has been release
     }
     do
     {
       towait = false;
+      it = begin;
       while (it != end)
       {
-        info = task_info + it->id;
         // find any ready task
-        if (info->status == waiting)
+        if (status[it->id].status == waiting)
         {
-          if ((info->parent_id == none_id || task_info[info->parent_id].status == done) &&
-             (info->parent_id2 == none_id || task_info[info->parent_id2].status == done))
+          if (status[it->parent_id].status == done && status[it->parent_id2].status == done )
           {
-            info->status = running;
+              status[it->id].status = running;
             break;
           }
           towait = true;
@@ -330,7 +344,6 @@ public:
 	cond_var.notify_all();
 	}
     } while(false);
-
     return it;
   }
   /*
@@ -376,7 +389,7 @@ public:
   void thread()
   {
     char tstr[255];
-    task_t* t = nullptr;
+    task_info_t* t = nullptr;
     while ((t = peekTask(t)) != nullptr)
     {
       auto end = std::chrono::steady_clock::now();
@@ -648,7 +661,9 @@ public:
   const std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now();
   std::mutex mtx;
   std::condition_variable cond_var;
-  task_t* begin = nullptr, *end = nullptr;
+  task_info_t* begin = nullptr, *end = nullptr;
+  // status of all tasks
+  struct task_status_t status[task_id::max_id];
 };
 
 
