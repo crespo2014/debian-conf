@@ -25,7 +25,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
-#include <sys/inotify.h>
+//#include <sys/inotify.h>
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <string.h>
@@ -71,10 +71,10 @@
 #define DEPENDS_9(a,b,...)  DEPENDS_2(a,b) DEPENDS_8(a,__VA_ARGS__)
 #define DEPENDS_10(a,b,...) DEPENDS_2(a,b) DEPENDS_9(a,__VA_ARGS__)
 
-#define TASK_INFO_0(id)                 { none_id,none_id,waiting,0},
-#define TASK_INFO_1(id)                 { none_id,none_id,waiting,0},
-#define TASK_INFO_2(id,parent1)         { parent1 ## _id, none_id,waiting,0 } ,
-#define TASK_INFO_3(id,parent1,parent2) { parent1 ## _id, parent2 ## _id,waiting,0} ,
+#define TASK_INFO_0(id)                 { none_id, none_id, waiting, 0 , 0 },
+#define TASK_INFO_1(id)                 { none_id, none_id, waiting, 0 , 0 },
+#define TASK_INFO_2(id,parent1)         { parent1 ## _id, none_id, waiting, 0 , 0 } ,
+#define TASK_INFO_3(id,parent1,parent2) { parent1 ## _id, parent2 ## _id, waiting, 0 , 0} ,
 
 
 #define GET_10(fnc,n0,n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,...) fnc##n10
@@ -131,6 +131,19 @@ static char srv_auth_file[] = "/tmp/.server.auth.XXXXXX";
 static char usr_auth_file[] = "/tmp/.user.auth.XXXXXX";
 static char mcookie[40];
 
+struct task_info_t
+{
+  // id of dependencies
+  task_id parent_id;         // = none_id;
+  task_id parent_id2;        // = none_id;
+
+  // id is the position on array
+  enum task_status status;  // = waiting;
+  unsigned long ms;         // = 0;    // task spend time
+  unsigned child_count;	    // how many task depends on this
+};
+
+struct task_info_t task_info[]={ TASK_ID(TASK_INFO) {} };
 
 class linux_init
 {
@@ -142,18 +155,6 @@ public:
     thread_fnc_typ fnc;
     task_id id;
   };
-  struct task_info_t
-  {
-    // id of dependencies
-    task_id parent_id = none_id;
-    task_id parent_id2 = none_id;
-
-    // id is the position on array
-    enum task_status status = waiting;
-    unsigned long ms = 0;    // task spend time
-  };
-
-  static struct task_info_t task_info[]={ TASK_ID(TASK_INFO) };
 
   /*
    * Main fucntion as main entry point
@@ -207,7 +208,7 @@ public:
     sigprocmask(SIG_BLOCK, &sig_mask, &oldmask);
     //signal(SIGUSR1,SIG_IGN);
     
-    task tasks[] = {
+    task_t tasks[] = {
         { &linux_init::hostname, hostname_id },    //
         { &linux_init::mountfs, fs_id },    //
         { &linux_init::startXserver, X_id },    //
@@ -224,6 +225,15 @@ public:
         };
     begin = tasks;
     end = tasks + sizeof(tasks) / sizeof(*tasks);
+    // update child counter
+    for (task_t* it = begin;it != end ; ++it)
+    {
+	struct task_info_t* info = task_info + it->id;
+	if (info->parent_id != none_id)
+	  ++(task_info + info->parent_id)->child_count;
+	if (info->parent_id2 != none_id)
+	  ++(task_info + info->parent_id2)->child_count;
+    }
     std::thread t1(sthread, this);
     std::thread t2(sthread, this);
     std::thread t3(sthread, this);
@@ -277,19 +287,21 @@ public:
   }
 
   // Peek a new task from list
-  task* peekTask(task* prev)
+  task_t* peekTask(task_t* prev)
   {
     struct task_info_t* info;
     bool towait = false;    // if true means wait for completion, false return current task or null
-    task* it = begin;
+    task_t* it = begin;
     std::unique_lock<std::mutex> lock(mtx);
     if (prev != nullptr)
     {
-      prev->status = done;
+    	info = task_info + prev->id;
+    	info->status = done;
+    	if (info->child_count > 1)
+    		 cond_var.notify_all();	// more than one task has been release
     }
     do
     {
-      
       towait = false;
       while (it != end)
       {
@@ -301,21 +313,25 @@ public:
              (info->parent_id2 == none_id || task_info[info->parent_id2].status == done))
           {
             info->status = running;
-            cond_var.notify_all();   // a task was release and there is available
-	    return it;
+            break;
           }
           towait = true;
         }
         ++it;
       }
-      if (towait)
+      if (it == end)		// we got nothing
       {
-	//std::cout << 'T' << std::this_thread::get_id() << " W" << std::endl;
-        cond_var.wait(lock);
-      }
-    } while (towait);
-    cond_var.notify_all(); // end of task
-    return nullptr;
+	if (towait)		// wait and try again
+	{
+	    cond_var.wait(lock);
+	    continue;
+	}
+	it = nullptr;	// we done here
+	cond_var.notify_all();
+	}
+    } while(false);
+
+    return it;
   }
   /*
    * Execute a command received as list of space separate parameters
@@ -360,7 +376,7 @@ public:
   void thread()
   {
     char tstr[255];
-    task* t = nullptr;
+    task_t* t = nullptr;
     while ((t = peekTask(t)) != nullptr)
     {
       auto end = std::chrono::steady_clock::now();
@@ -632,8 +648,10 @@ public:
   const std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now();
   std::mutex mtx;
   std::condition_variable cond_var;
-  task* begin = nullptr, *end = nullptr;
+  task_t* begin = nullptr, *end = nullptr;
 };
+
+
 
 /*
  Execution list plus dependencies.
