@@ -149,6 +149,7 @@ public:
     task_id id;
   };
 
+  // Using a class make brakes intialization easy
   class task_info_t
   {
   public:
@@ -164,7 +165,7 @@ public:
     task_id parent_id2;        // = none_id;
 
     // id is the position on array
-    unsigned long ms;         // = 0;    // task spend time
+    unsigned long ms = 0;    // task spend time
 
   };
 
@@ -303,25 +304,28 @@ public:
     } while (*cptr != 0);
   }
 
-  // Peek a new task from list
-  task_info_t* peekTask(task_info_t* prev)
+  // Peek a new task from list , mark the incoming task as done
+  task_info_t* peekTask(task_info_t* it)
   {
-    bool towait; // if true means wait for completion, false return current task or null
-    task_info_t* it;
+    bool towait;    // if true means wait for completion, false return current task or null
+    bool notify = false;
     std::unique_lock < std::mutex > lock(mtx);
-    if (prev != nullptr)
+    if (it != nullptr)
     {
-      status[prev->id].status = done;
+      status[it->id].status = done;
       // put back all done task
-
-      if (status[prev->id].child_count > 1)
-        cond_var.notify_all();  // more than one task has been release
+      if (it == begin)
+      {
+        while (begin != end && status[begin->id].status == done)
+          ++begin;
+      }
+      if (status[it->id].child_count > 1)
+        notify = true;   // more than one task has been release
     }
-    do
+    for(;;)
     {
-      towait = false;
-      it = begin;
-      while (it != end)
+      towait = false;   // no task to waiting for
+      for (it = begin;it != end;++it)
       {
         // find any ready task
         if (status[it->id].status == waiting)
@@ -333,21 +337,22 @@ public:
           }
           towait = true;
         }
-        else if (status[it->id].status == done && it == begin)	// if the first task in the list is done, move head to next
-          ++begin;
-        ++it;
       }
-      if (it == end)		// we got nothing
+      if (it != end) break;     // get out for ;;
+      // we got nothing
+      if (towait)		// wait and try again
       {
-        if (towait)		// wait and try again
-        {
-          cond_var.wait(lock);
-          continue;
-        }
-        it = nullptr;	// we done here
-        cond_var.notify_all();
+        cond_var.wait(lock);
       }
-    } while (false);
+      else
+      {
+        it = nullptr;	// we done here
+        notify = true;
+        break; // get out for ;;
+      }
+    } // for ;; loop
+    if (notify)
+      cond_var.notify_all();  // more than one task has been release
     return it;
   }
   /*
@@ -395,8 +400,8 @@ public:
   void thread()
   {
     char tstr[255];
-    task_info_t* t = nullptr;
-    while ((t = peekTask(t)) != nullptr)
+    task_info_t* t =  nullptr;
+    for (t = peekTask(t); t != nullptr;t = peekTask(t))
     {
       auto end = std::chrono::steady_clock::now();
       //snprintf(tmp_str, sizeof(tmp_str) - 1,"[%d] S %s\n",std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time).count(), getTaskName(t->id));
