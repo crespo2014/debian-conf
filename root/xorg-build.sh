@@ -2,26 +2,45 @@
 #
 # http://www.linuxfromscratch.org/blfs/view/7.7/x/x7driver.html
 #
-# apt-get install autoconf make cmake
-[ -d xorg-src ] || mkdir xorg-src
-cd xorg-src
-export XORG_PREFIX="/opt/X11"
-export XORG_CONFIG="--prefix=$XORG_PREFIX --sysconfdir=/etc \
-    --localstatedir=/var "
-#--disable-static
+# apt-get install autoconf make cmake pkg-config  libperl-dev libgtk2.0-dev intltool
+#[ -d xorg-src ] || mkdir xorg-src
+#cd xorg-src
+
+BUSER=lester
+
+export XORG_PREFIX="/mnt/data/app/x86"
+export XORG_CONFIG="--prefix=$XORG_PREFIX --sysconfdir=/etc --localstatedir=/var  "
+#--disable-static --disable-docs
+
+# avoid including : at the beginning when teh variable is empty 
+if [ "$PKG_CONFIG_PATH" != "" ]; then
+LIBRARY_PATH=$LIBRARY_PATH: 
+fi
+
+if [ "$PKG_CONFIG_PATH" != "" ]; then
+PKG_CONFIG_PATH=$PKG_CONFIG_PATH: 
+fi
+
+if [ "$C_INCLUDE_PATH" != "" ]; then
+C_INCLUDE_PATH=$C_INCLUDE_PATH: 
+fi
+
+if [ "$CPLUS_INCLUDE_PATH" != "" ]; then
+CPLUS_INCLUDE_PATH=$CPLUS_INCLUDE_PATH: 
+fi
 	
 PATH=$PATH:$XORG_PREFIX/bin
-PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$XORG_PREFIX/lib/pkgconfig:$XORG_PREFIX/share/pkgconfig  
-LIBRARY_PATH=$LIBRARY_PATH:$XORG_PREFIX/lib             
-C_INCLUDE_PATH=$C_INCLUDE_PATH:$XORG_PREFIX/include         
-CPLUS_INCLUDE_PATH=$CPLUS_INCLUDE_PATH:$XORG_PREFIX/include         
+PKG_CONFIG_PATH=${PKG_CONFIG_PATH}$XORG_PREFIX/lib/pkgconfig:$XORG_PREFIX/share/pkgconfig  
+LIBRARY_PATH=${LIBRARY_PATH}$XORG_PREFIX/lib             
+C_INCLUDE_PATH=${C_INCLUDE_PATH}$XORG_PREFIX/include         
+CPLUS_INCLUDE_PATH=${CPLUS_INCLUDE_PATH}$XORG_PREFIX/include         
 
 ACLOCAL='aclocal -I $XORG_PREFIX/share/aclocal'
 export PATH PKG_CONFIG_PATH ACLOCAL LIBRARY_PATH C_INCLUDE_PATH CPLUS_INCLUDE_PATH	
 
-if [ 1 = 1 ]; then	
+if [ 1 = 0 ]; then	
 cat > /etc/profile.d/xorg.sh << "EOF"
-XORG_PREFIX="/opt/X11"
+XORG_PREFIX="/mnt/data/app/x86"
 XORG_CONFIG="--prefix=$XORG_PREFIX --sysconfdir=/etc --localstatedir=/var --disable-static"
 export XORG_PREFIX XORG_CONFIG
 EOF
@@ -71,12 +90,16 @@ function install()
   if [ $? = 0 ]; then
     pushd $name
     ./configure $XORG_CONFIG
-	make
+    make 
     make install
     popd	
   fi
 	
 }
+
+install "http://dri.freedesktop.org/libdrm/libdrm-2.4.61.tar.bz2"
+install  "http://www.freedesktop.org/software/vaapi/releases/libva/libva-1.5.1.tar.bz2"
+exit 0
 
 install "http://xorg.freedesktop.org/releases/individual/util/util-macros-1.19.0.tar.bz2"
 
@@ -117,12 +140,14 @@ files="http://xorg.freedesktop.org/releases/individual/lib/libXau-1.0.8.tar.bz2 
  http://xcb.freedesktop.org/dist/xcb-proto-1.11.tar.bz2 "
  
 extract "http://xcb.freedesktop.org/dist/libxcb-1.11.tar.bz2"
-sed -i "s/pthread-stubs//" configure &&
+sed -i "s/pthread-stubs//" configure 
 ./configure $XORG_CONFIG    \
             --enable-xinput \
-            --docdir='${datadir}'/doc/libxcb-1.11 &&
-make
+            --docdir='${datadir}'/doc/libxcb-1.11 
+make 
 cd ..
+
+install  http://www.freedesktop.org/software/vaapi/releases/libva/libva-1.5.1.tar.bz2
 
 http_root=http://xorg.freedesktop.org/releases/individual/lib/
 files="\
@@ -167,14 +192,13 @@ do
       ./configure $XORG_CONFIG --disable-devel-docs
     ;;
     libXt* )
-      ./configure $XORG_CONFIG \
-                  --with-appdefaultdir=/etc/X11/app-defaults
+      ./configure $XORG_CONFIG --with-appdefaultdir=/etc/X11/app-defaults
     ;;
     * )
       ./configure $XORG_CONFIG
     ;;
   esac
-  make
+  make 
   make check 2>&1 | tee ../$packagedir-make_check.log
   make install
   /sbin/ldconfig
@@ -208,6 +232,7 @@ make
 make install
 make -C xdemos DEMOS_PREFIX=$XORG_PREFIX
 make -C xdemos DEMOS_PREFIX=$XORG_PREFIX install
+cd ..
 
 install http://xorg.freedesktop.org/archive/individual/data/xbitmaps-1.1.1.tar.bz2
 
@@ -336,13 +361,16 @@ extract  http://xorg.freedesktop.org/archive/individual/xserver/xorg-server-1.17
            --disable-systemd-logind \
            --with-xkb-output=/var/lib/xkb
 make
+cd ..
 
+if [ 1 == 0 ]; then
 make install
 mkdir -pv /etc/X11/xorg.conf.d
 cat >> /etc/sysconfig/createfiles << "EOF"
 /tmp/.ICE-unix dir 1777 root root
 /tmp/.X11-unix dir 1777 root root
 EOF
+fi
 
 #Device Drivers  --->
 #  Input device support --->
@@ -380,12 +408,12 @@ cd ..
 install http://people.freedesktop.org/~aplattner/vdpau/libvdpau-0.9.tar.gz
 
 extract  https://github.com/i-rinat/libvdpau-va-gl/releases/download/v0.3.4/libvdpau-va-gl-0.3.4.tar.gz
-mkdir build &&
-cd    build &&
-
+mkdir build 
+cd    build
 cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$XORG_PREFIX .. &&
 make
 make install
 echo "export VDPAU_DRIVER=va_gl" >> /etc/profile.d/xorg.sh
+cd ..
 
 
