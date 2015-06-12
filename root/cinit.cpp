@@ -224,7 +224,7 @@ public:
     sigprocmask(SIG_BLOCK, &sig_mask, &oldmask);
     //signal(SIGUSR1,SIG_IGN);
     
-    mmemset(status,0,sizeof(status));
+    memset(status,0,sizeof(status));
 
     task_info_t tasks[] = {
         { &linux_init::mountfs,      fs_id },    //
@@ -331,6 +331,9 @@ public:
           }
           towait = true;
         }
+        else
+          if (status[it->id].status == done && it == begin)	// if the first task in the list is done, move head to next
+            ++begin;
         ++it;
       }
       if (it == end)		// we got nothing
