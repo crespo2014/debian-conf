@@ -77,7 +77,6 @@
 #define TASK_INFO_2(id,parent1)         { parent1 ## _id, none_id, waiting, 0 , 0 } ,
 #define TASK_INFO_3(id,parent1,parent2) { parent1 ## _id, parent2 ## _id, waiting, 0 , 0} ,
 
-
 #define GET_10(fnc,n0,n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,...) fnc##n10
 #define COUNT(fnc,...) GET_10(fnc,__VA_ARGS__,10,9,8,7,6,5,4,3,2,1)
 #define CALL_FNC(fnc,...) COUNT(fnc,__VA_ARGS__)(__VA_ARGS__)
@@ -86,7 +85,6 @@
 
 #define GET_DEPENDS_0()  none,none
 #define GET_DEPENDS_1()  none,none
-
 
 // Fill a table with all modules information
 #define TASK_INFO(...)  CALL_FNC(TASK_INFO_,##__VA_ARGS__)	      
@@ -125,21 +123,18 @@ void print_error(int r, int no)
     } \
   } while (0)
 
-
-
 const char* getTaskName(task_id id)
 {
-  static const char* const names[] = { TASK_ID(TO_NAME)"" };
-  if (id >= sizeof(names) / sizeof(*names)) return "";
+  static const char* const names[] =
+  { TASK_ID(TO_NAME)"" };
+  if (id >= sizeof(names) / sizeof(*names))
+    return "";
   return names[id];
 }
-
 
 static char srv_auth_file[] = "/tmp/.server.auth.XXXXXX";
 static char usr_auth_file[] = "/tmp/.user.auth.XXXXXX";
 static char mcookie[40];
-
-
 
 //struct task_info_t task_info[]={ TASK_ID(TASK_INFO) {} };
 
@@ -157,7 +152,8 @@ public:
   class task_info_t
   {
   public:
-    task_info_t(thread_fnc_typ fnc, task_id id,task_id parent_id = none_id,task_id parent_id2=none_id) :fnc (fnc),id(id),parent_id(parent_id),parent_id2(parent_id2)
+    task_info_t(thread_fnc_typ fnc, task_id id, task_id parent_id = none_id, task_id parent_id2 = none_id) :
+        fnc(fnc), id(id), parent_id(parent_id), parent_id2(parent_id2)
     {
 
     }
@@ -182,28 +178,30 @@ public:
     char tstr[255];
     testrc(mount("", "/proc", "proc", MS_NOATIME | MS_NODIRATIME | MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
     // mount proc check for single and exit
-    bool fast =  false;   
+    bool fast = false;
     std::vector<char*> cmdline;
     cmdline.reserve(15);
     *tstr = 0;
-    auto fd = open("/proc/cmdline",O_RDONLY);
-    if (fd > 0 )
+    auto fd = open("/proc/cmdline", O_RDONLY);
+    if (fd > 0)
     {
-      int r = read(fd,tstr,sizeof(tstr) - 1);
-      if (r > 0) tstr[r-1] = 0;     // remove ending \n
+      int r = read(fd, tstr, sizeof(tstr) - 1);
+      if (r > 0)
+        tstr[r - 1] = 0;     // remove ending \n
       close(fd);
-      split(tstr,cmdline);
+      split(tstr, cmdline);
       for (auto p : cmdline)
       {
-        if (strcmp(p,"fastboot") == 0 )
+        if (strcmp(p, "fastboot") == 0)
         {
           fast = true;
-        } else if (strcmp(p,"single") == 0 )
+        }
+        else if (strcmp(p, "single") == 0)
         {
           fast = false;
           break;
         }
-  
+
       }
     }
     else
@@ -223,31 +221,32 @@ public:
     sigaddset(&sig_mask, SIGUSR1);
     sigprocmask(SIG_BLOCK, &sig_mask, &oldmask);
     //signal(SIGUSR1,SIG_IGN);
-    
-    memset(status,0,sizeof(status));
 
-    task_info_t tasks[] = {
-        { &linux_init::mountfs,      fs_id },    //
-        { &linux_init::hostname,     hostname_id,fs_id },    //
-        { &linux_init::startXserver, X_id,hostname_id,fs_id },    //
-        { &linux_init::deferred,     deferred_id,init_d_id },    //
-        { &linux_init::udev,         udev_id,fs_id},    //
-        { &linux_init::mountdevsubfs, dev_subfs_id,udev_id },    //
-        { &linux_init::procps,       procps_id},    //
-        { &linux_init::udev_trigger, udev_trigger_id,deferred_id },    //
-        { &linux_init::startxfce4,   xfce4_id,X_id},    //
-        { &linux_init::init_d,      init_d_id,X_id},    //
+    memset(status, 0, sizeof(status));
+
+    task_info_t tasks[] =
+    {
+    { &linux_init::mountfs, fs_id },    //
+        { &linux_init::hostname, hostname_id, fs_id },    //
+        { &linux_init::startXserver, X_id, hostname_id, fs_id },    //
+        { &linux_init::deferred, deferred_id, init_d_id },    //
+        { &linux_init::udev, udev_id, fs_id },    //
+        { &linux_init::mountdevsubfs, dev_subfs_id, udev_id },    //
+        { &linux_init::procps, procps_id },    //
+        { &linux_init::udev_trigger, udev_trigger_id, deferred_id },    //
+        { &linux_init::startxfce4, xfce4_id, X_id },    //
+        { &linux_init::init_d, init_d_id, X_id },    //
         };
     begin = tasks;
     end = tasks + sizeof(tasks) / sizeof(*tasks);
     // update child counter
-    for (task_info_t* it = begin;it != end ; ++it)
+    for (task_info_t* it = begin; it != end; ++it)
     {
-	status[it->id].status = waiting;
-	if (it->parent_id != none_id)
-	  ++status[it->parent_id].child_count;
-	if (it->parent_id2 != none_id)
-	  ++status[it->parent_id2].child_count;
+      status[it->id].status = waiting;
+      if (it->parent_id != none_id)
+        ++status[it->parent_id].child_count;
+      if (it->parent_id2 != none_id)
+        ++status[it->parent_id2].child_count;
     }
     status[none_id].status = done;
 
@@ -268,7 +267,7 @@ public:
   /*
    * Split element of string delimiter by spaces
    */
-  void split(char* list,std::vector<char*>& v)
+  void split(char* list, std::vector<char*>& v)
   {
     char *cptr = list;
     do
@@ -287,7 +286,8 @@ public:
           *cptr = 0;
           ++cptr;
         }
-      } else if (*cptr != 0)
+      }
+      else if (*cptr != 0)
       {
         v.push_back(cptr);
         //next space
@@ -306,14 +306,16 @@ public:
   // Peek a new task from list
   task_info_t* peekTask(task_info_t* prev)
   {
-    bool towait;    // if true means wait for completion, false return current task or null
+    bool towait; // if true means wait for completion, false return current task or null
     task_info_t* it;
-    std::unique_lock<std::mutex> lock(mtx);
+    std::unique_lock < std::mutex > lock(mtx);
     if (prev != nullptr)
     {
-	status[prev->id].status = done;
-    	if (status[prev->id].child_count > 1)
-    		 cond_var.notify_all();	// more than one task has been release
+      status[prev->id].status = done;
+      // put back all done task
+
+      if (status[prev->id].child_count > 1)
+        cond_var.notify_all();  // more than one task has been release
     }
     do
     {
@@ -324,29 +326,28 @@ public:
         // find any ready task
         if (status[it->id].status == waiting)
         {
-          if (status[it->parent_id].status == done && status[it->parent_id2].status == done )
+          if (status[it->parent_id].status == done && status[it->parent_id2].status == done)
           {
-              status[it->id].status = running;
+            status[it->id].status = running;
             break;
           }
           towait = true;
         }
-        else
-          if (status[it->id].status == done && it == begin)	// if the first task in the list is done, move head to next
-            ++begin;
+        else if (status[it->id].status == done && it == begin)	// if the first task in the list is done, move head to next
+          ++begin;
         ++it;
       }
       if (it == end)		// we got nothing
       {
-	if (towait)		// wait and try again
-	{
-	    cond_var.wait(lock);
-	    continue;
-	}
-	it = nullptr;	// we done here
-	cond_var.notify_all();
-	}
-    } while(false);
+        if (towait)		// wait and try again
+        {
+          cond_var.wait(lock);
+          continue;
+        }
+        it = nullptr;	// we done here
+        cond_var.notify_all();
+      }
+    } while (false);
     return it;
   }
   /*
@@ -358,7 +359,7 @@ public:
   {
     std::vector<char*> arg;
     arg.reserve(10);
-    split(cmd,arg);
+    split(cmd, arg);
     arg.push_back(nullptr);
     return launch(wait, arg.data(), nofork);
   }
@@ -368,7 +369,7 @@ public:
     if (nofork)
     {
       execv(argv[0], (char* const *) argv);
-      _exit(EXIT_FAILURE);
+      _exit (EXIT_FAILURE);
     }
     int status;
     pid_t pid = fork();
@@ -376,15 +377,17 @@ public:
     {
       perror("failed to fork");
       status = -1;
-    } else if (pid > 0)
+    }
+    else if (pid > 0)
     {
-      if (wait) waitpid(pid, &status, 0);
+      if (wait)
+        waitpid(pid, &status, 0);
     }
     if (pid == 0)
     {
       // child
       execv(argv[0], (char* const *) argv);
-      _exit(EXIT_FAILURE);
+      _exit (EXIT_FAILURE);
     }
     return status;
   }
@@ -397,15 +400,12 @@ public:
     {
       auto end = std::chrono::steady_clock::now();
       //snprintf(tmp_str, sizeof(tmp_str) - 1,"[%d] S %s\n",std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time).count(), getTaskName(t->id));
-      std::cout 
-         //<< 'T' << std::this_thread::get_id() 
-         << " [" << std::chrono::duration_cast<std::chrono::milliseconds>(end - start_time).count() << "]" 
-         << " S " << getTaskName(t->id) << std::endl;
+      std::cout
+      //<< 'T' << std::this_thread::get_id()
+          << " [" << std::chrono::duration_cast < std::chrono::milliseconds > (end - start_time).count() << "]" << " S " << getTaskName(t->id) << std::endl;
       (this->*(t->fnc))();
-      std::cout << '[' 
-        << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time).count() 
-        << "] E " << getTaskName(t->id) << " " 
-        << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - end).count() << "ms" <<std::endl;
+      std::cout << '[' << std::chrono::duration_cast < std::chrono::milliseconds > (std::chrono::steady_clock::now() - start_time).count() << "] E " << getTaskName(t->id) << " " << std::chrono::duration_cast < std::chrono::milliseconds
+          > (std::chrono::steady_clock::now() - end).count() << "ms" << std::endl;
     }
   }
   static void sthread(linux_init* lnx)
@@ -448,7 +448,7 @@ public:
 
   void mountdevsubfs()
   {
-    mkdir("/dev/pts",0755);
+    mkdir("/dev/pts", 0755);
     testrc(mount("pts", "/dev/pts", "devpts", MS_SILENT | MS_NOSUID | MS_NOEXEC, "gid=5,mode=620"));
   }
 
@@ -483,16 +483,17 @@ public:
   {
     char tstr[255];
     struct stat buf;
-    if (stat("/sbin/MAKEDEV",&buf) == 0)
+    if (stat("/sbin/MAKEDEV", &buf) == 0)
     {
-      symlink("/dev/MAKEDEV","/sbin/MAKEDEV");
-    }else
-    {
-      symlink("/dev/MAKEDEV","/bin/true");
+      symlink("/dev/MAKEDEV", "/sbin/MAKEDEV");
     }
-   /* strcpy(tstr,"/bin/mv /dev/.udev/ /run/udev/");
-    execute(tstr,true);
-*/
+    else
+    {
+      symlink("/dev/MAKEDEV", "/bin/true");
+    }
+    /* strcpy(tstr,"/bin/mv /dev/.udev/ /run/udev/");
+     execute(tstr,true);
+     */
 
     FILE * pFile;
 
@@ -500,17 +501,18 @@ public:
     if (pFile == NULL)
     {
       printf("Error opening file /sys/kernel/uevent_helper \n");
-    } else
+    }
+    else
     {
       fwrite("", 0, 0, pFile);
       fclose(pFile);
     }
-    
+
     //sleep(10);
     execute_c("udevadm info --cleanup-db");
     execute_c("/sbin/udevd --daemon");
     //execute_c("/bin/udevadm trigger --action=add");
-    execute_c("/bin/udevadm settle",true);
+    execute_c("/bin/udevadm settle", true);
   }
 
   void udev_trigger()
@@ -527,11 +529,10 @@ public:
   // execute some init script
   void init_d()
   {
-    execute_c("/etc/init.d/hwclock start",true);
-    execute_c("/etc/init.d/urandom start",true);
+    execute_c("/etc/init.d/hwclock start", true);
+    execute_c("/etc/init.d/urandom start", true);
     execute_c("/etc/init.d/networking start");
   }
-
 
   /*
    startxfc4 script c++ translation
@@ -540,9 +541,7 @@ public:
   void startxfce4()
   {
     char tmp_str[255];
-    snprintf(tmp_str, sizeof(tmp_str) - 1,
-        "/bin/su -l -c 'export %s=%s;export %s=:%d;exec /usr/bin/startxfce4' lester", env_authority,
-        usr_auth_file, env_display, x_display_id);
+    snprintf(tmp_str, sizeof(tmp_str) - 1, "/bin/su -l -c 'export %s=%s;export %s=:%d;exec /usr/bin/startxfce4' lester", env_authority, usr_auth_file, env_display, x_display_id);
     execute(tmp_str, false);
   }
 
@@ -552,14 +551,14 @@ public:
     const char* env;
     int r;
     execute_c("/etc/init.d/acpid start");
-    mkdir("/tmp/.X11-unix",01777);
-    chmod("/tmp/.X11-unix",01777);
-    mkdir("/tmp/.ICE-unix",01777);
-    chmod("/tmp/.ICE-unix",01777);
+    mkdir("/tmp/.X11-unix", 01777);
+    chmod("/tmp/.X11-unix", 01777);
+    mkdir("/tmp/.ICE-unix", 01777);
+    chmod("/tmp/.ICE-unix", 01777);
     unsetenv(env_dbus_session);
     unsetenv(env_session_manager);
 
-    int auth_file_fd = mkstemp(srv_auth_file);		// create file	file has to be delete when everything is done, but for just one x server keep it in tmp is ok
+    int auth_file_fd = mkstemp(srv_auth_file);	// create file	file has to be delete when everything is done, but for just one x server keep it in tmp is ok
     if (auth_file_fd != -1)
     {
       close(auth_file_fd);
@@ -567,7 +566,8 @@ public:
     // call xauth to add display 0 and cookie add :0 . xxxxxx
     auto fd = popen("/usr/bin/mcookie", "r");
     r = fread(mcookie, 1, sizeof(mcookie) - 1, fd);
-    if (r > 0) mcookie[r] = 0;
+    if (r > 0)
+      mcookie[r] = 0;
     pclose(fd);
 
     // Server auth file
@@ -583,7 +583,7 @@ public:
 
     snprintf(tmp_str, sizeof(tmp_str) - 1, "/usr/bin/xauth -q -f %s add :%d . %s", usr_auth_file, x_display_id, mcookie);
     execute(tmp_str);
-    EXIT(chown(usr_auth_file, 1000, 1000), == -1);    // change owner to main user
+    EXIT(chown(usr_auth_file, 1000, 1000), == -1); // change owner to main user
 
     // Start X server and wait for it
     sigset_t sig_mask;
@@ -592,7 +592,8 @@ public:
     sigemptyset(&sig_mask);
     sigaddset(&sig_mask, SIGUSR1);
     pthread_sigmask(SIG_BLOCK, &sig_mask, &oldmask);
-    struct timespec sig_timeout = { 15, 0 };    // 5sec
+    struct timespec sig_timeout =
+    { 15, 0 };    // 5sec
 
     /* start x server and wait for signal */
     auto pid = fork();
@@ -609,7 +610,7 @@ public:
       //-terminate -quiet
       snprintf(tmp_str, sizeof(tmp_str) - 1, "/usr/bin/X :%d  -audit 0 -logfile /dev/kmsg -nolisten tcp -auth %s vt0%d", x_display_id, srv_auth_file, x_vt_id);
       execute(tmp_str, false, true);
-      exit(EXIT_FAILURE);
+      exit (EXIT_FAILURE);
     }
     // wait for signal become pending, only blocked signal can be pending, otherwise the signal will be generated
     r = sigtimedwait(&sig_mask, nullptr, &sig_timeout);
@@ -640,11 +641,11 @@ public:
   }
 
   // Wait for all task in running state
-  int execute_c(const char* ccmd,bool wait = false,bool fork=true)
+  int execute_c(const char* ccmd, bool wait = false, bool fork = true)
   {
     char cmd[512];
-    strcpy(cmd,ccmd);
-    return execute(cmd,wait,!fork);    
+    strcpy(cmd, ccmd);
+    return execute(cmd, wait, !fork);
   }
 public:
   constexpr static const char* user_name = "lester";
@@ -668,8 +669,6 @@ public:
   // status of all tasks
   struct task_status_t status[task_id::max_id];
 };
-
-
 
 /*
  Execution list plus dependencies.
