@@ -581,6 +581,17 @@ public:
     struct timespec sig_timeout =
     { 15, 0 };    // 5sec
 
+    snprintf(tmp_str, sizeof(tmp_str) - 1,"/etc/X11/xorg.conf.%s",host);
+    r = access( tmp_str, F_OK );
+
+    //-terminate -quiet
+    cptr = tmp_str;
+    cptr += snprintf(cptr, tmp_str + sizeof(tmp_str) - cptr - 1, "/usr/bin/X :%d ",x_display_id);
+    if (r == 0)
+     cptr += snprintf(cptr, tmp_str + sizeof(tmp_str) - cptr - 1, " -config /root/xorg.config.%s",host);
+
+    snprintf(cptr, tmp_str +sizeof(tmp_str) - cptr - 1, "  -audit 0 -logfile /dev/kmsg -nolisten tcp -auth %s vt0%d", srv_auth_file, x_vt_id);
+
     /* start x server and wait for signal */
     auto pid = fork();
     if (pid == 0)
@@ -592,19 +603,7 @@ public:
        */
       //sigprocmask(SIG_SETMASK, &oldmask, nullptr);
       signal(SIGUSR1, SIG_IGN);
-
-      snprintf(tmp_str, sizeof(tmp_str) - 1,"/root/xorg.conf.%s",host);
-      int r = access( tmp_str, F_OK );
-
-      //-terminate -quiet
-      cptr = tmp_str;
-      cptr += snprintf(cptr, tmp_str + sizeof(tmp_str) - cptr - 1, "/usr/bin/X :%d ",x_display_id);
-      if (r == 0)
-        cptr += snprintf(cptr, tmp_str + sizeof(tmp_str) - cptr - 1, " -config /root/xorg.config.%s",host);
-
-      snprintf(cptr, tmp_str +sizeof(tmp_str) - cptr - 1, "  -audit 0 -logfile /dev/kmsg -nolisten tcp -auth %s vt0%d", srv_auth_file, x_vt_id);
       execute(tmp_str, false, true);
-      exit (EXIT_FAILURE);
     }
     // wait for signal become pending, only blocked signal can be pending, otherwise the signal will be generated
     r = sigtimedwait(&sig_mask, nullptr, &sig_timeout);
@@ -624,7 +623,7 @@ public:
       r = fread(host, 1, sizeof(host), pFile);
       if (r > 0)
       {
-        host[r] = 0;
+        host[r-1] = 0;
       }
       else
         strcpy(host,"localhost");
