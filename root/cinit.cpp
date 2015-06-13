@@ -588,7 +588,7 @@ public:
     cptr = tmp_str;
     cptr += snprintf(cptr, tmp_str + sizeof(tmp_str) - cptr - 1, "/usr/bin/X :%d ",x_display_id);
     if (r == 0)
-     cptr += snprintf(cptr, tmp_str + sizeof(tmp_str) - cptr - 1, " -config /root/xorg.config.%s",host);
+     cptr += snprintf(cptr, tmp_str + sizeof(tmp_str) - cptr - 1, " -config /etc/X11/xorg.conf.%s",host);
 
     snprintf(cptr, tmp_str +sizeof(tmp_str) - cptr - 1, "  -audit 0 -logfile /dev/kmsg -nolisten tcp -auth %s vt0%d", srv_auth_file, x_vt_id);
 
