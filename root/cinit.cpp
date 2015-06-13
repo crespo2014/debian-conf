@@ -593,7 +593,7 @@ public:
       //sigprocmask(SIG_SETMASK, &oldmask, nullptr);
       signal(SIGUSR1, SIG_IGN);
 
-      snprintf(tmp_str, sizeof(tmp_str) - 1,"/root/xorg.config.%s",host);
+      snprintf(tmp_str, sizeof(tmp_str) - 1,"/root/xorg.conf.%s",host);
       int r = access( tmp_str, F_OK );
 
       //-terminate -quiet
