@@ -688,18 +688,18 @@ int main()
   // using const all data will be in RO memory really fast
   static const linux_init::task_info_t tasks[] =
   {
-    TASK_INFO( &linux_init::mountfs, fs)    //
-    TASK_INFO( &linux_init::e4rat_load, e4rat,fs)    //
-    TASK_INFO( &linux_init::hostname, hostname)    //
+    TASK_INFO( &linux_init::mountfs, fs,e4rat)    //
+    TASK_INFO( &linux_init::e4rat_load, e4rat)    //
+    TASK_INFO( &linux_init::hostname, hostname,e4rat)    //
     TASK_INFO( &linux_init::acpi_daemon, acpi,fs)    //
-    TASK_INFO( &linux_init::startXserver, X, hostname, fs)    //
-    TASK_INFO( &linux_init::deferred, deferred,udev)    //
-    TASK_INFO( &linux_init::udev, udev, hostname,X )    //
+    TASK_INFO( &linux_init::startXserver, X, hostname,acpi)    //
+    TASK_INFO( &linux_init::deferred, deferred,init_d)    //
+    TASK_INFO( &linux_init::udev, udev, X )    //
     TASK_INFO( &linux_init::mountdevsubfs, dev_subfs, udev )    //
-    TASK_INFO( &linux_init::procps, procps )    //
+    TASK_INFO( &linux_init::procps, procps,udev )    //
     TASK_INFO( &linux_init::udev_trigger, udev_trigger,init_d)    //
     TASK_INFO( &linux_init::startxfce4, xfce4, X )     //
-    TASK_INFO( &linux_init::init_d, init_d, X,udev )    //
+    TASK_INFO( &linux_init::init_d, init_d, udev )    //
   };
   linux_init lnx(tasks,tasks+sizeof(tasks)/sizeof(*tasks));
   return lnx.main();
