@@ -32,8 +32,10 @@
 
 #define TASK_ID(x)	\
 	x(none)\
+        x(acpi)\
 	x(hostname) \
 	x(deferred) \
+        x(e4rat) \
 	x(fs)\
 	x(bootchart)\
 	x(bootchart_end)\
@@ -46,7 +48,6 @@
 	x(udev_add)\
 	x(udev_mtab)\
 	x(udev_trigger)\
-	x(wait)\
 	x(dbus)\
 	x(procps)\
 	x(xfce4)\
@@ -141,8 +142,6 @@ static char srv_auth_file[] = "/tmp/.server.auth.XXXXXX";
 static char usr_auth_file[] = "/tmp/.user.auth.XXXXXX";
 static char mcookie[40];
 
-//struct task_info_t task_info[]={ TASK_ID(TASK_INFO) {} };
-
 class linux_init
 {
 public:
@@ -219,23 +218,7 @@ public:
     //signal(SIGUSR1,SIG_IGN);
 
     memset(status, 0, sizeof(status));
-    // static initialization of struct is faster than using object, the compiler will store a table and just copy over
-    // using const all data will be in RO memory really fast
-    static const task_info_t tasks[] =
-    {
-    TASK_INFO( &linux_init::mountfs, fs)    //
-    TASK_INFO( &linux_init::hostname, hostname, fs)    //
-    TASK_INFO( &linux_init::startXserver, X, hostname, fs)    //
-    TASK_INFO( &linux_init::deferred, deferred, init_d )    //
-    TASK_INFO( &linux_init::udev, udev, fs )    //
-    TASK_INFO( &linux_init::mountdevsubfs, dev_subfs, udev )    //
-    TASK_INFO( &linux_init::procps, procps )    //
-    TASK_INFO( &linux_init::udev_trigger, udev_trigger, deferred )    //
-    TASK_INFO( &linux_init::startxfce4, xfce4, X )     //
-    TASK_INFO( &linux_init::init_d, init_d, X )    //
-        };
-    begin = tasks;
-    end = tasks + sizeof(tasks) / sizeof(*tasks);
+    
     // update child counter
     for (const task_info_t* it = begin; it != end; ++it)
     {
@@ -259,7 +242,7 @@ public:
   }
 
   // class methods
-  linux_init()
+  linux_init(const task_info_t* begin,const task_info_t* end) : begin(begin), end(end)
   {
 
   }
@@ -553,7 +536,6 @@ public:
     char tmp_str[255];
     const char* env;
     int r;
-    execute_c("/etc/init.d/acpid start");
     mkdir("/tmp/.X11-unix", 01777);
     chmod("/tmp/.X11-unix", 01777);
     mkdir("/tmp/.ICE-unix", 01777);
@@ -650,6 +632,14 @@ public:
     strcpy(cmd, ccmd);
     return execute(cmd, wait, !fork);
   }
+  void e4rat_load()
+  {
+    execute_c("/sbin/e4rat-preload /var/lib/e4rat/startup.log",true);
+  }
+  void acpi_daemon()
+  {
+    execute_c("/etc/init.d/acpid start");
+  }
 public:
   constexpr static const char* user_name = "lester";
   constexpr static const char* xauth = "/usr/bin/xauth";
@@ -668,7 +658,7 @@ public:
   const std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now();
   std::mutex mtx;
   std::condition_variable cond_var;
-  const task_info_t* begin = nullptr, *end = nullptr;
+  const task_info_t* begin = nullptr, * const end = nullptr;
   // status of all tasks
   struct task_status_t status[task_id::max_id];
 };
@@ -686,6 +676,23 @@ public:
  */
 int main()
 {
-  linux_init lnx;
+  // static initialization of struct is faster than using object, the compiler will store a table and just copy over
+  // using const all data will be in RO memory really fast
+  static const linux_init::task_info_t tasks[] =
+  {
+    TASK_INFO( &linux_init::mountfs, fs)    //
+    TASK_INFO( &linux_init::e4rat_load, e4rat,fs)    //
+    TASK_INFO( &linux_init::hostname, hostname)    //
+    TASK_INFO( &linux_init::acpi_daemon, acpi,fs)    //
+    TASK_INFO( &linux_init::startXserver, X, hostname, fs)    //
+    TASK_INFO( &linux_init::deferred, deferred,udev)    //
+    TASK_INFO( &linux_init::udev, udev, hostname,X )    //
+    TASK_INFO( &linux_init::mountdevsubfs, dev_subfs, udev )    //
+    TASK_INFO( &linux_init::procps, procps )    //
+    TASK_INFO( &linux_init::udev_trigger, udev_trigger,init_d)    //
+    TASK_INFO( &linux_init::startxfce4, xfce4, X )     //
+    TASK_INFO( &linux_init::init_d, init_d, X,udev )    //
+  };
+  linux_init lnx(tasks,tasks+sizeof(tasks)/sizeof(*tasks));
   return lnx.main();
 }
