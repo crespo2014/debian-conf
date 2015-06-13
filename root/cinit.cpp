@@ -535,6 +535,7 @@ public:
   {
     char tmp_str[255];
     const char* env;
+    char* cptr;
     int r;
     mkdir("/tmp/.X11-unix", 01777);
     chmod("/tmp/.X11-unix", 01777);
@@ -592,8 +593,16 @@ public:
       //sigprocmask(SIG_SETMASK, &oldmask, nullptr);
       signal(SIGUSR1, SIG_IGN);
 
+      snprintf(tmp_str, sizeof(tmp_str) - 1,"/root/xorg.config.%s",host);
+      int r = access( tmp_str, F_OK );
+
       //-terminate -quiet
-      snprintf(tmp_str, sizeof(tmp_str) - 1, "/usr/bin/X :%d  -audit 0 -logfile /dev/kmsg -nolisten tcp -auth %s vt0%d", x_display_id, srv_auth_file, x_vt_id);
+      cptr = tmp_str;
+      cptr += snprintf(cptr, tmp_str + sizeof(tmp_str) - cptr - 1, "/usr/bin/X :%d ",x_display_id);
+      if (r == 0)
+        cptr += snprintf(cptr, tmp_str + sizeof(tmp_str) - cptr - 1, " -config /root/xorg.config.%s",host);
+
+      snprintf(cptr, tmp_str +sizeof(tmp_str) - cptr - 1, "  -audit 0 -logfile /dev/kmsg -nolisten tcp -auth %s vt0%d", srv_auth_file, x_vt_id);
       execute(tmp_str, false, true);
       exit (EXIT_FAILURE);
     }
@@ -608,21 +617,20 @@ public:
   void hostname()
   {
     //read etc/hostname if not empty the apply otherwise use localhost
-    const char* name = "localhost";
-    char buffer[100];
     int r;
     FILE * pFile = fopen("/etc/hostname", "r");
     if (pFile != NULL)
     {
-      r = fread(buffer, 1, sizeof(buffer), pFile);
+      r = fread(host, 1, sizeof(host), pFile);
       if (r > 0)
       {
-        buffer[r] = 0;
-        name = buffer;
+        host[r] = 0;
       }
+      else
+        strcpy(host,"localhost");
       fclose(pFile);
     }
-    sethostname(name, strlen(name));
+    sethostname(host, strlen(host));
   }
 
   // Wait for all task in running state
@@ -661,6 +669,7 @@ public:
   const task_info_t* begin = nullptr, * const end = nullptr;
   // status of all tasks
   struct task_status_t status[task_id::max_id];
+  char host[100];   // Host name
 };
 
 /*
