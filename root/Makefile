@@ -1,4 +1,5 @@
-build_dir := .
+
+build_dir := build
 src_dirs := .
 srcs := 
 
@@ -7,7 +8,7 @@ targets := cinit
 common_cpp := --std=c++11 -Wall
 common_ld := -lpthread
 common_cpp += -finput-charset=ascii -Wall -Wextra -pedantic -Wmissing-declarations -Wpointer-arith -Wwrite-strings -Wformat=2 -Wlogical-op -Wcast-align -Wcast-qual -Wundef -Wmissing-include-dirs -Wfloat-equal -Wconversion
-common_cpp += -I../common
+common_cpp += -I../../common
 
 cinit_src_dir := .
 
@@ -20,5 +21,5 @@ cinit_src_dir := .
 
 include ../../common/Makefile
 
-install: cinit
- cp cinit /root/
+install: $(build_dir)/cinit
+	cp $^ ../
