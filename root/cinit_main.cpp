@@ -32,17 +32,17 @@
 
 #define TASK_ID(x)	\
 	x(none)\
-        x(acpi)\
+  x(acpi)\
 	x(hostname) \
 	x(deferred) \
-        x(e4rat) \
+  x(e4rat) \
 	x(fs)\
 	x(bootchart)\
 	x(bootchart_end)\
 	x(read_ahead)\
 	x(devfs)\
 	x(udev)\
-	x(x11,hostname)\
+	x(x11)\
 	x(X)\
 	x(dev_subfs) \
 	x(udev_add)\
@@ -58,8 +58,8 @@
 	
 
 #define TO_STRING(id)                 #id
-#define TO_NAME(id,...)               TO_STRING(id),
-#define TO_ID(id,...)                 id ## _id,
+#define TO_NAME(id)               TO_STRING(id),
+#define TO_ID(id)                 id ## _id,
 
 #define DEPENDS_0()
 #define DEPENDS_1(a)
@@ -114,10 +114,10 @@ struct task_status_t
   unsigned long ms;    // task spend time
 };
 
-void print_error(int r, int no)
-{
-
-}
+//void print_error(int r, int no)
+//{
+//
+//}
 
 #define EXIT(fnc,cnd) do \
   { \
@@ -129,7 +129,7 @@ void print_error(int r, int no)
     } \
   } while (0)
 
-const char* getTaskName(task_id id)
+static const char* getTaskName(task_id id)
 {
   static const char* const names[] =
   { TASK_ID(TO_NAME)"" };
@@ -350,7 +350,7 @@ public:
     return launch(wait, arg.data(), nofork);
   }
   // do not forget (char*) nullptr as last argument
-  int launch(bool wait, const char * const * argv, bool nofork = false)
+  int launch(bool wait, char * const * argv, bool nofork = false)
   {
     if (nofork)
     {
@@ -380,7 +380,7 @@ public:
   // thread function
   void thread()
   {
-    char tstr[255];
+    //char tstr[255];
     const task_info_t* t =  nullptr;
     for (t = peekTask(t); t != nullptr;t = peekTask(t))
     {
@@ -398,7 +398,7 @@ public:
   {
     return lnx->thread();
   }
-  inline void testrc(int r)
+  inline void testrc(int )
   {
     //  if (r < 0)
     //    printf("Operation failed with code %d \n",errno);
@@ -425,11 +425,28 @@ public:
     testrc(mount("", "/sys", "sysfs", MS_NOATIME | MS_NODIRATIME | MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
     testrc(mount("/dev/sda5", "/", "ext4", MS_NOATIME | MS_NODIRATIME | MS_REMOUNT | MS_SILENT, ""));
     testrc(mount("run", "/run", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
-    testrc(mount("lock", "/run/lock", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
-    testrc(mount("shm", "/run/shm", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
+    mkdir("/run/lock", 01777);
+    mkdir("/run/shm", 01777);
+    symlink("/run","/var/run");
+    symlink("/run/lock","/var/lock");
+    // testrc(mount("lock", "/run/lock", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
+   // testrc(mount("shm", "/run/shm", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
     testrc(mount("tmp", "/tmp", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
     testrc(mount("/dev/sda7", "/home", "ext4", MS_NOATIME | MS_NODIRATIME | MS_SILENT, ""));
     testrc(mount("/dev/sda8", "/mnt/data", "ext4", MS_NOATIME | MS_NODIRATIME | MS_SILENT, ""));
+
+    /*
+     https://wiki.debian.org/ReleaseGoals/RunDirectory
+     Stage #2: After system reboot
+
+    A tmpfs is mounted on /run
+    (Optional) A tmpfs is mounted on /run/lock if RAMLOCK is configured
+    (Optional) A tmpfs is mounted on /run/shm if RAMSHM is configured
+    (Optional) A tmpfs is mounted on /tmp if RAMTMP is configured
+    A symlink /var/run → /run is created (falls back to bind mount if symlink failed)
+    A symlink /var/lock → /run/lock is created (falls back to bind mount if symlink failed)
+    A symlink /dev/shm → /run/shm is created (falls back to bind mount if symlink failed)
+     */
   }
 
   void mountdevsubfs()
@@ -465,10 +482,23 @@ public:
     execute_c("/sbin/bootchartd stop");
   }
 
+  /*
+   * Depends on procfs
+   */
   void udev()
   {
-    char tstr[255];
+    //char tstr[255];
     struct stat buf;
+
+    // When udev starts, your real /dev is bind mounted to /.dev
+
+    // If kernel boot with udev mounted and .udev folder then move to run before mount udev
+    /* strcpy(tstr,"/bin/mv /dev/.udev/ /run/udev/");
+     execute(tstr,true);
+     */
+
+    testrc(mount("dev", "/dev", "devtmpfs", MS_SILENT, ""));
+
     if (stat("/sbin/MAKEDEV", &buf) == 0)
     {
       symlink("/dev/MAKEDEV", "/sbin/MAKEDEV");
@@ -477,9 +507,9 @@ public:
     {
       symlink("/dev/MAKEDEV", "/bin/true");
     }
-    /* strcpy(tstr,"/bin/mv /dev/.udev/ /run/udev/");
-     execute(tstr,true);
-     */
+
+    symlink("/run/shm", "/dev/shm");
+    //symlink("/dev/.udev/","/run/udev/");
 
     FILE * pFile;
 
@@ -494,7 +524,6 @@ public:
       fclose(pFile);
     }
 
-    //sleep(10);
     execute_c("udevadm info --cleanup-db");
     execute_c("/sbin/udevd --daemon");
     //execute_c("/bin/udevadm trigger --action=add");
@@ -534,7 +563,7 @@ public:
   void startXserver()
   {
     char tmp_str[255];
-    const char* env;
+    //const char* env;
     char* cptr;
     int r;
     mkdir("/tmp/.X11-unix", 01777);
@@ -673,14 +702,6 @@ public:
 
 /*
  Execution list plus dependencies.
- use id to find dependencies.
- mount tmpfs /run tmpfs nosuid
- mount tmpfs /run/lock tmpfs nosuid noexec nodev
- mount tmpfs /run/shm tmpfs nosuid noexec nodev
- mount tmpfs /tmp tmpfs nosuid nodev
-
- run_migrate /run/shm /dev/shm
-
  */
 int main()
 {
