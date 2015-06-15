@@ -1,5 +1,18 @@
 remove e4rat source and include project from github buzz/e4rat
 check repo nagisa/e4rat-preload-lite, it seems to have an optimized version
 
-test for file /root/xorg.conf.<hostname> if present the set env XORGCONFIG
 
+
+  echo cfq > /sys/block/sda/queue/scheduler
+  echo 10000 > /sys/block/sda/queue/iosched/fifo_expire_async
+  echo 250 > /sys/block/sda/queue/iosched/fifo_expire_sync
+  echo 80 > /sys/block/sda/queue/iosched/slice_async
+  echo 1 > /sys/block/sda/queue/iosched/low_latency
+  echo 6 > /sys/block/sda/queue/iosched/quantum
+  echo 5 > /sys/block/sda/queue/iosched/slice_async_rq
+  echo 3 > /sys/block/sda/queue/iosched/slice_idle
+  echo 100 > /sys/block/sda/queue/iosched/slice_sync
+  hdparm -q -M 254 /dev/sda
+  
+  
+  change /etc/init.d/rcS 

@@ -20,20 +20,21 @@ e4rat
 path CMakeList.txt to use boost 3
 path filename to .string(); 
 
-apt-get install 
-cmake 
-libaudit 
-libaudit1 
-libboost-system-dev 
-libboost-signals1.55-dev
-libboost-filesystem1.55-dev 
-libboost-system-dev 
-libboost-signals1.55-dev 
-libboost-filesystem1.55-dev
-libboost-regex1.55-dev
-e2fsck-static e2fsprogs 
-e2fslibs-dev
-libaudit-dev
+apt-get install libboost-all-dev
+
+cmake   \
+libaudit \
+libaudit1 \
+libboost-system-dev \
+libboost-signals1.55-dev\
+libboost-filesystem1.55-dev \
+libboost-system-dev \
+libboost-signals1.55-dev \
+libboost-filesystem1.55-dev\
+libboost-regex1.55-dev\
+e2fsck-static e2fsprogs \
+e2fslibs-dev\
+libaudit-dev\
 libauparse-dev libauparse0
 
 
