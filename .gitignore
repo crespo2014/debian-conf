@@ -24,6 +24,4 @@ etc/rc?.d/
 !etc/sysctl.d/*
 mnt/
 !etc/X11/xorg.conf.d/*
-/root/*.dbg
-/root/*.d
-/root/*_
+/root/build
