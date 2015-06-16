@@ -423,17 +423,20 @@ public:
   // Mount home, var remount root
   void mountfs()
   {
-    testrc(mount("", "/sys", "sysfs", MS_NOATIME | MS_NODIRATIME | MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
-    testrc(mount("/dev/sda5", "/", "ext4", MS_NOATIME | MS_NODIRATIME | MS_REMOUNT | MS_SILENT, ""));
-    testrc(mount("run", "/run", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
+    if (mount("", "/sys", "sysfs", MS_NOATIME | MS_NODIRATIME | MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, "") != 0)
+      perror("mount sys ");
+//    if (mount("/dev/sda5", "/", "ext4", MS_NOATIME | MS_NODIRATIME | MS_REMOUNT | MS_SILENT, "") != 0)
+//      perror("mount sys ");
+    if (mount("run", "/run", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, "") != 0)
+      perror("mount /run ");
     mkdir("/run/lock", 01777);
     mkdir("/run/shm", 01777);
-    symlink("/run","/var/run");
-    symlink("/run/lock","/var/lock");
+    symlink("/run", "/var/run");
+    symlink("/run/lock", "/var/lock");
     // testrc(mount("lock", "/run/lock", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
    // testrc(mount("shm", "/run/shm", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
-    testrc(mount("tmp", "/tmp", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
-
+    if (mount("tmp", "/tmp", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, "") != 0)
+      perror("mount /run ");
 
     /*
      https://wiki.debian.org/ReleaseGoals/RunDirectory
@@ -664,6 +667,8 @@ public:
         strcpy(host,"localhost");
       fclose(pFile);
     }
+    else
+      perror("/etc/hostname ");
     sethostname(host, strlen(host));
   }
 
