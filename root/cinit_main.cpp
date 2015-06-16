@@ -54,6 +54,7 @@
 	x(init_d)\
 	x(readahead)\
 	x(late_readahead)\
+	x(mountall) \
 	x(max)\
 	
 
@@ -432,8 +433,7 @@ public:
     // testrc(mount("lock", "/run/lock", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
    // testrc(mount("shm", "/run/shm", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
     testrc(mount("tmp", "/tmp", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
-    testrc(mount("/dev/sda7", "/home", "ext4", MS_NOATIME | MS_NODIRATIME | MS_SILENT, ""));
-    testrc(mount("/dev/sda8", "/mnt/data", "ext4", MS_NOATIME | MS_NODIRATIME | MS_SILENT, ""));
+
 
     /*
      https://wiki.debian.org/ReleaseGoals/RunDirectory
@@ -447,6 +447,12 @@ public:
     A symlink /var/lock → /run/lock is created (falls back to bind mount if symlink failed)
     A symlink /dev/shm → /run/shm is created (falls back to bind mount if symlink failed)
      */
+  }
+
+  void mountall()
+  {
+    testrc(mount("/dev/sda7", "/home", "ext4", MS_NOATIME | MS_NODIRATIME | MS_SILENT, ""));
+    testrc(mount("/dev/sda8", "/mnt/data", "ext4", MS_NOATIME | MS_NODIRATIME | MS_SILENT, ""));
   }
 
   void mountdevsubfs()
@@ -710,17 +716,18 @@ int main()
   static const linux_init::task_info_t tasks[] =
   {
     TASK_INFO( &linux_init::mountfs, fs)    //
+    TASK_INFO( &linux_init::mountall,mountall, udev)    //
     TASK_INFO( &linux_init::e4rat_load, e4rat,fs)    //
     TASK_INFO( &linux_init::hostname, hostname)    //
-    TASK_INFO( &linux_init::acpi_daemon, acpi,e4rat)    //
-    //TASK_INFO( &linux_init::startXserver, X, hostname,acpi)    //
     TASK_INFO( &linux_init::deferred, deferred)    //
     TASK_INFO( &linux_init::udev, udev, e4rat )    //
     TASK_INFO( &linux_init::mountdevsubfs, dev_subfs, udev )    //
     TASK_INFO( &linux_init::procps, procps,udev )    //
     TASK_INFO( &linux_init::udev_trigger, udev_trigger,init_d)    //
+    //TASK_INFO( &linux_init::acpi_daemon, acpi,e4rat,mountall)    //
+    //TASK_INFO( &linux_init::startXserver, X, hostname,acpi)    //
     //TASK_INFO( &linux_init::startxfce4, xfce4, X )     //
-    TASK_INFO( &linux_init::init_d, init_d, udev )    //
+    TASK_INFO( &linux_init::init_d, init_d, mountall )    //
   };
   linux_init lnx(tasks,tasks+sizeof(tasks)/sizeof(*tasks));
   return lnx.main();
