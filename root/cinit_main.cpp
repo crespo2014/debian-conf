@@ -130,6 +130,8 @@ struct task_status_t
     } \
   } while (0)
 
+#define CHECK_ZERO(fnc,msg)   if (fnc != 0) perror(msg);
+
 static const char* getTaskName(task_id id)
 {
   static const char* const names[] = { TASK_ID(TO_NAME)"" };
@@ -420,21 +422,16 @@ public:
   // Mount home, var remount root
   void mountfs()
   {
-    if (mount("", "/sys", "sysfs", MS_NOATIME | MS_NODIRATIME | MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, "") != 0)
-      perror("mount sys ");
-//    if (mount("/dev/sda5", "/", "ext4", MS_NOATIME | MS_NODIRATIME | MS_REMOUNT | MS_SILENT, "") != 0)
-//      perror("mount sys ");
-    if (mount("run", "/run", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, "") != 0)
-      perror("mount /run ");
-    mkdir("/run/lock", 01777);
-    mkdir("/run/shm", 01777);
-    symlink("/run", "/var/run");
-    symlink("/run/lock", "/var/lock");
-    // testrc(mount("lock", "/run/lock", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
-    // testrc(mount("shm", "/run/shm", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
-    if (mount("tmp", "/tmp", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, "") != 0)
-      perror("mount /run ");
-
+    CHECK_ZERO(mount("/dev/sda5", "/", "ext4", MS_NOATIME | MS_NODIRATIME | MS_REMOUNT | MS_SILENT, ""),"remount /");
+    CHECK_ZERO(mount("", "/sys", "sysfs", MS_NOATIME | MS_NODIRATIME | MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""),"mount sys");
+    CHECK_ZERO(mount("run", "/run", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""),"mount /run ");
+    CHECK_ZERO(mkdir("/run/lock", 01777),"mkdir /run/lock");
+    CHECK_ZERO(mkdir("/run/shm", 01777),"mkdir /run/shm");
+    CHECK_ZERO(chmod("/run/shm", 01777),"chmod /run/shm");
+    CHECK_ZERO(chmod("/run/lock", 01777),"chmod /run/lock");
+    CHECK_ZERO(symlink("/run", "/var/run"),"symlink /run /var/run");
+    CHECK_ZERO(symlink("/run/lock", "/var/lock"),"symlink /run/lock /var/lock");
+    CHECK_ZERO(mount("tmp", "/tmp", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""),"mount /tmp");
     /*
      https://wiki.debian.org/ReleaseGoals/RunDirectory
      Stage #2: After system reboot
@@ -451,14 +448,14 @@ public:
 
   void mountall()
   {
-    testrc(mount("/dev/sda7", "/home", "ext4", MS_NOATIME | MS_NODIRATIME | MS_SILENT, ""));
-    testrc(mount("/dev/sda8", "/mnt/data", "ext4", MS_NOATIME | MS_NODIRATIME | MS_SILENT, ""));
+    CHECK_ZERO(mount("/dev/sda7", "/home", "ext4", MS_NOATIME | MS_NODIRATIME | MS_SILENT, ""),"mount /home");
+    CHECK_ZERO(mount("/dev/sda8", "/mnt/data", "ext4", MS_NOATIME | MS_NODIRATIME | MS_SILENT, ""),"mount /mnt/data");
   }
 
   void mountdevsubfs()
   {
-    mkdir("/dev/pts", 0755);
-    testrc(mount("pts", "/dev/pts", "devpts", MS_SILENT | MS_NOSUID | MS_NOEXEC, "gid=5,mode=620"));
+    CHECK_ZERO(mkdir("/dev/pts", 0755),"mkdir /dev/pts");
+    CHECK_ZERO(mount("pts", "/dev/pts", "devpts", MS_SILENT | MS_NOSUID | MS_NOEXEC, "gid=5,mode=620"),"mount pts");
   }
 
   void procps()
@@ -712,12 +709,12 @@ int main()
   // static initialization of struct is faster than using object, the compiler will store a table and just copy over
   // using const all data will be in RO memory really fast
   static const linux_init::task_info_t tasks[] = {
-  TASK_INFO( &linux_init::mountfs, fs)    //
-      TASK_INFO( &linux_init::mountall,mountall, udev)    //
+      TASK_INFO( &linux_init::mountfs, fs)    //
       TASK_INFO( &linux_init::e4rat_load, e4rat,fs)    //
       TASK_INFO( &linux_init::hostname, hostname)    //
       TASK_INFO( &linux_init::deferred, deferred)    //
       TASK_INFO( &linux_init::udev, udev, e4rat )    //
+      TASK_INFO( &linux_init::mountall,mountall, udev)    //
       TASK_INFO( &linux_init::mountdevsubfs, dev_subfs, udev )    //
       TASK_INFO( &linux_init::procps, procps,udev )    //
       TASK_INFO( &linux_init::udev_trigger, udev_trigger,init_d)    //
