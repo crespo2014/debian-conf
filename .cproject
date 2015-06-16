@@ -113,11 +113,22 @@
 		</configuration>
 	</storageModule>
 	<storageModule moduleId="org.eclipse.cdt.internal.ui.text.commentOwnerProjectMappings"/>
+	<storageModule moduleId="org.eclipse.cdt.core.language.mapping">
+		<project-mappings/>
+	</storageModule>
+	<storageModule moduleId="scannerConfiguration">
+		<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.toolchain.gnu.base.63925650;cdt.managedbuild.toolchain.gnu.base.63925650.406124948;cdt.managedbuild.tool.gnu.c.compiler.base.660276138;cdt.managedbuild.tool.gnu.c.compiler.input.2103839876">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.toolchain.gnu.base.63925650;cdt.managedbuild.toolchain.gnu.base.63925650.406124948;cdt.managedbuild.tool.gnu.cpp.compiler.base.1801910961;cdt.managedbuild.tool.gnu.cpp.compiler.input.1992695471">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		</scannerConfigBuildInfo>
+	</storageModule>
 	<storageModule moduleId="org.eclipse.cdt.make.core.buildtargets">
 		<buildTargets>
 			<target name="all" path="root" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
 				<buildCommand>make</buildCommand>
-				<buildArguments/>
 				<buildTarget>all</buildTarget>
 				<stopOnError>true</stopOnError>
 				<useDefaultCommand>false</useDefaultCommand>
@@ -125,7 +136,6 @@
 			</target>
 			<target name="profiler" path="root" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
 				<buildCommand>make</buildCommand>
-				<buildArguments/>
 				<buildTarget>profiler</buildTarget>
 				<stopOnError>true</stopOnError>
 				<useDefaultCommand>false</useDefaultCommand>
@@ -133,7 +143,6 @@
 			</target>
 			<target name="clean" path="root" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
 				<buildCommand>make</buildCommand>
-				<buildArguments/>
 				<buildTarget>clean</buildTarget>
 				<stopOnError>true</stopOnError>
 				<useDefaultCommand>false</useDefaultCommand>
@@ -141,30 +150,19 @@
 			</target>
 			<target name="install" path="root" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
 				<buildCommand>make</buildCommand>
-				<buildArguments/>
 				<buildTarget>install</buildTarget>
 				<stopOnError>true</stopOnError>
 				<useDefaultCommand>false</useDefaultCommand>
 				<runAllBuilders>true</runAllBuilders>
 			</target>
+			<target name="debug" path="root" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
+				<buildCommand>make</buildCommand>
+				<buildArguments/>
+				<buildTarget>debug</buildTarget>
+				<stopOnError>true</stopOnError>
+				<useDefaultCommand>false</useDefaultCommand>
+				<runAllBuilders>true</runAllBuilders>
+			</target>
 		</buildTargets>
-	</storageModule>
-	<storageModule moduleId="scannerConfiguration">
-		<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
-		<scannerConfigBuildInfo instanceId="cdt.managedbuild.toolchain.gnu.base.63925650;cdt.managedbuild.toolchain.gnu.base.63925650.406124948;cdt.managedbuild.tool.gnu.c.compiler.base.660276138;cdt.managedbuild.tool.gnu.c.compiler.input.2103839876">
-			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
-		</scannerConfigBuildInfo>
-		<scannerConfigBuildInfo instanceId="cdt.managedbuild.toolchain.gnu.base.63925650.1245724474;cdt.managedbuild.toolchain.gnu.base.63925650.1245724474.;cdt.managedbuild.tool.gnu.cpp.compiler.base.1955808070;cdt.managedbuild.tool.gnu.cpp.compiler.input.610526759">
-			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
-		</scannerConfigBuildInfo>
-		<scannerConfigBuildInfo instanceId="cdt.managedbuild.toolchain.gnu.base.63925650.1245724474;cdt.managedbuild.toolchain.gnu.base.63925650.1245724474.;cdt.managedbuild.tool.gnu.c.compiler.base.173341520;cdt.managedbuild.tool.gnu.c.compiler.input.328823447">
-			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
-		</scannerConfigBuildInfo>
-		<scannerConfigBuildInfo instanceId="cdt.managedbuild.toolchain.gnu.base.63925650;cdt.managedbuild.toolchain.gnu.base.63925650.406124948;cdt.managedbuild.tool.gnu.cpp.compiler.base.1801910961;cdt.managedbuild.tool.gnu.cpp.compiler.input.1992695471">
-			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
-		</scannerConfigBuildInfo>
-	</storageModule>
-	<storageModule moduleId="org.eclipse.cdt.core.language.mapping">
-		<project-mappings/>
 	</storageModule>
 </cproject>

@@ -1,9 +1,9 @@
 
 build_dir := build
-src_dirs := .
-srcs := 
+src_dirs := 
+srcs := cinit_main.cpp preload.cpp
 
-targets := cinit
+targets := cinit load
 
 #-finput-charset=ascii
 
@@ -12,7 +12,8 @@ common_ld := -lpthread
 common_cpp += -Wall -Wextra -pedantic -Wmissing-declarations -Wpointer-arith -Wwrite-strings -Wformat=2 -Wlogical-op -Wcast-align -Wcast-qual -Wundef -Wmissing-include-dirs -Wfloat-equal -Wconversion
 common_cpp += -I../../common
 
-cinit_src_dir := .
+cinit_src := cinit_main.cpp
+load_src := preload.cpp
 
 #serializer_mtest_src_dir := mtest
 #serializer_mtest_src := cpp-lib/posix/File.cpp cpp-lib/posix/thread.cpp
