@@ -37,7 +37,7 @@
 	x(deferred) \
   x(e4rat) \
 	x(fs)\
-	x(bootchart)\
+	x(bootchartd)\
 	x(bootchart_end)\
 	x(read_ahead)\
 	x(devfs)\
@@ -423,15 +423,23 @@ public:
   void mountfs()
   {
     CHECK_ZERO(mount("/dev/sda5", "/", "ext4", MS_NOATIME | MS_NODIRATIME | MS_REMOUNT | MS_SILENT, ""),"remount /");
-    CHECK_ZERO(mount("", "/sys", "sysfs", MS_NOATIME | MS_NODIRATIME | MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""),"mount sys");
+    CHECK_ZERO(mount("sys", "/sys", "sysfs", MS_NOATIME | MS_NODIRATIME | MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""),"mount sys");
     CHECK_ZERO(mount("run", "/run", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""),"mount /run ");
+    CHECK_ZERO(mount("dev", "/dev", "devtmpfs", MS_SILENT, ""),"mount dev");
+    CHECK_ZERO(mount("tmp", "/tmp", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""),"mount /tmp");
     CHECK_ZERO(mkdir("/run/lock", 01777),"mkdir /run/lock");
     CHECK_ZERO(mkdir("/run/shm", 01777),"mkdir /run/shm");
     CHECK_ZERO(chmod("/run/shm", 01777),"chmod /run/shm");
     CHECK_ZERO(chmod("/run/lock", 01777),"chmod /run/lock");
     CHECK_ZERO(symlink("/run", "/var/run"),"symlink /run /var/run");
     CHECK_ZERO(symlink("/run/lock", "/var/lock"),"symlink /run/lock /var/lock");
-    CHECK_ZERO(mount("tmp", "/tmp", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""),"mount /tmp");
+    CHECK_ZERO(symlink("/run/shm", "/dev/shm"),"symlink /run/shm /dev/shm");
+
+    CHECK_ZERO(mount("/dev/sda7", "/home", "ext4", MS_NOATIME | MS_NODIRATIME | MS_SILENT, ""),"mount /home");
+    CHECK_ZERO(mount("/dev/sda8", "/mnt/data", "ext4", MS_NOATIME | MS_NODIRATIME | MS_SILENT, ""),"mount /mnt/data");
+
+    CHECK_ZERO(mkdir("/dev/pts", 0755),"mkdir /dev/pts");
+    CHECK_ZERO(mount("pts", "/dev/pts", "devpts", MS_SILENT | MS_NOSUID | MS_NOEXEC, "gid=5,mode=620"),"mount pts");
     /*
      https://wiki.debian.org/ReleaseGoals/RunDirectory
      Stage #2: After system reboot
@@ -446,17 +454,15 @@ public:
      */
   }
 
-  void mountall()
-  {
-    CHECK_ZERO(mount("/dev/sda7", "/home", "ext4", MS_NOATIME | MS_NODIRATIME | MS_SILENT, ""),"mount /home");
-    CHECK_ZERO(mount("/dev/sda8", "/mnt/data", "ext4", MS_NOATIME | MS_NODIRATIME | MS_SILENT, ""),"mount /mnt/data");
-  }
-
-  void mountdevsubfs()
-  {
-    CHECK_ZERO(mkdir("/dev/pts", 0755),"mkdir /dev/pts");
-    CHECK_ZERO(mount("pts", "/dev/pts", "devpts", MS_SILENT | MS_NOSUID | MS_NOEXEC, "gid=5,mode=620"),"mount pts");
-  }
+//  void mountall()
+//  {
+//
+//  }
+//
+//  void mountdevsubfs()
+//  {
+//
+//  }
 
   void procps()
   {
@@ -500,8 +506,6 @@ public:
      execute(tstr,true);
      */
 
-    testrc(mount("dev", "/dev", "devtmpfs", MS_SILENT, ""));
-
     if (stat("/sbin/MAKEDEV", &buf) == 0)
     {
       symlink("/dev/MAKEDEV", "/sbin/MAKEDEV");
@@ -509,9 +513,6 @@ public:
     {
       symlink("/dev/MAKEDEV", "/bin/true");
     }
-
-    symlink("/run/shm", "/dev/shm");
-    //symlink("/dev/.udev/","/run/udev/");
 
     FILE * pFile;
 
@@ -709,19 +710,20 @@ int main()
   // static initialization of struct is faster than using object, the compiler will store a table and just copy over
   // using const all data will be in RO memory really fast
   static const linux_init::task_info_t tasks[] = {
-      TASK_INFO( &linux_init::mountfs, fs)    //
+      TASK_INFO( &linux_init::bootchartd, bootchartd)    //
+      TASK_INFO( &linux_init::mountfs, fs,bootchartd)    //
       TASK_INFO( &linux_init::e4rat_load, e4rat,fs)    //
       TASK_INFO( &linux_init::hostname, hostname)    //
-      TASK_INFO( &linux_init::deferred, deferred)    //
-      TASK_INFO( &linux_init::udev, udev, e4rat )    //
-      TASK_INFO( &linux_init::mountall,mountall, udev)    //
-      TASK_INFO( &linux_init::mountdevsubfs, dev_subfs, udev )    //
+      TASK_INFO( &linux_init::deferred, deferred,e4rat)    //
+      TASK_INFO( &linux_init::udev, udev, deferred )    //
+      //TASK_INFO( &linux_init::mountall,mountall, udev)    //
+      //TASK_INFO( &linux_init::mountdevsubfs, dev_subfs, udev )    //
       TASK_INFO( &linux_init::procps, procps,udev )    //
       TASK_INFO( &linux_init::udev_trigger, udev_trigger,init_d)    //
       //TASK_INFO( &linux_init::acpi_daemon, acpi,e4rat,mountall)    //
       //TASK_INFO( &linux_init::startXserver, X, hostname,acpi)    //
       //TASK_INFO( &linux_init::startxfce4, xfce4, X )     //
-      TASK_INFO( &linux_init::init_d, init_d, mountall )    //
+      TASK_INFO( &linux_init::init_d, init_d, udev )    //
       };
   linux_init lnx(tasks, tasks + sizeof(tasks) / sizeof(*tasks));
   return lnx.main();
