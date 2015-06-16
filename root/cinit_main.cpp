@@ -99,9 +99,9 @@ typedef enum
 
 enum task_status
 {
-  disable = 0, //
-  waiting, //
-  running, //
+  disable = 0,    //
+  waiting,    //
+  running,    //
   done,
 };
 
@@ -132,8 +132,7 @@ struct task_status_t
 
 static const char* getTaskName(task_id id)
 {
-  static const char* const names[] =
-  { TASK_ID(TO_NAME)"" };
+  static const char* const names[] = { TASK_ID(TO_NAME)"" };
   if (id >= sizeof(names) / sizeof(*names))
     return "";
   return names[id];
@@ -191,16 +190,14 @@ public:
         if (strcmp(p, "fastboot") == 0)
         {
           fast = true;
-        }
-        else if (strcmp(p, "single") == 0)
+        } else if (strcmp(p, "single") == 0)
         {
           fast = false;
           break;
         }
 
       }
-    }
-    else
+    } else
     {
       printf("failed to open /proc/cmdline");
     }
@@ -219,7 +216,7 @@ public:
     //signal(SIGUSR1,SIG_IGN);
 
     memset(status, 0, sizeof(status));
-    
+
     // update child counter
     for (const task_info_t* it = begin; it != end; ++it)
     {
@@ -243,7 +240,8 @@ public:
   }
 
   // class methods
-  linux_init(const task_info_t* begin,const task_info_t* end) : begin(begin), end(end)
+  linux_init(const task_info_t* begin, const task_info_t* end) :
+      begin(begin), end(end)
   {
 
   }
@@ -269,8 +267,7 @@ public:
           *cptr = 0;
           ++cptr;
         }
-      }
-      else if (*cptr != 0)
+      } else if (*cptr != 0)
       {
         v.push_back(cptr);
         //next space
@@ -291,7 +288,7 @@ public:
   {
     bool towait;    // if true means wait for completion, false return current task or null
     bool notify = false;
-    std::unique_lock < std::mutex > lock(mtx);
+    std::unique_lock<std::mutex> lock(mtx);
     if (it != nullptr)
     {
       status[it->id].status = done;
@@ -302,12 +299,12 @@ public:
           ++begin;
       }
       if (status[it->id].child_count > 1)
-        notify = true;   // more than one task has been release
+        notify = true;    // more than one task has been release
     }
-    for(;;)
+    for (;;)
     {
-      towait = false;   // no task to waiting for
-      for (it = begin;it != end;++it)
+      towait = false;    // no task to waiting for
+      for (it = begin; it != end; ++it)
       {
         // find any ready task
         if (status[it->id].status == waiting)
@@ -320,21 +317,21 @@ public:
           towait = true;
         }
       }
-      if (it != end) break;     // get out for ;;
+      if (it != end)
+        break;     // get out for ;;
       // we got nothing
-      if (towait)		// wait and try again
+      if (towait)    // wait and try again
       {
         cond_var.wait(lock);
-      }
-      else
+      } else
       {
-        it = nullptr;	// we done here
+        it = nullptr;    // we done here
         notify = true;
-        break; // get out for ;;
+        break;    // get out for ;;
       }
-    } // for ;; loop
+    }    // for ;; loop
     if (notify)
-      cond_var.notify_all();  // more than one task has been release
+      cond_var.notify_all();    // more than one task has been release
     return it;
   }
   /*
@@ -356,7 +353,7 @@ public:
     if (nofork)
     {
       execv(argv[0], (char* const *) argv);
-      _exit (EXIT_FAILURE);
+      _exit(EXIT_FAILURE);
     }
     int status;
     pid_t pid = fork();
@@ -364,8 +361,7 @@ public:
     {
       perror("failed to fork");
       status = -1;
-    }
-    else if (pid > 0)
+    } else if (pid > 0)
     {
       if (wait)
         waitpid(pid, &status, 0);
@@ -374,7 +370,7 @@ public:
     {
       // child
       execv(argv[0], (char* const *) argv);
-      _exit (EXIT_FAILURE);
+      _exit(EXIT_FAILURE);
     }
     return status;
   }
@@ -382,24 +378,25 @@ public:
   void thread()
   {
     //char tstr[255];
-    const task_info_t* t =  nullptr;
-    for (t = peekTask(t); t != nullptr;t = peekTask(t))
+    const task_info_t* t = nullptr;
+    for (t = peekTask(t); t != nullptr; t = peekTask(t))
     {
       auto end = std::chrono::steady_clock::now();
       //snprintf(tmp_str, sizeof(tmp_str) - 1,"[%d] S %s\n",std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time).count(), getTaskName(t->id));
       std::cout
       //<< 'T' << std::this_thread::get_id()
-          << " [" << std::chrono::duration_cast < std::chrono::milliseconds > (end - start_time).count() << "]" << " S " << getTaskName(t->id) << std::endl;
+      << " [" << std::chrono::duration_cast<std::chrono::milliseconds>(end - start_time).count() << "]" << " S " << getTaskName(t->id) << std::endl;
       (this->*(t->fnc))();
-      std::cout << '[' << std::chrono::duration_cast < std::chrono::milliseconds > (std::chrono::steady_clock::now() - start_time).count() << "] E " << getTaskName(t->id) << " " << std::chrono::duration_cast < std::chrono::milliseconds
-          > (std::chrono::steady_clock::now() - end).count() << "ms" << std::endl;
+      std::cout << '[' << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time).count() << "] E "
+          << getTaskName(t->id) << " " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - end).count()
+          << "ms" << std::endl;
     }
   }
   static void sthread(linux_init* lnx)
   {
     return lnx->thread();
   }
-  inline void testrc(int )
+  inline void testrc(int)
   {
     //  if (r < 0)
     //    printf("Operation failed with code %d \n",errno);
@@ -434,7 +431,7 @@ public:
     symlink("/run", "/var/run");
     symlink("/run/lock", "/var/lock");
     // testrc(mount("lock", "/run/lock", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
-   // testrc(mount("shm", "/run/shm", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
+    // testrc(mount("shm", "/run/shm", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
     if (mount("tmp", "/tmp", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, "") != 0)
       perror("mount /run ");
 
@@ -442,13 +439,13 @@ public:
      https://wiki.debian.org/ReleaseGoals/RunDirectory
      Stage #2: After system reboot
 
-    A tmpfs is mounted on /run
-    (Optional) A tmpfs is mounted on /run/lock if RAMLOCK is configured
-    (Optional) A tmpfs is mounted on /run/shm if RAMSHM is configured
-    (Optional) A tmpfs is mounted on /tmp if RAMTMP is configured
-    A symlink /var/run → /run is created (falls back to bind mount if symlink failed)
-    A symlink /var/lock → /run/lock is created (falls back to bind mount if symlink failed)
-    A symlink /dev/shm → /run/shm is created (falls back to bind mount if symlink failed)
+     A tmpfs is mounted on /run
+     (Optional) A tmpfs is mounted on /run/lock if RAMLOCK is configured
+     (Optional) A tmpfs is mounted on /run/shm if RAMSHM is configured
+     (Optional) A tmpfs is mounted on /tmp if RAMTMP is configured
+     A symlink /var/run → /run is created (falls back to bind mount if symlink failed)
+     A symlink /var/lock → /run/lock is created (falls back to bind mount if symlink failed)
+     A symlink /dev/shm → /run/shm is created (falls back to bind mount if symlink failed)
      */
   }
 
@@ -511,8 +508,7 @@ public:
     if (stat("/sbin/MAKEDEV", &buf) == 0)
     {
       symlink("/dev/MAKEDEV", "/sbin/MAKEDEV");
-    }
-    else
+    } else
     {
       symlink("/dev/MAKEDEV", "/bin/true");
     }
@@ -526,8 +522,7 @@ public:
     if (pFile == NULL)
     {
       printf("Error opening file /sys/kernel/uevent_helper \n");
-    }
-    else
+    } else
     {
       fwrite("", 0, 0, pFile);
       fclose(pFile);
@@ -565,7 +560,8 @@ public:
   void startxfce4()
   {
     char tmp_str[255];
-    snprintf(tmp_str, sizeof(tmp_str) - 1, "/bin/su -l -c 'export %s=%s;export %s=:%d;exec /usr/bin/startxfce4' lester", env_authority, usr_auth_file, env_display, x_display_id);
+    snprintf(tmp_str, sizeof(tmp_str) - 1, "/bin/su -l -c 'export %s=%s;export %s=:%d;exec /usr/bin/startxfce4' lester", env_authority, usr_auth_file,
+        env_display, x_display_id);
     execute(tmp_str, false);
   }
 
@@ -582,7 +578,7 @@ public:
     unsetenv(env_dbus_session);
     unsetenv(env_session_manager);
 
-    int auth_file_fd = mkstemp(srv_auth_file);	// create file	file has to be delete when everything is done, but for just one x server keep it in tmp is ok
+    int auth_file_fd = mkstemp(srv_auth_file);    // create file	file has to be delete when everything is done, but for just one x server keep it in tmp is ok
     if (auth_file_fd != -1)
     {
       close(auth_file_fd);
@@ -607,7 +603,7 @@ public:
 
     snprintf(tmp_str, sizeof(tmp_str) - 1, "/usr/bin/xauth -q -f %s add :%d . %s", usr_auth_file, x_display_id, mcookie);
     execute(tmp_str);
-    EXIT(chown(usr_auth_file, 1000, 1000), == -1); // change owner to main user
+    EXIT(chown(usr_auth_file, 1000, 1000), == -1);    // change owner to main user
 
     // Start X server and wait for it
     sigset_t sig_mask;
@@ -616,19 +612,18 @@ public:
     sigemptyset(&sig_mask);
     sigaddset(&sig_mask, SIGUSR1);
     pthread_sigmask(SIG_BLOCK, &sig_mask, &oldmask);
-    struct timespec sig_timeout =
-    { 15, 0 };    // 5sec
+    struct timespec sig_timeout = { 15, 0 };    // 5sec
 
-    snprintf(tmp_str, sizeof(tmp_str) - 1,"/etc/X11/xorg.conf.%s",host);
-    r = access( tmp_str, F_OK );
+    snprintf(tmp_str, sizeof(tmp_str) - 1, "/etc/X11/xorg.conf.%s", host);
+    r = access(tmp_str, F_OK);
 
     //-terminate -quiet
     cptr = tmp_str;
-    cptr += snprintf(cptr, tmp_str + sizeof(tmp_str) - cptr - 1, "/usr/bin/X :%d ",x_display_id);
+    cptr += snprintf(cptr, tmp_str + sizeof(tmp_str) - cptr - 1, "/usr/bin/X :%d ", x_display_id);
     if (r == 0)
-     cptr += snprintf(cptr, tmp_str + sizeof(tmp_str) - cptr - 1, " -config /etc/X11/xorg.conf.%s",host);
+      cptr += snprintf(cptr, tmp_str + sizeof(tmp_str) - cptr - 1, " -config /etc/X11/xorg.conf.%s", host);
 
-    snprintf(cptr, tmp_str +sizeof(tmp_str) - cptr - 1, "  -audit 0 -logfile /dev/kmsg -nolisten tcp -auth %s vt0%d", srv_auth_file, x_vt_id);
+    snprintf(cptr, tmp_str + sizeof(tmp_str) - cptr - 1, "  -audit 0 -logfile /dev/kmsg -nolisten tcp -auth %s vt0%d", srv_auth_file, x_vt_id);
 
     /* start x server and wait for signal */
     auto pid = fork();
@@ -661,13 +656,11 @@ public:
       r = fread(host, 1, sizeof(host), pFile);
       if (r > 0)
       {
-        host[r-1] = 0;
-      }
-      else
-        strcpy(host,"localhost");
+        host[r - 1] = 0;
+      } else
+        strcpy(host, "localhost");
       fclose(pFile);
-    }
-    else
+    } else
       perror("/etc/hostname ");
     sethostname(host, strlen(host));
   }
@@ -681,7 +674,7 @@ public:
   }
   void e4rat_load()
   {
-    execute_c("/sbin/e4rat-preload /var/lib/e4rat/startup.log",true);
+    execute_c("/sbin/e4rat-preload /var/lib/e4rat/startup.log", true);
   }
   void acpi_daemon()
   {
@@ -708,7 +701,7 @@ public:
   const task_info_t* begin = nullptr, * const end = nullptr;
   // status of all tasks
   struct task_status_t status[task_id::max_id];
-  char host[100];   // Host name
+  char host[100];    // Host name
 };
 
 /*
@@ -718,22 +711,21 @@ int main()
 {
   // static initialization of struct is faster than using object, the compiler will store a table and just copy over
   // using const all data will be in RO memory really fast
-  static const linux_init::task_info_t tasks[] =
-  {
-    TASK_INFO( &linux_init::mountfs, fs)    //
-    TASK_INFO( &linux_init::mountall,mountall, udev)    //
-    TASK_INFO( &linux_init::e4rat_load, e4rat,fs)    //
-    TASK_INFO( &linux_init::hostname, hostname)    //
-    TASK_INFO( &linux_init::deferred, deferred)    //
-    TASK_INFO( &linux_init::udev, udev, e4rat )    //
-    TASK_INFO( &linux_init::mountdevsubfs, dev_subfs, udev )    //
-    TASK_INFO( &linux_init::procps, procps,udev )    //
-    TASK_INFO( &linux_init::udev_trigger, udev_trigger,init_d)    //
-    //TASK_INFO( &linux_init::acpi_daemon, acpi,e4rat,mountall)    //
-    //TASK_INFO( &linux_init::startXserver, X, hostname,acpi)    //
-    //TASK_INFO( &linux_init::startxfce4, xfce4, X )     //
-    TASK_INFO( &linux_init::init_d, init_d, mountall )    //
-  };
-  linux_init lnx(tasks,tasks+sizeof(tasks)/sizeof(*tasks));
+  static const linux_init::task_info_t tasks[] = {
+  TASK_INFO( &linux_init::mountfs, fs)    //
+      TASK_INFO( &linux_init::mountall,mountall, udev)    //
+      TASK_INFO( &linux_init::e4rat_load, e4rat,fs)    //
+      TASK_INFO( &linux_init::hostname, hostname)    //
+      TASK_INFO( &linux_init::deferred, deferred)    //
+      TASK_INFO( &linux_init::udev, udev, e4rat )    //
+      TASK_INFO( &linux_init::mountdevsubfs, dev_subfs, udev )    //
+      TASK_INFO( &linux_init::procps, procps,udev )    //
+      TASK_INFO( &linux_init::udev_trigger, udev_trigger,init_d)    //
+      //TASK_INFO( &linux_init::acpi_daemon, acpi,e4rat,mountall)    //
+      //TASK_INFO( &linux_init::startXserver, X, hostname,acpi)    //
+      //TASK_INFO( &linux_init::startxfce4, xfce4, X )     //
+      TASK_INFO( &linux_init::init_d, init_d, mountall )    //
+      };
+  linux_init lnx(tasks, tasks + sizeof(tasks) / sizeof(*tasks));
   return lnx.main();
 }
