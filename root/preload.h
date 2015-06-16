@@ -17,6 +17,10 @@
  * kernel cmd line elevator=noop
  */
 
+#ifndef PRELOAD_H_
+#define PRELOAD_H_
+
+
 #include <cstring>
 #include <sys/mman.h>
 #include <sys/types.h>
@@ -24,7 +28,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
- #include <stdio.h>
+#include <stdio.h>
+#include <cstdlib>
 
 /*
  * map a full file in memory
@@ -122,107 +127,113 @@ class preload_parser
 private:
   fd file;
   map m;
+  char* blk_s;
+  char* blk_e;
+  char* dt_s;    // when data start
+  char* dt_e;    // when data end.
 public:
-  int main()
+  int main(const char* fname)
   {
-    file.open("root/startup.log", 0, S_IRUSR);
+    file.open(fname, 0, S_IRUSR);
     if (file)
     {
       m = file.getFullMap();
       if (m)
+      {
+        blk_s = reinterpret_cast<char*>(m.begin());
+        blk_e = reinterpret_cast<char*>(m.end());
+        dt_e = blk_s;    // when data end.
         processBlock();
+      }
     }
     return 0;
   }
-  void nextBlock(char* &blk_s, char* &blk_e)
+  void processBlock()
   {
-    static int count = 0;
-    if (count == 0)
+    char* dt;
+    unsigned long int v1;
+    unsigned long int v2;
+    char* endptr;
+    do
     {
-      blk_s = reinterpret_cast<char*>(m.begin());
-      blk_e = reinterpret_cast<char*>(m.end());
-    } else
-    {
-      blk_s = nullptr;
-      blk_e = nullptr;
-    }
-    ++count;
-
+      dt = nextToken(' ');
+      if (dt != nullptr)
+      {
+        v1 = strtoul (dt,&endptr,10);
+        //printf("%s ",dt);
+        dt = nextToken(' ');
+      }
+      if (dt != nullptr)
+      {
+        v2 = strtoul (dt,&endptr,10);
+        //printf("%s ",dt);
+        dt = nextToken('\n');
+      }
+      if (dt != nullptr)
+      {
+        //printf("%s\n",dt);
+      }
+    } while (dt != nullptr);
   }
-
   /*
    * Receive one block
    * and ask for more.
    * block has reference counter to be able to release it
    */
-  int processBlock()
+  char* nextToken(char delimiter)
   {
-    char* blk_s;
-    char* blk_e;
-    nextBlock(blk_s, blk_e);
-    char* dt_s;    // when data start
-    char* dt_e = blk_s;    // when data end.
-
-    do
+    dt_s = dt_e;
+    // firt valid char
+    while (dt_s != blk_e && *dt_s <= ' ')
+      ++dt_s;
+    // check for nothing found
+    if (dt_s == blk_e)
+      return nullptr;    // no more data
+    dt_e = dt_s;
+    while (dt_e != blk_e && *dt_e != delimiter)
+      ++dt_e;
+    if (dt_e == blk_e)
     {
-      dt_s = dt_e;
-      // firt valid char
-      while (dt_s != blk_e && *dt_s <= ' ')
-        ++dt_s;
-      // check for nothing found
-      if (dt_s == blk_e)
-        return -1;    // no more data
-      dt_e = dt_s;
-      while (dt_e != blk_e && *dt_e != ' ')
-        ++dt_e;
-      if (dt_e == blk_e)
+      // find how much data are in the new block. check if there is enough space to move the
+      char* nblk_s = nullptr;    // next block
+      char* nblk_e = nullptr;
+      //nextBlock(nblk_s, nblk_e);
+      if (nblk_s == nullptr)
       {
-        // find how much data are in the new block. check if there is enough space to move the
-        char* nblk_s = nullptr;    // next block
-        char* nblk_e;
-        nextBlock(nblk_s, nblk_e);
-        if (nblk_s == nullptr)
+        //no more blocks move down data
+        if (dt_s == blk_s)
         {
-          //no more blocks move down data
-          if (dt_s == blk_s)
-          {
-            return -4;    // to long
-          }
-          memmove(dt_s - 1, dt_s, dt_e - dt_s);
-          --dt_s;
-          --dt_e;    // it will bie increment later
-        } else
-        {
-          dt_e = nblk_s;
-          while (dt_e != nblk_e && *dt_e != ' ')
-            ++dt_e;
-          if (dt_e == nblk_e)
-            return -2;    // two blocks crossing
-          if (dt_s - blk_s < dt_e - nblk_s + 1)
-            return -3;    // no space to modve down data
-          memmove(dt_s - (dt_e - nblk_s + 1), dt_s, blk_e - dt_s);
-          dt_s -= (dt_e - nblk_s + 1);
-          memcpy(blk_e - (dt_e - nblk_s + 1), nblk_s, dt_e - nblk_s);
-          *blk_e = 0;
-          blk_e = nblk_e;
-          blk_s = nblk_s;
+          return nullptr;    // to long
         }
+        memmove(dt_s - 1, dt_s, dt_e - dt_s);
+        --dt_s;
+        --dt_e;    // it will bie increment later
       } else
       {
-        *dt_e = 0;
-
+        dt_e = nblk_s;
+        while (dt_e != nblk_e && *dt_e != ' ')
+          ++dt_e;
+        if (dt_e == nblk_e)
+          return nullptr;    // two blocks crossing
+        if (dt_s - blk_s < dt_e - nblk_s + 1)
+          return nullptr;    // no space to modve down data
+        memmove(dt_s - (dt_e - nblk_s + 1), dt_s, blk_e - dt_s);
+        dt_s -= (dt_e - nblk_s + 1);
+        memcpy(blk_e - (dt_e - nblk_s + 1), nblk_s, dt_e - nblk_s);
+        *blk_e = 0;
+        blk_e = nblk_e;
+        blk_s = nblk_s;
       }
-      // use data and repeat
-      ++dt_e;
-    } while (dt_s != blk_e);
-    return 0;
+    } else
+    {
+      *dt_e = 0;
+    }
+    // use data and repeat
+    ++dt_e;
+    return dt_s;
   }
 
 };
+#endif
 
-int main()
-{
-  preload_parser p;
-  return p.main();
-}
 

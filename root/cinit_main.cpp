@@ -30,6 +30,8 @@
 #include <sys/stat.h>
 #include <string.h>
 
+#include <preload.h>
+
 #define TASK_ID(x)	\
 	x(none)\
   x(acpi)\
@@ -55,6 +57,7 @@
 	x(readahead)\
 	x(late_readahead)\
 	x(mountall) \
+	x(preload)\
 	x(max)\
 	
 
@@ -678,6 +681,14 @@ public:
   {
     execute_c("/etc/init.d/acpid start");
   }
+  /*
+   * Test time needed to parse preload file
+   */
+  void preload()
+  {
+    preload_parser p;
+    p.main("/var/lib/e4rat/startup.log");
+  }
 public:
   constexpr static const char* user_name = "lester";
   constexpr static const char* xauth = "/usr/bin/xauth";
@@ -710,10 +721,10 @@ int main()
   // static initialization of struct is faster than using object, the compiler will store a table and just copy over
   // using const all data will be in RO memory really fast
   static const linux_init::task_info_t tasks[] = {
-      //TASK_INFO( &linux_init::bootchartd, bootchartd,fs)    //
-      TASK_INFO( &linux_init::mountfs, fs)    //
-      TASK_INFO( &linux_init::e4rat_load, e4rat)    //
-      TASK_INFO( &linux_init::hostname, hostname,fs)    //
+      TASK_INFO( &linux_init::preload, preload)    //
+      TASK_INFO( &linux_init::mountfs, fs,preload)    //
+      TASK_INFO( &linux_init::e4rat_load, e4rat,preload)    //
+      TASK_INFO( &linux_init::hostname, hostname,e4rat)    //
       TASK_INFO( &linux_init::deferred, deferred,e4rat)    //
       TASK_INFO( &linux_init::udev, udev, hostname )    //
       //TASK_INFO( &linux_init::mountall,mountall, udev)    //
