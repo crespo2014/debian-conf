@@ -451,9 +451,9 @@ public:
      (Optional) A tmpfs is mounted on /run/lock if RAMLOCK is configured
      (Optional) A tmpfs is mounted on /run/shm if RAMSHM is configured
      (Optional) A tmpfs is mounted on /tmp if RAMTMP is configured
-     A symlink /var/run → /run is created (falls back to bind mount if symlink failed)
-     A symlink /var/lock → /run/lock is created (falls back to bind mount if symlink failed)
-     A symlink /dev/shm → /run/shm is created (falls back to bind mount if symlink failed)
+     A symlink /var/run /run is created (falls back to bind mount if symlink failed)
+     A symlink /var/lock /run/lock is created (falls back to bind mount if symlink failed)
+     A symlink /dev/shm  /run/shm is created (falls back to bind mount if symlink failed)
      */
   }
 
@@ -721,16 +721,16 @@ int main()
   // static initialization of struct is faster than using object, the compiler will store a table and just copy over
   // using const all data will be in RO memory really fast
   static const linux_init::task_info_t tasks[] = {
-      TASK_INFO( &linux_init::preload, preload)    //
-      TASK_INFO( &linux_init::mountfs, fs,preload)    //
+//      TASK_INFO( &linux_init::preload, preload)    //
+      TASK_INFO( &linux_init::mountfs, fs)    //
       //TASK_INFO( &linux_init::e4rat_load, e4rat,preload)    //
       TASK_INFO( &linux_init::hostname, hostname)    //
      // TASK_INFO( &linux_init::deferred, deferred,init_d)    //
       TASK_INFO( &linux_init::udev, udev, hostname,fs )    //
       //TASK_INFO( &linux_init::mountall,mountall,fs, udev)    //
       //TASK_INFO( &linux_init::mountdevsubfs, dev_subfs, udev )    //
-      TASK_INFO( &linux_init::procps, procps,deferred )    //
-      TASK_INFO( &linux_init::udev_trigger, udev_trigger,udev)    //
+      TASK_INFO( &linux_init::procps, procps )    //
+      //TASK_INFO( &linux_init::udev_trigger, udev_trigger,udev)    //
       //TASK_INFO( &linux_init::acpi_daemon, acpi,e4rat,mountall)    //
       //TASK_INFO( &linux_init::startXserver, X, hostname,acpi)    //
       //TASK_INFO( &linux_init::startxfce4, xfce4, X )     //
