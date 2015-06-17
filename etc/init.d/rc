@@ -16,13 +16,6 @@
 PATH=/sbin:/usr/sbin:/bin:/usr/bin
 export PATH
 
-#/bin/mount -t proc /proc -n -o noatime,nodiratime,nodev,noexec,nosuid
-#mknod kmsg c 1 11
-if [ "$1" = "S" ] ; then
-  /root/cinit > /var/log/kmsg
-  [ "$?" = "0" ] && exit 0
-fi
-
 # Un-comment the following for interactive debugging. Do not un-comment
 # this for debugging a real boot process as no scripts will be executed.
 # debug=echo
