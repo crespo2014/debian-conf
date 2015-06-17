@@ -730,7 +730,7 @@ int main()
       //TASK_INFO( &linux_init::mountall,mountall,fs, udev)    //
       //TASK_INFO( &linux_init::mountdevsubfs, dev_subfs, udev )    //
       TASK_INFO( &linux_init::procps, procps,deferred )    //
-      TASK_INFO( &linux_init::udev_trigger, udev_trigger,init_d)    //
+      TASK_INFO( &linux_init::udev_trigger, udev_trigger,deferred,udev)    //
       //TASK_INFO( &linux_init::acpi_daemon, acpi,e4rat,mountall)    //
       //TASK_INFO( &linux_init::startXserver, X, hostname,acpi)    //
       //TASK_INFO( &linux_init::startxfce4, xfce4, X )     //
