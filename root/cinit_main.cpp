@@ -192,7 +192,7 @@ public:
       split(tstr, cmdline);
       for (auto p : cmdline)
       {
-        if (strcmp(p, "fastboot") == 0)
+        if (strcmp(p, "cinit") == 0)
         {
           fast = true;
         } else if (strcmp(p, "single") == 0)
