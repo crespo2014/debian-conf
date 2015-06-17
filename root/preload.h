@@ -138,7 +138,8 @@ class preload_parser
     char *path;
     bool operator < (const struct file_desc_t& fd) const
     {
-      return (dev < fd.dev);
+      //return (dev < fd.dev) && (strcmp(path,fd.path) < 0);
+      return (dev < fd.dev) || (inode < fd.inode);
     }
   };
 
@@ -293,7 +294,7 @@ public:
       //for (;top != 0;++idx,--top,++pfile_desc)
       for ( const auto &pfile_desc : v)
       {
-        //printf("%d %lld %s\n",pfile_desc->dev,pfile_desc->inode,pfile_desc->path);
+        //printf("%d %lld %s\n",pfile_desc.dev,pfile_desc.inode,pfile_desc.path);
         int fd = open(pfile_desc.path, O_RDONLY | O_NOFOLLOW);
         if(-1 == fd)
            continue;
