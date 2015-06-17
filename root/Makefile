@@ -1,9 +1,9 @@
 
 build_dir := build
 src_dirs := 
-srcs := cinit_main.cpp preload.cpp test.cpp
+srcs := cinit_main.cpp test.cpp preload_main.cpp
 
-targets := cinit mtest
+targets := cinit mtest preload
 
 #-finput-charset=ascii
 
@@ -14,6 +14,7 @@ common_cpp += -I../../common -I.
 
 cinit_src := cinit_main.cpp 
 mtest_src := test.cpp
+preload_src := preload_main.cpp
 
 #serializer_mtest_src_dir := mtest
 #serializer_mtest_src := cpp-lib/posix/File.cpp cpp-lib/posix/thread.cpp
@@ -22,7 +23,7 @@ mtest_src := test.cpp
 #serializer_mtest_cpp += -include ../cpputest/include/CppUTest/MemoryLeakDetectorMallocMacros.h
 #serializer_mtest_ld := -Wl,-Bstatic -lCppUTest -Wl,-Bstatic -lCppUTestExt -Wl,-Bdynamic -lgcc_s  -L../cpputest/lib
 
-include ../../common/Makefile
+include Makefile.common
 
 install: $(build_dir)/cinit
 	cp $^ ../

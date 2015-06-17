@@ -156,6 +156,7 @@ private:
 public:
   int main(const char* fname)
   {
+    printf("Loading file list ...\n");
     file.open(fname, 0, S_IRUSR);
     if (file)
     {
@@ -283,9 +284,10 @@ public:
   // http://www.linuxprogrammingblog.com/threads-and-fork-think-twice-before-using-them
   void preload()
   {
+    printf("Loading files ...\n");
     // use as main app. load 100 and then fork to init.
-    unsigned idx = 0;
-    unsigned top = 0;
+    unsigned fail_count = 0;
+    //unsigned top = 0;
     for ( auto &v : file_desc_)
     {
       std::sort(v.begin(),v.end());
@@ -297,12 +299,16 @@ public:
         //printf("%d %lld %s\n",pfile_desc.dev,pfile_desc.inode,pfile_desc.path);
         int fd = open(pfile_desc.path, O_RDONLY | O_NOFOLLOW);
         if(-1 == fd)
+        {
+          ++fail_count;
            continue;
+        }
         struct stat buf;
         ::fstat(fd, &buf);
         readahead(fd, 0, buf.st_size);
         close(fd);
       }
+      printf("Files loaded %d fails \n",fail_count);
     }
 
     // todo in the main thread we load 1000 files, then fork to keep application running, NOK
