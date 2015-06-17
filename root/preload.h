@@ -30,6 +30,8 @@
 #include <errno.h>
 #include <stdio.h>
 #include <cstdlib>
+#include <vector>
+#include <list>
 
 /*
  * map a full file in memory
@@ -124,6 +126,16 @@ private:
 
 class preload_parser
 {
+  /*
+   * Preload file information
+   */
+  struct file_desc_t
+  {
+    int dev;
+    uint64_t inode;
+    char *path;
+  };
+
 private:
   fd file;
   map m;
@@ -131,6 +143,9 @@ private:
   char* blk_e;
   char* dt_s;    // when data start
   char* dt_e;    // when data end.
+  // data is being store in preallocated vector, we do not reallocated memory again, we create a new vector.
+  unsigned long file_desc_count_;   // how many file descriptors in total
+  std::list<std::vector<struct file_desc_t>>  file_desc_;
 public:
   int main(const char* fname)
   {
@@ -143,6 +158,7 @@ public:
         blk_s = reinterpret_cast<char*>(m.begin());
         blk_e = reinterpret_cast<char*>(m.end());
         dt_e = blk_s;    // when data end.
+        dt_s = blk_s;
         processBlock();
       }
     }
@@ -150,28 +166,47 @@ public:
   }
   void processBlock()
   {
-    char* dt;
-    unsigned long int v1;
-    unsigned long int v2;
-    char* endptr;
+    // preallocated block base on file size.
+    unsigned long file_desc_max;    // for this vector
+    unsigned long file_desc_idx;    // current position in the vector
+    unsigned line_size  = 50;
+
+    file_desc_max = (blk_e - dt_s)/line_size;  //assuming 50 char per line, if we need more then go to 25 with remaining part
+    file_desc_.emplace_back(file_desc_max);
+
+    struct file_desc_t* pfile_desc = file_desc_.back().data();
+
     do
     {
-      dt = nextToken(' ');
-      if (dt != nullptr)
+      for (file_desc_idx = 0;file_desc_idx < file_desc_max; ++file_desc_idx,++pfile_desc)
       {
-        v1 = strtoul (dt,&endptr,10);
-        //printf("%s ",dt);
+        //todo test numeric parameter and jump to next \n if something goes wrong
         dt = nextToken(' ');
+        if (dt != nullptr)
+        {
+          pfile_desc->dev = strtoul (dt,&endptr,10);
+          dt = nextToken(' ');
+        }
+        if (dt != nullptr)
+        {
+          pfile_desc->inode = strtoul (dt,&endptr,10);
+          dt = nextToken('\n');
+        }
+        if (dt != nullptr)
+        {
+          pfile_desc->path = dt;
+        }
+        else
+          break;
       }
+      // do we need more vectors
+      file_desc_count_ += file_desc_idx;
       if (dt != nullptr)
       {
-        v2 = strtoul (dt,&endptr,10);
-        //printf("%s ",dt);
-        dt = nextToken('\n');
-      }
-      if (dt != nullptr)
-      {
-        //printf("%s\n",dt);
+        line_size /= 2;
+        file_desc_max = (blk_e - dt_s)/line_size;
+        file_desc_.emplace_back(file_desc_max);
+        pfile_desc = file_desc_.back().data();
       }
     } while (dt != nullptr);
   }
@@ -231,6 +266,18 @@ public:
     // use data and repeat
     ++dt_e;
     return dt_s;
+  }
+  // load 1000 items and then fork the process
+  // fork() only copies the calling thread, any mutex hold by other threads are going to be lock forever if it was the state
+  // use _exit to finish the forked process
+  // http://www.linuxprogrammingblog.com/threads-and-fork-think-twice-before-using-them
+  void preload()
+  {
+    // todo in the main thread we load 1000 files, then fork to keep application running, NOK
+    // preload will be a separate application we call it and wait
+
+    // we load 1000 at begining then later a thread will do the rest. after fs or at the same time.
+
   }
 
 };
