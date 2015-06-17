@@ -33,6 +33,7 @@
 #include <vector>
 #include <list>
 #include <stdint.h>
+#include <algorithm>
 
 /*
  * map a full file in memory
@@ -135,6 +136,10 @@ class preload_parser
     int dev;
     uint64_t inode;
     char *path;
+    bool operator < (const struct file_desc_t& fd) const
+    {
+      return (dev < fd.dev);
+    }
   };
 
 private:
@@ -174,13 +179,12 @@ public:
     unsigned line_size  = 50;
     char* dt = nullptr;
 
-    file_desc_max = (blk_e - dt_s)/line_size;  //assuming 50 char per line, if we need more then go to 25 with remaining part
-    file_desc_.emplace_back(file_desc_max);
-
-    struct file_desc_t* pfile_desc = file_desc_.back().data();
-
     do
     {
+      file_desc_max = (blk_e - dt_s)/line_size;  //assuming 50 char per line, if we need more then go to 25 with remaining part
+      file_desc_.emplace_back(file_desc_max);
+      struct file_desc_t* pfile_desc = file_desc_.back().data();
+
       for (file_desc_idx = 0;file_desc_idx < file_desc_max; ++file_desc_idx,++pfile_desc)
       {
         //todo test numeric parameter and jump to next \n if something goes wrong
@@ -203,18 +207,14 @@ public:
         else
           break;
       }
-      // do we need more vectors
       file_desc_count_ += file_desc_idx;
       if (dt != nullptr)
       {
-        line_size /= 2;
-        file_desc_max = (blk_e - dt_s)/line_size;
-        file_desc_.emplace_back(file_desc_max);
-        pfile_desc = file_desc_.back().data();
+        line_size /= 2;    // we need more vectors
       }
       else
       {
-        //file_desc_.back().resize(file_desc_idx);  use full counter, to reach the end
+        file_desc_.back().resize(file_desc_idx);  // to sort later
       }
     } while (dt != nullptr);
   }
@@ -275,22 +275,26 @@ public:
     ++dt_e;
     return dt_s;
   }
+
   // load 1000 items and then fork the process
   // fork() only copies the calling thread, any mutex hold by other threads are going to be lock forever if it was the state
   // use _exit to finish the forked process
   // http://www.linuxprogrammingblog.com/threads-and-fork-think-twice-before-using-them
   void preload()
   {
+    // use as main app. load 100 and then fork to init.
     unsigned idx = 0;
     unsigned top = 0;
     for ( auto &v : file_desc_)
     {
-      struct file_desc_t* pfile_desc = v.data();
-      top = v.size() < file_desc_count_ - idx ? idx + v.size() : file_desc_count_;
-      for (;top != 0;++idx,--top,++pfile_desc)
+      std::sort(v.begin(),v.end());
+      //struct file_desc_t* pfile_desc = v.data();
+     // top = v.size() < file_desc_count_ - idx ? idx + v.size() : file_desc_count_;
+      //for (;top != 0;++idx,--top,++pfile_desc)
+      for ( const auto &pfile_desc : v)
       {
         //printf("%d %lld %s\n",pfile_desc->dev,pfile_desc->inode,pfile_desc->path);
-        int fd = open(pfile_desc->path, O_RDONLY | O_NOFOLLOW);
+        int fd = open(pfile_desc.path, O_RDONLY | O_NOFOLLOW);
         if(-1 == fd)
            continue;
         struct stat buf;
