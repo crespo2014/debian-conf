@@ -32,6 +32,7 @@
 #include <cstdlib>
 #include <vector>
 #include <list>
+#include <stdint.h>
 
 /*
  * map a full file in memory
@@ -139,13 +140,13 @@ class preload_parser
 private:
   fd file;
   map m;
-  char* blk_s;
-  char* blk_e;
-  char* dt_s;    // when data start
-  char* dt_e;    // when data end.
+  char* blk_s = nullptr;
+  char* blk_e = nullptr;
+  char* dt_s = nullptr;    // when data start
+  char* dt_e = nullptr;    // when data end.
   // data is being store in preallocated vector, we do not reallocated memory again, we create a new vector.
-  unsigned long file_desc_count_;   // how many file descriptors in total
-  std::list<std::vector<struct file_desc_t>>  file_desc_;
+  unsigned long file_desc_count_ = 0;   // how many file descriptors in total
+  std::list<std::vector<struct file_desc_t>>  file_desc_;   //TODO switch to some unique_ptr
 public:
   int main(const char* fname)
   {
@@ -160,6 +161,7 @@ public:
         dt_e = blk_s;    // when data end.
         dt_s = blk_s;
         processBlock();
+        preload();
       }
     }
     return 0;
@@ -170,6 +172,7 @@ public:
     unsigned long file_desc_max;    // for this vector
     unsigned long file_desc_idx;    // current position in the vector
     unsigned line_size  = 50;
+    char* dt = nullptr;
 
     file_desc_max = (blk_e - dt_s)/line_size;  //assuming 50 char per line, if we need more then go to 25 with remaining part
     file_desc_.emplace_back(file_desc_max);
@@ -182,6 +185,7 @@ public:
       {
         //todo test numeric parameter and jump to next \n if something goes wrong
         dt = nextToken(' ');
+        char* endptr;
         if (dt != nullptr)
         {
           pfile_desc->dev = strtoul (dt,&endptr,10);
@@ -207,6 +211,10 @@ public:
         file_desc_max = (blk_e - dt_s)/line_size;
         file_desc_.emplace_back(file_desc_max);
         pfile_desc = file_desc_.back().data();
+      }
+      else
+      {
+        //file_desc_.back().resize(file_desc_idx);  use full counter, to reach the end
       }
     } while (dt != nullptr);
   }
@@ -273,6 +281,25 @@ public:
   // http://www.linuxprogrammingblog.com/threads-and-fork-think-twice-before-using-them
   void preload()
   {
+    unsigned idx = 0;
+    unsigned top = 0;
+    for ( auto &v : file_desc_)
+    {
+      struct file_desc_t* pfile_desc = v.data();
+      top = v.size() < file_desc_count_ - idx ? idx + v.size() : file_desc_count_;
+      for (;top != 0;++idx,--top,++pfile_desc)
+      {
+        //printf("%d %lld %s\n",pfile_desc->dev,pfile_desc->inode,pfile_desc->path);
+        int fd = open(pfile_desc->path, O_RDONLY | O_NOFOLLOW);
+        if(-1 == fd)
+           continue;
+        struct stat buf;
+        ::fstat(fd, &buf);
+        readahead(fd, 0, buf.st_size);
+        close(fd);
+      }
+    }
+
     // todo in the main thread we load 1000 files, then fork to keep application running, NOK
     // preload will be a separate application we call it and wait
 

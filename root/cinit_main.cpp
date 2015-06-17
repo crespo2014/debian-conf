@@ -723,9 +723,9 @@ int main()
   static const linux_init::task_info_t tasks[] = {
       TASK_INFO( &linux_init::preload, preload)    //
       TASK_INFO( &linux_init::mountfs, fs,preload)    //
-      TASK_INFO( &linux_init::e4rat_load, e4rat,preload)    //
-      TASK_INFO( &linux_init::hostname, hostname,e4rat)    //
-      TASK_INFO( &linux_init::deferred, deferred,e4rat)    //
+      //TASK_INFO( &linux_init::e4rat_load, e4rat,preload)    //
+      TASK_INFO( &linux_init::hostname, hostname,preload)    //
+      TASK_INFO( &linux_init::deferred, deferred,preload)    //
       TASK_INFO( &linux_init::udev, udev, hostname )    //
       //TASK_INFO( &linux_init::mountall,mountall, udev)    //
       //TASK_INFO( &linux_init::mountdevsubfs, dev_subfs, udev )    //
