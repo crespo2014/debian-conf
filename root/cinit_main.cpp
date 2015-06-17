@@ -725,12 +725,12 @@ int main()
       TASK_INFO( &linux_init::mountfs, fs,preload)    //
       //TASK_INFO( &linux_init::e4rat_load, e4rat,preload)    //
       TASK_INFO( &linux_init::hostname, hostname)    //
-      TASK_INFO( &linux_init::deferred, deferred,init_d)    //
+     // TASK_INFO( &linux_init::deferred, deferred,init_d)    //
       TASK_INFO( &linux_init::udev, udev, hostname,fs )    //
       //TASK_INFO( &linux_init::mountall,mountall,fs, udev)    //
       //TASK_INFO( &linux_init::mountdevsubfs, dev_subfs, udev )    //
       TASK_INFO( &linux_init::procps, procps,deferred )    //
-      TASK_INFO( &linux_init::udev_trigger, udev_trigger,deferred,udev)    //
+      TASK_INFO( &linux_init::udev_trigger, udev_trigger,udev)    //
       //TASK_INFO( &linux_init::acpi_daemon, acpi,e4rat,mountall)    //
       //TASK_INFO( &linux_init::startXserver, X, hostname,acpi)    //
       //TASK_INFO( &linux_init::startxfce4, xfce4, X )     //
