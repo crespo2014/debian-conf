@@ -135,11 +135,12 @@ class preload_parser
   {
     int dev;
     uint64_t inode;
+    int block;     // file first block
     char *path;
     bool operator < (const struct file_desc_t& fd) const
     {
       //return (dev < fd.dev) && (strcmp(path,fd.path) < 0);
-      return (dev < fd.dev) || (inode < fd.inode);
+      return (dev < fd.dev) || (block < fd.block);
     }
   };
 
@@ -150,13 +151,19 @@ private:
   char* blk_e = nullptr;
   char* dt_s = nullptr;    // when data start
   char* dt_e = nullptr;    // when data end.
-  // data is being store in preallocated vector, we do not reallocated memory again, we create a new vector.
   unsigned long file_desc_count_ = 0;   // how many file descriptors in total
-  std::list<std::vector<struct file_desc_t>>  file_desc_;   //TODO switch to some unique_ptr
-public:
-  int main(const char* fname)
+  unsigned long file_desc_idx = 0;      // current or last file being loaded - for stage
+  std::list<std::vector<struct file_desc_t>>  file_desc_;   //TODO switch to some unique_ptr with size, we do not reallocated memory again, we create a new vector.
+  // current position being load
+  struct
   {
-    printf("Loading file list ...\n");
+    std::list<std::vector<struct file_desc_t>>::iterator list;
+    struct file_desc_t* fd;
+  }
+
+public:
+  int loadFile(const char* fname)
+  {
     file.open(fname, 0, S_IRUSR);
     if (file)
     {
@@ -168,8 +175,9 @@ public:
         dt_e = blk_s;    // when data end.
         dt_s = blk_s;
         processBlock();
-        preload();
       }
+      it.list = file_desc_.begin();
+      it.fd = nullptr;  // to be fill by the first call
     }
     return 0;
   }
@@ -282,15 +290,19 @@ public:
   // fork() only copies the calling thread, any mutex hold by other threads are going to be lock forever if it was the state
   // use _exit to finish the forked process
   // http://www.linuxprogrammingblog.com/threads-and-fork-think-twice-before-using-them
-  void preload()
+
+  /*
+   * Load until top elements
+   */
+  void preload(unsigned top)
   {
-    printf("Loading files ...\n");
-    // use as main app. load 100 and then fork to init.
+    if (top == 0)
+      top = file_desc_count;
+
     unsigned fail_count = 0;
-    //unsigned top = 0;
     for ( auto &v : file_desc_)
     {
-      std::sort(v.begin(),v.end());
+      //std::sort(v.begin(),v.end());
       //struct file_desc_t* pfile_desc = v.data();
      // top = v.size() < file_desc_count_ - idx ? idx + v.size() : file_desc_count_;
       //for (;top != 0;++idx,--top,++pfile_desc)
@@ -310,14 +322,64 @@ public:
       }
       printf("Files loaded %d fails \n",fail_count);
     }
+  }
 
     // todo in the main thread we load 1000 files, then fork to keep application running, NOK
     // preload will be a separate application we call it and wait
 
     // we load 1000 at begining then later a thread will do the rest. after fs or at the same time.
 
-  }
 
+  // Find the stating block of each file
+  void UpdateBlock()
+  {
+    for ( auto &v : file_desc_)
+    {
+      for ( const auto &pfile_desc : v)
+      {
+        pfile_desc.block = 0;
+        int fd = open(pfile_desc.path, O_RDONLY);
+        if(-1 == fd)
+        {
+          continue;
+        }
+        ret = ioctl(fd, FIBMAP, & pfile_desc.block);// get physical position of block 0
+        close(fd);
+      }
+    }
+  }
+  // Sort and Write the actual structure to console
+  void WriteOut()
+  {
+    //unsigned top = 0;
+    for ( auto &v : file_desc_)
+    {
+      std::sort(v.begin(),v.end());
+      for ( const auto &pfile_desc : v)
+      {
+        printf("%d %lld %s\n",pfile_desc.dev,pfile_desc.inode,pfile_desc.path);
+      }
+    }
+  }
+  // Merge all vectors
+  void Merge()
+  {
+    auto it = file_desc_.begin();
+    if (it != file_desc_.end() )
+    {
+      auto &vec = *it;
+      ++it;
+      while (it != file_desc_.end() )
+      {
+        vec.insert(vec.end(),(*it).begin(),(*it).end());
+        it = file_desc_.erase(it);
+      }
+    }
+  }
+  /*
+   * todo
+   * Run as daemon
+   */
 };
 #endif
 
