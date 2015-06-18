@@ -25,6 +25,7 @@
 #include <sys/mman.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/ioctl.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -34,6 +35,9 @@
 #include <list>
 #include <stdint.h>
 #include <algorithm>
+#include <linux/fs.h>
+//#include <sys/capability.h>
+
 
 /*
  * map a full file in memory
@@ -140,7 +144,7 @@ class preload_parser
     bool operator < (const struct file_desc_t& fd) const
     {
       //return (dev < fd.dev) && (strcmp(path,fd.path) < 0);
-      return (dev < fd.dev) || (block < fd.block);
+      return (dev < fd.dev) || (block < fd.block) || (inode < fd.inode);
     }
   };
 
@@ -151,6 +155,7 @@ private:
   char* blk_e = nullptr;
   char* dt_s = nullptr;    // when data start
   char* dt_e = nullptr;    // when data end.
+  unsigned fail_count = 0;              // count files that was not loaded
   unsigned long file_desc_count_ = 0;   // how many file descriptors in total
   unsigned long file_desc_idx = 0;      // current or last file being loaded - for stage
   std::list<std::vector<struct file_desc_t>>  file_desc_;   //TODO switch to some unique_ptr with size, we do not reallocated memory again, we create a new vector.
@@ -158,8 +163,8 @@ private:
   struct
   {
     std::list<std::vector<struct file_desc_t>>::iterator list;
-    struct file_desc_t* fd;
-  }
+    std::vector<struct file_desc_t>::iterator fd;
+  } it;
 
 public:
   int loadFile(const char* fname)
@@ -176,8 +181,12 @@ public:
         dt_s = blk_s;
         processBlock();
       }
+    }
+    file_desc_idx = 0;
+    if (file_desc_count_ != 0)
+    {
       it.list = file_desc_.begin();
-      it.fd = nullptr;  // to be fill by the first call
+      it.fd = (*it.list).begin();  // to be fill by the first call
     }
     return 0;
   }
@@ -294,35 +303,36 @@ public:
   /*
    * Load until top elements
    */
-  void preload(unsigned top)
+  void preload(unsigned top = 0)
   {
-    if (top == 0)
-      top = file_desc_count;
+    if (top == 0 || top > file_desc_count_)
+      top = file_desc_count_;
 
-    unsigned fail_count = 0;
-    for ( auto &v : file_desc_)
+    auto &v = *it.list;
+    while (file_desc_idx < top)
     {
-      //std::sort(v.begin(),v.end());
-      //struct file_desc_t* pfile_desc = v.data();
-     // top = v.size() < file_desc_count_ - idx ? idx + v.size() : file_desc_count_;
-      //for (;top != 0;++idx,--top,++pfile_desc)
-      for ( const auto &pfile_desc : v)
+      if (it.fd == v.end())
       {
-        //printf("%d %lld %s\n",pfile_desc.dev,pfile_desc.inode,pfile_desc.path);
-        int fd = open(pfile_desc.path, O_RDONLY | O_NOFOLLOW);
-        if(-1 == fd)
-        {
-          ++fail_count;
-           continue;
-        }
+        ++it.list;
+        v = *it.list;
+        it.fd = v.begin();
+      }
+      //printf("%d %lld %s\n",pfile_desc.dev,pfile_desc.inode,pfile_desc.path);
+      int fd = open(it.fd->path, O_RDONLY | O_NOFOLLOW);
+      if (fd > 0)
+      {
         struct stat buf;
         ::fstat(fd, &buf);
         readahead(fd, 0, buf.st_size);
         close(fd);
       }
-      printf("Files loaded %d fails \n",fail_count);
+      else
+        ++fail_count;
+      ++it.fd;
+      ++file_desc_idx;
     }
   }
+
 
     // todo in the main thread we load 1000 files, then fork to keep application running, NOK
     // preload will be a separate application we call it and wait
@@ -331,11 +341,12 @@ public:
 
 
   // Find the stating block of each file
+  // we need cap_sysrawio
   void UpdateBlock()
   {
     for ( auto &v : file_desc_)
     {
-      for ( const auto &pfile_desc : v)
+      for ( auto &pfile_desc : v)
       {
         pfile_desc.block = 0;
         int fd = open(pfile_desc.path, O_RDONLY);
@@ -343,7 +354,9 @@ public:
         {
           continue;
         }
-        ret = ioctl(fd, FIBMAP, & pfile_desc.block);// get physical position of block 0
+        int ret = ioctl(fd, FIBMAP, & pfile_desc.block);// get physical position of block 0
+        if (ret < 0)
+          perror("get FIBMAP");
         close(fd);
       }
     }
@@ -376,6 +389,22 @@ public:
       }
     }
   }
+//  void setcapacity()
+//  {
+//    cap_t caps;
+//    cap_value_t cap_list[2];
+//    caps = cap_get_proc();
+//    if (caps == NULL)
+//        /* handle error */;
+//    cap_list[0] = CAP_FOWNER;
+//    cap_list[1] = CAP_SETFCAP;
+//    if (cap_set_flag(caps, CAP_EFFECTIVE, 2, cap_list, CAP_SET) == -1)
+//        /* handle error */;
+//    if (cap_set_proc(caps) == -1)
+//        /* handle error */;
+//    if (cap_free(caps) == -1)
+//        /* handle error */;
+//  }
   /*
    * todo
    * Run as daemon

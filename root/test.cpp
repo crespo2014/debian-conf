@@ -11,6 +11,7 @@
 int main()
 {
   preload_parser p;
-  p.main("root/startup.log");
+
+  //p.main("root/startup.log");
 }
 

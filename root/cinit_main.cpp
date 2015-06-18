@@ -687,7 +687,8 @@ public:
   void preload()
   {
     preload_parser p;
-    p.main("/var/lib/e4rat/startup.log");
+    p.loadFile("/var/lib/e4rat/startup.log");
+    p.preload();
   }
 public:
   constexpr static const char* user_name = "lester";
