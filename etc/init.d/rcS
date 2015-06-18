@@ -5,7 +5,7 @@
 # Call all S??* scripts in /etc/rcS.d/ in numerical/alphabetical order
 #
 
-/root/build/preload &
+/root/build/preload 
 
 #/bin/mount -t proc /proc -n -o noatime,nodiratime,nodev,noexec,nosuid
 #mknod kmsg c 1 11
