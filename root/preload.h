@@ -143,8 +143,14 @@ class preload_parser
     char *path;
     bool operator < (const struct file_desc_t& fd) const
     {
-      //return (dev < fd.dev) && (strcmp(path,fd.path) < 0);
-      return (dev < fd.dev) || (block < fd.block) || (inode < fd.inode);
+      bool b = dev < fd.dev;
+      if (!b && dev == fd.dev )
+      {
+        b = block < fd.block;
+        if (!b && block == fd.block)
+          b = inode < fd.inode;
+      }
+      return b;
     }
   };
 
