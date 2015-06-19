@@ -364,7 +364,6 @@ public:
   // Sort and Write the actual structure to console
   void WriteOut()
   {
-    //unsigned top = 0;
     for ( auto &v : file_desc_)
     {
       std::sort(v.begin(),v.end());
