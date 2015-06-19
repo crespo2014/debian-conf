@@ -6,7 +6,7 @@
 GRUB_DEFAULT=0
 GRUB_TIMEOUT=3
 GRUB_DISTRIBUTOR=`lsb_release -i -s 2> /dev/null || echo Debian`
-GRUB_CMDLINE_LINUX_DEFAULT='rootfstype=ext4 rw cinit quiet noswap initcall_debug init=/sbin/bootchartd bootchart' 
+GRUB_CMDLINE_LINUX_DEFAULT='rootfstype=ext4 rw cinit bootchart quiet noswap initcall_debug init=/root/build/preload' 
 # bootchart_init=/
 GRUB_CMDLINE_LINUX=""
 
