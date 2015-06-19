@@ -14,5 +14,36 @@ check repo nagisa/e4rat-preload-lite, it seems to have an optimized version
   echo 100 > /sys/block/sda/queue/iosched/slice_sync
   hdparm -q -M 254 /dev/sda
   
+1. preload list will be ordered by physical block location and device (but device root has preferences)
+2. build a static link version of application. 
+
+ move root partition to beginning of hdd.
+ we can create partition for var an usr if more space is needed.
+ 
+ preload need to fork to init in the main thread. ( then pid 0 will be keep).
+ cinit need to be prepare for be init application.
+ 
+ kernel cmd line arguments to be add cinit means cinit will be use, bootchartd means do not call /sbin/init
+ if cinit run with pid 0 then add env CINIT=1 (/etc/init.d/rcS will quit if CINIT=1 otherwise it will call cinit)
+ 
+ - call bootchartd start, it will be stopped by init.d at the end, or we can stop it at user level.
+ 
+ - mount sys, proc,dev, fs
   
-  change /etc/init.d/rcS 
+ some step has to be done outside threading cycle.
+ start thread to load startup.log and order by device ( sort function need to known which is the root device and put before) 
+ start loading files of root device stop a 100.
+ 
+ mount run, devpts
+ hostname.
+ create links
+ wait for thread loading list of files
+ CINIT=1
+ fork and do all remaining part
+
+exec init 
+ 
+/proc/partitions  
+ /sys/block/sdX/sdXX/
+ 
+ http://stackoverflow.com/questions/8663643/linux-c-programming-how-to-get-a-devices-partition-infomation
