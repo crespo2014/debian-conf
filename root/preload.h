@@ -328,7 +328,7 @@ public:
       if (fd > 0)
       {
         struct stat buf;
-        ::fstat(fd, &buf);
+        //::fstat(fd, &buf);
         readahead(fd, 0, buf.st_size);
         close(fd);
       }

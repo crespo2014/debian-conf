@@ -21,7 +21,7 @@ int main(int ac, char** av)
 {
   const char *fname = "/var/lib/e4rat/startup.log";
   const char *init_app = "/sbin/init";
-  bool initfork = false;
+  bool initfork = (getpid() == 1);
   bool sort = false;
   int it = 0;
   ++it;
@@ -58,7 +58,7 @@ int main(int ac, char** av)
     p.UpdateBlock();
     p.WriteOut();
   }
-  else if (initfork)
+  if (initfork)
   {
     p.preload(100);
     //do fork
