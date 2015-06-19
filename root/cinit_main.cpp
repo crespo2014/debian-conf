@@ -9,25 +9,21 @@
  This signal is used quite differently from either of the above. When the server starts, it checks to see if it has inherited SIGUSR1 as SIG_IGN instead of the usual SIG_DFL. In this case, the server sends a SIGUSR1 to its parent process after it has set up the various connection schemes. Xdm uses this feature to recognize when connecting to the server is possible.
 
  */
+
 #include <mutex>
 #include <iostream>
 #include <condition_variable>
 #include <mutex>
 #include <thread>
 #include <chrono>
-#include <cstring>
+
 #include <vector>
-#include <sys/mount.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <stdarg.h>
+
+#include <sys_linux.h>
+
 #include <stdlib.h>
 #include <stdio.h>
-#include <unistd.h>
-//#include <sys/inotify.h>
-#include <fcntl.h>
-#include <sys/stat.h>
+
 #include <string.h>
 
 #include <preload.h>
@@ -167,6 +163,16 @@ public:
     task_id parent_id;         // = none_id;
     task_id parent_id2;        // = none_id;
   };
+  // Mount point details
+  struct mount_point_t
+  {
+    const char* device;
+    const char* path;
+    const char* type;
+    unsigned long int flags;
+    const void* data;
+    const char* err_msg;
+  };
 
   /*
    * Main fucntion as main entry point
@@ -189,7 +195,7 @@ public:
       if (r > 0)
         tstr[r - 1] = 0;     // remove ending \n
       close(fd);
-      split(tstr, cmdline);
+      SysLinux::split(tstr, cmdline);
       for (auto p : cmdline)
       {
         if (strcmp(p, "cinit") == 0)
@@ -250,43 +256,6 @@ public:
   {
 
   }
-  /*
-   * Split element of string delimiter by spaces
-   */
-  void split(char* list, std::vector<char*>& v)
-  {
-    char *cptr = list;
-    do
-    {
-      // find letter
-      while (*cptr == ' ' && *cptr != 0)
-        ++cptr;
-      if (*cptr == '\'')    // argument with delimiters
-      {
-        ++cptr;
-        v.push_back(cptr);
-        while (*cptr != '\'' && *cptr != 0)
-          ++cptr;
-        if (*cptr == '\'')
-        {
-          *cptr = 0;
-          ++cptr;
-        }
-      } else if (*cptr != 0)
-      {
-        v.push_back(cptr);
-        //next space
-        while (*cptr != ' ' && *cptr != 0)
-          ++cptr;
-        if (*cptr == ' ')
-        {
-          *cptr = 0;
-          ++cptr;
-        }
-      }
-
-    } while (*cptr != 0);
-  }
 
   // Peek a new task from list , mark the incoming task as done
   const task_info_t* peekTask(const task_info_t* it)
@@ -339,46 +308,7 @@ public:
       cond_var.notify_all();    // more than one task has been release
     return it;
   }
-  /*
-   * Execute a command received as list of space separate parameters
-   * wait for command to finish
-   * no fork the current process
-   */
-  int execute(char* cmd, bool wait = true, bool nofork = false)
-  {
-    std::vector<char*> arg;
-    arg.reserve(10);
-    split(cmd, arg);
-    arg.push_back(nullptr);
-    return launch(wait, arg.data(), nofork);
-  }
-  // do not forget (char*) nullptr as last argument
-  int launch(bool wait, char * const * argv, bool nofork = false)
-  {
-    if (nofork)
-    {
-      execv(argv[0], (char* const *) argv);
-      _exit(EXIT_FAILURE);
-    }
-    int status;
-    pid_t pid = fork();
-    if (pid == -1)
-    {
-      perror("failed to fork");
-      status = -1;
-    } else if (pid > 0)
-    {
-      if (wait)
-        waitpid(pid, &status, 0);
-    }
-    if (pid == 0)
-    {
-      // child
-      execv(argv[0], (char* const *) argv);
-      _exit(EXIT_FAILURE);
-    }
-    return status;
-  }
+
   // thread function
   void thread()
   {
@@ -414,35 +344,42 @@ public:
 
   void readahead()
   {
-    execute_c("/etc/init.d/early-readahead start");
+    SysLinux::execute_c("/etc/init.d/early-readahead start");
   }
 
   void late_readahead()
   {
-    execute_c("/etc/init.d/later-readahead start");
+    SysLinux::execute_c("/etc/init.d/later-readahead start");
   }
 
   // Mount home, var remount root
   void mountfs()
   {
-    CHECK_ZERO(mount("/dev/sda5", "/", "ext4", MS_NOATIME | MS_NODIRATIME | MS_REMOUNT | MS_SILENT, ""),"remount /");
-    CHECK_ZERO(mount("sys", "/sys", "sysfs", MS_NOATIME | MS_NODIRATIME | MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""),"mount sys");
-    CHECK_ZERO(mount("run", "/run", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""),"mount /run ");
-    CHECK_ZERO(mount("dev", "/dev", "devtmpfs", MS_SILENT, ""),"mount dev");
-    CHECK_ZERO(mount("tmp", "/tmp", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""),"mount /tmp");
-    CHECK_ZERO(mkdir("/run/lock", 01777),"mkdir /run/lock");
-    CHECK_ZERO(mkdir("/run/shm", 01777),"mkdir /run/shm");
-    CHECK_ZERO(chmod("/run/shm", 01777),"chmod /run/shm");
-    CHECK_ZERO(chmod("/run/lock", 01777),"chmod /run/lock");
-    CHECK_ZERO(symlink("/run", "/var/run"),"symlink /run /var/run");
-    CHECK_ZERO(symlink("/run/lock", "/var/lock"),"symlink /run/lock /var/lock");
-    CHECK_ZERO(symlink("/run/shm", "/dev/shm"),"symlink /run/shm /dev/shm");
 
-    CHECK_ZERO(mount("/dev/sda7", "/home", "ext4", MS_NOATIME | MS_NODIRATIME | MS_SILENT, ""),"mount /home");
-    CHECK_ZERO(mount("/dev/sda8", "/mnt/data", "ext4", MS_NOATIME | MS_NODIRATIME | MS_SILENT, ""),"mount /mnt/data");
+    static const struct mount_point_t mounts[] = {    //
+        { "/dev/sda5", "/", "ext4", MS_NOATIME | MS_NODIRATIME | MS_REMOUNT | MS_SILENT, "", "remount /" },    //
+            { "sys", "/sys", "sysfs", MS_NOATIME | MS_NODIRATIME | MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, "", "mount sys" },    //
+            { "run", "/run", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, "", "mount /run " },    //
+            { "dev", "/dev", "devtmpfs", MS_SILENT, "", "mount dev" },    //
+            { "tmp", "/tmp", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, "", "mount /tmp" },    //
+            { "/dev/sda7", "/home", "ext4", MS_NOATIME | MS_NODIRATIME | MS_SILENT, "", "mount /home" },    //
+            { "/dev/sda8", "/mnt/data", "ext4", MS_NOATIME | MS_NODIRATIME | MS_SILENT, "", "mount /mnt/data" },    //
+        };
 
-    CHECK_ZERO(mkdir("/dev/pts", 0755),"mkdir /dev/pts");
-    CHECK_ZERO(mount("pts", "/dev/pts", "devpts", MS_SILENT | MS_NOSUID | MS_NOEXEC, "gid=5,mode=620"),"mount pts");
+    for (const auto &mnt : mounts)
+    {
+      CHECK_ZERO(mount(mnt.device, mnt.path, mnt.type, mnt.flags, mnt.data), mnt.err_msg);
+    }
+    CHECK_ZERO(mkdir("/run/lock", 01777), "mkdir /run/lock");
+    CHECK_ZERO(mkdir("/run/shm", 01777), "mkdir /run/shm");
+    CHECK_ZERO(chmod("/run/shm", 01777), "chmod /run/shm");
+    CHECK_ZERO(chmod("/run/lock", 01777), "chmod /run/lock");
+    CHECK_ZERO(symlink("/run", "/var/run"), "symlink /run /var/run");
+    CHECK_ZERO(symlink("/run/lock", "/var/lock"), "symlink /run/lock /var/lock");
+    CHECK_ZERO(symlink("/run/shm", "/dev/shm"), "symlink /run/shm /dev/shm");
+
+    CHECK_ZERO(mkdir("/dev/pts", 0755), "mkdir /dev/pts");
+    CHECK_ZERO(mount("pts", "/dev/pts", "devpts", MS_SILENT | MS_NOSUID | MS_NOEXEC, "gid=5,mode=620"), "mount pts");
     /*
      https://wiki.debian.org/ReleaseGoals/RunDirectory
      Stage #2: After system reboot
@@ -469,7 +406,7 @@ public:
 
   void procps()
   {
-    execute_c("/sbin/sysctl -q --system");
+    SysLinux::execute_c("/sbin/sysctl -q --system");
   }
 
   void deferred()
@@ -482,16 +419,6 @@ public:
     {
       fclose(pFile);
     }
-  }
-
-  void bootchartd()
-  {
-    execute_c("/sbin/bootchartd start");
-  }
-
-  void bootchartd_stop()
-  {
-    execute_c("/sbin/bootchartd stop");
   }
 
   /*
@@ -529,29 +456,29 @@ public:
       fclose(pFile);
     }
 
-    execute_c("udevadm info --cleanup-db");
-    execute_c("/sbin/udevd --daemon");
-    //execute_c("/bin/udevadm trigger --action=add");
-    execute_c("/bin/udevadm settle", true);
+    SysLinux::execute_c("udevadm info --cleanup-db");
+    SysLinux::execute_c("/sbin/udevd --daemon");
+    //SysLinux::execute_c("/bin/udevadm trigger --action=add");
+    SysLinux::execute_c("/bin/udevadm settle", true);
   }
 
   void udev_trigger()
   {
-    execute_c("/sbin/udevadm trigger");
+    SysLinux::execute_c("/sbin/udevadm trigger");
   }
 
   // do not execute
   void udev_finish()
   {
-    execute_c("/lib/udev/udev-finish");
+    SysLinux::execute_c("/lib/udev/udev-finish");
   }
 
   // execute some init script
   void init_d()
   {
-    execute_c("/etc/init.d/hwclock start", true);
-    execute_c("/etc/init.d/urandom start", true);
-    execute_c("/etc/init.d/networking start");
+    SysLinux::execute_c("/etc/init.d/hwclock start", true);
+    SysLinux::execute_c("/etc/init.d/urandom start", true);
+    SysLinux::execute_c("/etc/init.d/networking start");
   }
 
   /*
@@ -563,7 +490,7 @@ public:
     char tmp_str[255];
     snprintf(tmp_str, sizeof(tmp_str) - 1, "/bin/su -l -c 'export %s=%s;export %s=:%d;exec /usr/bin/startxfce4' lester", env_authority, usr_auth_file,
         env_display, x_display_id);
-    execute(tmp_str, false);
+    SysLinux::execute(tmp_str, false);
   }
 
   void startXserver()
@@ -593,7 +520,7 @@ public:
 
     // Server auth file
     snprintf(tmp_str, sizeof(tmp_str) - 1, "/usr/bin/xauth -q -f %s add :%d . %s", srv_auth_file, x_display_id, mcookie);
-    execute(tmp_str);
+    SysLinux::execute(tmp_str);
 
     // Client auth file
     auth_file_fd = mkstemp(usr_auth_file);
@@ -603,7 +530,7 @@ public:
     }
 
     snprintf(tmp_str, sizeof(tmp_str) - 1, "/usr/bin/xauth -q -f %s add :%d . %s", usr_auth_file, x_display_id, mcookie);
-    execute(tmp_str);
+    SysLinux::execute(tmp_str);
     EXIT(chown(usr_auth_file, 1000, 1000), == -1);    // change owner to main user
 
     // Start X server and wait for it
@@ -637,7 +564,7 @@ public:
        */
       //sigprocmask(SIG_SETMASK, &oldmask, nullptr);
       signal(SIGUSR1, SIG_IGN);
-      execute(tmp_str, false, true);
+      SysLinux::execute(tmp_str, false, true);
     }
     // wait for signal become pending, only blocked signal can be pending, otherwise the signal will be generated
     r = sigtimedwait(&sig_mask, nullptr, &sig_timeout);
@@ -666,20 +593,13 @@ public:
     sethostname(host, strlen(host));
   }
 
-  // Wait for all task in running state
-  int execute_c(const char* ccmd, bool wait = false, bool fork = true)
-  {
-    char cmd[512];
-    strcpy(cmd, ccmd);
-    return execute(cmd, wait, !fork);
-  }
   void e4rat_load()
   {
-    execute_c("/sbin/e4rat-preload /var/lib/e4rat/startup.log", true);
+    SysLinux::execute_c("/sbin/e4rat-preload /var/lib/e4rat/startup.log", true);
   }
   void acpi_daemon()
   {
-    execute_c("/etc/init.d/acpid start");
+    SysLinux::execute_c("/etc/init.d/acpid start");
   }
   /*
    * Test time needed to parse preload file
@@ -726,7 +646,7 @@ int main()
       TASK_INFO( &linux_init::mountfs, fs)    //
       //TASK_INFO( &linux_init::e4rat_load, e4rat,preload)    //
       TASK_INFO( &linux_init::hostname, hostname)    //
-     // TASK_INFO( &linux_init::deferred, deferred,init_d)    //
+      // TASK_INFO( &linux_init::deferred, deferred,init_d)    //
       TASK_INFO( &linux_init::udev, udev, hostname,fs )    //
       //TASK_INFO( &linux_init::mountall,mountall,fs, udev)    //
       //TASK_INFO( &linux_init::mountdevsubfs, dev_subfs, udev )    //

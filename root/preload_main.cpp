@@ -5,20 +5,25 @@
  *      Author: lester
  */
 
-#include "preload.h"
 #include <iostream>
+
+#include "sys_linux.h"
+#include "preload.h"
+
 
 /*
  * usage
  *  -- no arg --    // preload default file
  * sort <filename>  // load the file, sort it and write to console
- * init <init_app> <file> // load default file and fork to init_app
  * load <file>      // load the file
+ * file <file>      // use this file
  *
  */
 
 int main(int ac, char** av)
 {
+  // Start bootchartd after checking cmd line for bootchart argument
+  SysLinux::execute_c("/lib/bootchart/bootchart-collector 50");
   const char *fname = "/var/lib/e4rat/startup.log";
   const char *init_app = "/sbin/init";
   bool initfork = (getpid() == 1);
@@ -32,12 +37,8 @@ int main(int ac, char** av)
       ++it;
       if (it < ac)
         fname = av[it];
-    } else if (strcmp(av[it], "init") == 0)
+    } else if (strcmp(av[it], "file") == 0)
     {
-      initfork = true;
-      ++it;
-      if (it < ac)
-        init_app = av[it];
       ++it;
       if (it < ac)
         fname = av[it];
@@ -58,29 +59,25 @@ int main(int ac, char** av)
     p.UpdateBlock();
     p.WriteOut();
   }
+  p.preload(100);
   if (initfork)
   {
-    p.preload(100);
     //do fork
     int pid = fork();
-    if (pid == 0)
+    if (pid == 0)   //child
     {
-      char * arg[] = { (char*)init_app, nullptr };
-      execv(init_app,(char* const *) arg);
-      _exit(EXIT_FAILURE);
+      p.preload();
+      _exit(0);
     }
-    p.preload();
-    // check if fork failed
     if (pid == -1)
     {
-      char * arg[] = { (char*)init_app,  nullptr };
-      execv(init_app,(char* const *) arg);
-      _exit(EXIT_FAILURE);
+      // failed fork
+      p.preload();
     }
-  } else
-  {
-    p.preload();
+    char * arg[] = { const_cast<char*>(init_app),  nullptr };
+    execv(init_app, arg);
   }
+  p.preload();
 }
 
 

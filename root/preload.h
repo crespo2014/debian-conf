@@ -20,7 +20,6 @@
 #ifndef PRELOAD_H_
 #define PRELOAD_H_
 
-
 #include <cstring>
 #include <sys/mman.h>
 #include <sys/types.h>
@@ -36,8 +35,6 @@
 #include <stdint.h>
 #include <algorithm>
 #include <linux/fs.h>
-//#include <sys/capability.h>
-
 
 /*
  * map a full file in memory
@@ -141,16 +138,17 @@ class preload_parser
     uint64_t inode;
     int block;     // file first block
     char *path;
-    bool operator < (const struct file_desc_t& fd) const
+    bool operator <(const struct file_desc_t& fd) const
     {
-      bool b = dev < fd.dev;
-      if (!b && dev == fd.dev )
-      {
-        b = block < fd.block;
-        if (!b && block == fd.block)
-          b = inode < fd.inode;
-      }
-      return b;
+      return block < fd.block;
+//      bool b = dev < fd.dev;
+//      if (!b && dev == fd.dev )
+//      {
+//        b = block < fd.block;
+//        if (!b && block == fd.block)
+//          b = inode < fd.inode;
+//      }
+//      return b;
     }
   };
 
@@ -162,9 +160,9 @@ private:
   char* dt_s = nullptr;    // when data start
   char* dt_e = nullptr;    // when data end.
   unsigned fail_count = 0;              // count files that was not loaded
-  unsigned long file_desc_count_ = 0;   // how many file descriptors in total
+  unsigned long file_desc_count_ = 0;    // how many file descriptors in total
   unsigned long file_desc_idx = 0;      // current or last file being loaded - for stage
-  std::list<std::vector<struct file_desc_t>>  file_desc_;   //TODO switch to some unique_ptr with size, we do not reallocated memory again, we create a new vector.
+  std::list<std::vector<struct file_desc_t>> file_desc_;    //TODO switch to some unique_ptr with size, we do not reallocated memory again, we create a new vector.
   // current position being load
   struct
   {
@@ -192,7 +190,7 @@ public:
     if (file_desc_count_ != 0)
     {
       it.list = file_desc_.begin();
-      it.fd = (*it.list).begin();  // to be fill by the first call
+      it.fd = (*it.list).begin();    // to be fill by the first call
     }
     return 0;
   }
@@ -201,45 +199,43 @@ public:
     // preallocated block base on file size.
     unsigned long file_desc_max;    // for this vector
     unsigned long file_desc_idx;    // current position in the vector
-    unsigned line_size  = 50;
+    unsigned line_size = 50;
     char* dt = nullptr;
 
     do
     {
-      file_desc_max = (blk_e - dt_s)/line_size;  //assuming 50 char per line, if we need more then go to 25 with remaining part
+      file_desc_max = (blk_e - dt_s) / line_size;    //assuming 50 char per line, if we need more then go to 25 with remaining part
       file_desc_.emplace_back(file_desc_max);
       struct file_desc_t* pfile_desc = file_desc_.back().data();
 
-      for (file_desc_idx = 0;file_desc_idx < file_desc_max; ++file_desc_idx,++pfile_desc)
+      for (file_desc_idx = 0; file_desc_idx < file_desc_max; ++file_desc_idx, ++pfile_desc)
       {
         //todo test numeric parameter and jump to next \n if something goes wrong
         dt = nextToken(' ');
         char* endptr;
         if (dt != nullptr)
         {
-          pfile_desc->dev = strtoul (dt,&endptr,10);
+          pfile_desc->dev = strtoul(dt, &endptr, 10);
           dt = nextToken(' ');
         }
         if (dt != nullptr)
         {
-          pfile_desc->inode = strtoul (dt,&endptr,10);
+          pfile_desc->inode = strtoul(dt, &endptr, 10);
           dt = nextToken('\n');
         }
         if (dt != nullptr)
         {
           pfile_desc->path = dt;
-        }
-        else
+        } else
           break;
       }
       file_desc_count_ += file_desc_idx;
       if (dt != nullptr)
       {
         line_size /= 2;    // we need more vectors
-      }
-      else
+      } else
       {
-        file_desc_.back().resize(file_desc_idx);  // to sort later
+        file_desc_.back().resize(file_desc_idx);    // to sort later
       }
     } while (dt != nullptr);
   }
@@ -331,36 +327,33 @@ public:
         //::fstat(fd, &buf);
         readahead(fd, 0, buf.st_size);
         close(fd);
-      }
-      else
+      } else
         ++fail_count;
       ++it.fd;
       ++file_desc_idx;
     }
   }
 
+  // todo in the main thread we load 1000 files, then fork to keep application running, NOK
+  // preload will be a separate application we call it and wait
 
-    // todo in the main thread we load 1000 files, then fork to keep application running, NOK
-    // preload will be a separate application we call it and wait
-
-    // we load 1000 at begining then later a thread will do the rest. after fs or at the same time.
-
+  // we load 1000 at begining then later a thread will do the rest. after fs or at the same time.
 
   // Find the stating block of each file
   // we need cap_sysrawio
   void UpdateBlock()
   {
-    for ( auto &v : file_desc_)
+    for (auto &v : file_desc_)
     {
-      for ( auto &pfile_desc : v)
+      for (auto &pfile_desc : v)
       {
         pfile_desc.block = 0;
         int fd = open(pfile_desc.path, O_RDONLY);
-        if(-1 == fd)
+        if (-1 == fd)
         {
           continue;
         }
-        int ret = ioctl(fd, FIBMAP, & pfile_desc.block);// get physical position of block 0
+        int ret = ioctl(fd, FIBMAP, &pfile_desc.block);    // get physical position of block 0
         if (ret < 0)
           perror("get FIBMAP");
         close(fd);
@@ -370,12 +363,12 @@ public:
   // Sort and Write the actual structure to console
   void WriteOut()
   {
-    for ( auto &v : file_desc_)
+    for (auto &v : file_desc_)
     {
-      std::sort(v.begin(),v.end());
-      for ( const auto &pfile_desc : v)
+      std::sort(v.begin(), v.end());
+      for (const auto &pfile_desc : v)
       {
-        printf("%d %lld %s\n",pfile_desc.dev,pfile_desc.inode,pfile_desc.path);
+        printf("%d %lld %s\n", pfile_desc.dev, pfile_desc.inode, pfile_desc.path);
       }
     }
   }
@@ -383,38 +376,18 @@ public:
   void Merge()
   {
     auto it = file_desc_.begin();
-    if (it != file_desc_.end() )
+    if (it != file_desc_.end())
     {
       auto &vec = *it;
       ++it;
-      while (it != file_desc_.end() )
+      while (it != file_desc_.end())
       {
-        vec.insert(vec.end(),(*it).begin(),(*it).end());
+        vec.insert(vec.end(), (*it).begin(), (*it).end());
         it = file_desc_.erase(it);
       }
     }
   }
-//  void setcapacity()
-//  {
-//    cap_t caps;
-//    cap_value_t cap_list[2];
-//    caps = cap_get_proc();
-//    if (caps == NULL)
-//        /* handle error */;
-//    cap_list[0] = CAP_FOWNER;
-//    cap_list[1] = CAP_SETFCAP;
-//    if (cap_set_flag(caps, CAP_EFFECTIVE, 2, cap_list, CAP_SET) == -1)
-//        /* handle error */;
-//    if (cap_set_proc(caps) == -1)
-//        /* handle error */;
-//    if (cap_free(caps) == -1)
-//        /* handle error */;
-//  }
-  /*
-   * todo
-   * Run as daemon
-   */
 };
-#endif
 
+#endif
 
