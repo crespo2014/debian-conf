@@ -323,9 +323,9 @@ public:
       int fd = open(it.fd->path, O_RDONLY | O_NOFOLLOW);
       if (fd > 0)
       {
-        struct stat buf;
+        //struct stat buf;
         //::fstat(fd, &buf);
-        readahead(fd, 0, buf.st_size);
+        readahead(fd, 0,10*1024*1024/* buf.st_size*/);
         close(fd);
       } else
         ++fail_count;

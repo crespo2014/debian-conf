@@ -342,16 +342,6 @@ public:
     umount("/proc");
   }
 
-  void readahead()
-  {
-    SysLinux::execute_c("/etc/init.d/early-readahead start");
-  }
-
-  void late_readahead()
-  {
-    SysLinux::execute_c("/etc/init.d/later-readahead start");
-  }
-
   // Mount home, var remount root
   void mountfs()
   {
@@ -456,10 +446,10 @@ public:
       fclose(pFile);
     }
 
-    SysLinux::execute_c("udevadm info --cleanup-db");
-    SysLinux::execute_c("/sbin/udevd --daemon");
+    SysLinux::execute_c("udevadm info --cleanup-db");   // it will be empty
+    SysLinux::execute_c("/sbin/udevd --daemon");  // move to the end be carefull with network cards
     //SysLinux::execute_c("/bin/udevadm trigger --action=add");
-    SysLinux::execute_c("/bin/udevadm settle", true);
+   // SysLinux::execute_c("/bin/udevadm settle", true);   //wait for events
   }
 
   void udev_trigger()
@@ -644,13 +634,12 @@ int main()
   static const linux_init::task_info_t tasks[] = {
 //      TASK_INFO( &linux_init::preload, preload)    //
       TASK_INFO( &linux_init::mountfs, fs)    //
-      //TASK_INFO( &linux_init::e4rat_load, e4rat,preload)    //
       TASK_INFO( &linux_init::hostname, hostname)    //
       // TASK_INFO( &linux_init::deferred, deferred,init_d)    //
       TASK_INFO( &linux_init::udev, udev, hostname,fs )    //
       //TASK_INFO( &linux_init::mountall,mountall,fs, udev)    //
       //TASK_INFO( &linux_init::mountdevsubfs, dev_subfs, udev )    //
-      TASK_INFO( &linux_init::procps, procps )    //
+      TASK_INFO( &linux_init::procps, procps,udev )    //
       //TASK_INFO( &linux_init::udev_trigger, udev_trigger,udev)    //
       //TASK_INFO( &linux_init::acpi_daemon, acpi,e4rat,mountall)    //
       //TASK_INFO( &linux_init::startXserver, X, hostname,acpi)    //
