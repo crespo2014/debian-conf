@@ -30,6 +30,7 @@
 
 #define TASK_ID(x)	\
 	x(none)\
+	x(root_fs) \
 	x(sys_fs) \
 	x(dev_fs)  \
 	x(run_fs) \
@@ -600,6 +601,7 @@ int main()
   // static initialization of struct is faster than using object, the compiler will store a table and just copy over
   // using const all data will be in RO memory really fast
   static const linux_init::task_info_t tasks[] = { ///
+      { &SysLinux::mount_root, root_fs_id, grp_krn_fs_id, none_id, none_id },    //
       { &SysLinux::mount_sysfs, sys_fs_id, grp_krn_fs_id, none_id, none_id },    //
       { &SysLinux::mount_devfs, dev_fs_id, grp_krn_fs_id, run_fs_id, none_id },    //
       { &SysLinux::mount_tmp, tmp_fs_id, grp_krn_fs_id, none_id, none_id },    //

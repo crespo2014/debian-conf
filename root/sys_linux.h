@@ -126,6 +126,10 @@ public:
     }
     return status;
   }
+  static void mount_root(void*)
+  {
+    CHECK_ZERO(mount("/dev/sda5", "/", "ext4", MS_NOATIME | MS_NODIRATIME | MS_REMOUNT | MS_SILENT, ""),"remount /");
+  }
   // mount all filesystem in fstab
   static void mount_all(void*)
   {
