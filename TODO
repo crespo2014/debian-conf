@@ -26,7 +26,6 @@ check repo nagisa/e4rat-preload-lite, it seems to have an optimized version
  kernel cmd line arguments to be add cinit means cinit will be use, bootchartd means do not call /sbin/init
  if cinit run with pid 0 then add env CINIT=1 (/etc/init.d/rcS will quit if CINIT=1 otherwise it will call cinit)
  
- - call bootchartd start, it will be stopped by init.d at the end, or we can stop it at user level.
  
  - mount sys, proc,dev, fs
   
@@ -47,3 +46,9 @@ exec init
  /sys/block/sdX/sdXX/
  
  http://stackoverflow.com/questions/8663643/linux-c-programming-how-to-get-a-devices-partition-infomation
+ 
+ mode devices/system/cpu/cpufreq/conservative = 644
+devices/system/cpu/cpufreq/conservative/freq_step = 10
+devices/system/cpu/cpufreq/conservative/up_threshold = 45
+devices/system/cpu/cpufreq/conservative/ignore_nice_load = 1
+devices/system/cpu/cpufreq/conservative/sampling_down_factor = 10
