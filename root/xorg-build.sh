@@ -2,11 +2,12 @@
 #
 # http://www.linuxfromscratch.org/blfs/view/7.7/x/x7driver.html
 #
-# apt-get install autoconf make cmake pkg-config  libperl-dev libgtk2.0-dev intltool
+# apt-get install autoconf make cmake pkg-config  libperl-dev libgtk2.0-dev intltool libsysfs-dev
 #[ -d xorg-src ] || mkdir xorg-src
 #cd xorg-src
 
 BUSER=lester
+JUMP_TO=$1
 
 export XORG_PREFIX="/mnt/data/app/x86"
 export XORG_CONFIG="--enable-shared=no --prefix=$XORG_PREFIX --sysconfdir=/etc --localstatedir=/var  "
@@ -108,6 +109,9 @@ function make_install_cd()
   cd ..
 }
 
+if [ "$JUMP_TO" == "" ]; then  
+JUMP_TO=
+
 install "http://dri.freedesktop.org/libdrm/libdrm-2.4.61.tar.bz2"
 install  "http://www.freedesktop.org/software/vaapi/releases/libva/libva-1.5.1.tar.bz2"
 install "http://xorg.freedesktop.org/releases/individual/util/util-macros-1.19.0.tar.bz2"
@@ -157,9 +161,7 @@ sed -i "s/pthread-stubs//" configure
 ./configure $XORG_CONFIG    \
             --enable-xinput \
             --docdir='${datadir}'/doc/libxcb-1.11 
-make 
-[ "$?" != "0" ] && exit
-cd ..
+make_install_cd
 
 install  http://www.freedesktop.org/software/vaapi/releases/libva/libva-1.5.1.tar.bz2
 
@@ -228,6 +230,13 @@ install http://xcb.freedesktop.org/dist/xcb-util-keysyms-0.4.0.tar.bz2
 install http://xcb.freedesktop.org/dist/xcb-util-renderutil-0.3.9.tar.bz2
 install http://xcb.freedesktop.org/dist/xcb-util-wm-0.4.1.tar.bz2
 
+fi
+
+if [ "$JUMP_TO" == "" -o "$JUMP_TO" == "mesa" ]; then  
+
+#install https://launchpad.net/ubuntu/+archive/primary/+files/udev_151.orig.tar.gz
+
+JUMP_TO=
 #wget http://www.linuxfromscratch.org/patches/blfs/7.7/MesaLib-10.4.5-add_xdemos-1.patch 
 extract ftp://ftp.freedesktop.org/pub/mesa/10.4.5/MesaLib-10.4.5.tar.bz2
 #patch -Np1 -i ../MesaLib-10.4.5-add_xdemos-1.patch
@@ -245,12 +254,13 @@ autoreconf -f -i
             --enable-gbm                   \
             --enable-glx-tls               \
             --with-egl-platforms="drm,x11" \
-            --enable-shared=no \
             --with-gallium-drivers="nouveau,r300,r600,radeonsi,svga,swrast"
+            #            --enable-shared=no \
 [ "$?" != "0" ] && exit            
 pushcd .
 make_install_cd
-popcd            
+popcd      
+fi      
 
 make -C xdemos DEMOS_PREFIX=$XORG_PREFIX
 [ "$?" != "0" ] && exit
