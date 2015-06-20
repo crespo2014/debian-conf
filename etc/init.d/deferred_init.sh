@@ -19,7 +19,7 @@ case "$1" in
     	exit
     fi
 	#give some time to display manager
-	[ "$runlevel" == "S" ] || sleep 5
+	#[ "$runlevel" == "S" ] || sleep 10
     cat /proc/deferred_initcalls
     udevadm trigger
 	# log some bootchart data before close it
