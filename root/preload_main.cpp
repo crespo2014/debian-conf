@@ -6,10 +6,9 @@
  */
 
 #include <iostream>
-
+#include <thread>
 #include "sys_linux.h"
 #include "preload.h"
-
 
 /*
  * usage
@@ -24,6 +23,10 @@ int main(int ac, char** av)
 {
   // Start bootchartd after checking cmd line for bootchart argument
   SysLinux::execute_c("/lib/bootchart/bootchart-collector 50");
+  //SysLinux::mount_procfs(nullptr);
+  SysLinux::mount_sysfs(nullptr);
+  SysLinux::set_disk_scheduler("sda","noop");
+
   const char *fname = "/var/lib/e4rat/startup.log";
   const char *init_app = "/sbin/init";
   bool initfork = (getpid() == 1);
@@ -63,24 +66,29 @@ int main(int ac, char** av)
     p.WriteOut();
   }
   p.preload(100);
+  int pid = -1;       // simulate not child
   if (initfork)
   {
-    //do fork
-    int pid = fork();
-    if (pid == 0)   //child
-    {
-      p.preload();
-      _exit(0);
-    }
-    if (pid == -1)
-    {
-      // failed fork
-      p.preload();
-    }
+    pid = fork();
+  }
+  // Call deferred and preload if (child process or parent process without child)
+  if (pid == 0 || pid == -1)  //child or fail
+  {
+    std::thread thr(SysLinux::deferred_modules,nullptr);
+    p.preload();
+    thr.join();
+    SysLinux::set_disk_scheduler("sda","cfq");
+  }
+  if (pid == 0)
+    _exit(0);     // end child
+
+  // we definitly call init
+  if (initfork)
+  {
     char * arg[] = { const_cast<char*>(init_app),  nullptr };
     execv(init_app, arg);
   }
-  p.preload();
+  return 0;
 }
 
 

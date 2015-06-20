@@ -38,19 +38,14 @@
   x(acpi)\
 	x(hostname) \
 	x(deferred) \
-	x(fs)\
-	x(devfs)\
 	x(udev)\
 	x(X)\
 	x(dev_subfs) \
-	x(udev_add)\
-	x(udev_mtab)\
 	x(udev_trigger)\
 	x(dbus)\
 	x(procps)\
 	x(xfce4)\
 	x(init_d)\
-	x(mountall) \
 	x(grp_none)  /* no group */ \
 	x(grp_krn_fs) /* proc sys dev tmp run + setup directories */ \
   x(grp_fs)     /* all fs ready home, data and ... */ \
@@ -110,6 +105,7 @@ enum task_status
  */
 struct task_status_t
 {
+  unsigned grp_ref;
   unsigned child_count;
   enum task_status status;
   struct timespec started;
@@ -216,7 +212,7 @@ public:
     if (!fast)
     {
       printf("Fastboot aborted\n");
-      return -1;
+     // return -1;
     }
     // block SIGUSR1 on main thread
     sigset_t sig_mask;
@@ -245,17 +241,18 @@ public:
       }
       if (it->grp_id != grp_none_id)
       {
-        status[it->grp_id].child_count++;     // also use as group counter
+        status[it->grp_id].grp_ref++;     // also use as group counter
         status[it->grp_id].status = waiting;
       }
     }
     status[none_id].status = done;
+    status[grp_none_id].status = done;
 
     std::list<std::thread> threads;
 
     threads.emplace_back(sthread, this);
     threads.emplace_back(sthread, this);
-//    threads.emplace_back(sthread, this);
+    threads.emplace_back(sthread, this);
 //    threads.emplace_back(sthread, this);
 
     for (auto &it : threads)
@@ -283,9 +280,13 @@ public:
       status[it->id].status = done;
       if (it->grp_id != grp_none_id)
       {
-        --status[it->grp_id].child_count;
-        if (status[it->grp_id].child_count == 0)
+        --status[it->grp_id].grp_ref;
+        if (status[it->grp_id].grp_ref == 0)
+        {
+          if (status[it->grp_id].child_count > 1)
+            notify = true;    // more than one task has been release
           status[it->grp_id].status = done;
+        }
       }
       // put back all done task
       if (it == begin)
@@ -317,6 +318,7 @@ public:
       // we got nothing
       if (towait)    // wait and try again
       {
+        std::cout << 'W' << std::endl;
         cond_var.wait(lock);
       } else
       {
@@ -341,7 +343,9 @@ public:
       clock_gettime(CLOCK_MONOTONIC, &status[t->id].started);
       t->fnc(this);
       clock_gettime(CLOCK_MONOTONIC, &status[t->id].ended);
-      std::cout << " E " << getTaskName(t->id) << std::endl;
+      std::cout << " E " << getTaskName(t->id)
+          << " (" << (status[t->id].started.tv_nsec / 1000000 + status[t->id].started.tv_sec*1000)
+          << " - " << (status[t->id].ended.tv_nsec / 1000000 + status[t->id].ended.tv_sec*1000) << std::endl;
     }
   }
   static void print_statics(void* p)
@@ -357,27 +361,6 @@ public:
   static void sthread(linux_init* lnx)
   {
     return lnx->thread();
-  }
-
-  // Mount home, var remount root
-  void mountfs()
-  {
-
-    static const struct mount_point_t mounts[] = {    //
-        { "/dev/sda5", "/", "ext4", MS_NOATIME | MS_NODIRATIME | MS_REMOUNT | MS_SILENT, "", "remount /" },    //
-            { "sys", "/sys", "sysfs", MS_NOATIME | MS_NODIRATIME | MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, "", "mount sys" },    //
-            { "run", "/run", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, "", "mount /run " },    //
-            { "dev", "/dev", "devtmpfs", MS_SILENT, "", "mount dev" },    //
-            { "tmp", "/tmp", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, "", "mount /tmp" },    //
-            { "/dev/sda7", "/home", "ext4", MS_NOATIME | MS_NODIRATIME | MS_SILENT, "", "mount /home" },    //
-            { "/dev/sda8", "/mnt/data", "ext4", MS_NOATIME | MS_NODIRATIME | MS_SILENT, "", "mount /mnt/data" },    //
-        };
-
-    for (const auto &mnt : mounts)
-    {
-      CHECK_ZERO(mount(mnt.device, mnt.path, mnt.type, mnt.flags, mnt.data), mnt.err_msg);
-    }
-
   }
 
   static void procps(void*)
@@ -618,7 +601,7 @@ int main()
       { &SysLinux::mount_devfs, dev_fs_id, grp_krn_fs_id, run_fs_id, none_id },    //
       { &SysLinux::mount_tmp, tmp_fs_id, grp_krn_fs_id, none_id, none_id },    //
       { &SysLinux::mount_run, run_fs_id, grp_krn_fs_id, none_id, none_id },    //
-      { &SysLinux::mount_all, all_fs_id, grp_krn_fs_id, none_id, none_id },    //
+      { &SysLinux::mount_all, all_fs_id, grp_krn_fs_id, dev_fs_id, none_id },    //
       { &linux_init::hostname, hostname_id, grp_none_id, none_id, none_id },    //
       { &linux_init::udev, udev_id, grp_none_id, dev_fs_id, none_id },    //
       { &linux_init::procps, procps_id, grp_none_id, udev_id, none_id },    //
