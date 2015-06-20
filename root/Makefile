@@ -3,7 +3,7 @@ build_dir := build
 src_dirs := 
 srcs := cinit_main.cpp test.cpp preload_main.cpp
 
-targets := cinit mtest preload
+targets := cinit mtest preload cinit_s preload_s
 
 #-finput-charset=ascii
 
@@ -15,6 +15,13 @@ common_cpp += -I../../common -I.
 cinit_src := cinit_main.cpp 
 mtest_src := test.cpp
 preload_src := preload_main.cpp
+
+# static linked version
+cinit_s_src := cinit_main.cpp
+preload_s_src := preload_main.cpp
+
+cinit_s_ld := -static
+preload_s_ld := -static
 
 #serializer_mtest_src_dir := mtest
 #serializer_mtest_src := cpp-lib/posix/File.cpp cpp-lib/posix/thread.cpp
