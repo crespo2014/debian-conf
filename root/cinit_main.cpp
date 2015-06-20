@@ -343,9 +343,12 @@ public:
       clock_gettime(CLOCK_MONOTONIC, &status[t->id].started);
       t->fnc(this);
       clock_gettime(CLOCK_MONOTONIC, &status[t->id].ended);
+//      std::cout << " E " << getTaskName(t->id)
+//          << " (" << (status[t->id].started.tv_nsec / 1000000 + status[t->id].started.tv_sec*1000)
+//          << " - " << (status[t->id].ended.tv_nsec / 1000000 + status[t->id].ended.tv_sec*1000) << std::endl;
       std::cout << " E " << getTaskName(t->id)
-          << " (" << (status[t->id].started.tv_nsec / 1000000 + status[t->id].started.tv_sec*1000)
-          << " - " << (status[t->id].ended.tv_nsec / 1000000 + status[t->id].ended.tv_sec*1000) << std::endl;
+                << " " << (status[t->id].ended.tv_nsec / 1000000 + status[t->id].ended.tv_sec*1000) -
+                (status[t->id].started.tv_nsec / 1000000 + status[t->id].started.tv_sec*1000) << " ms" << std::endl;
     }
   }
   static void print_statics(void* p)
