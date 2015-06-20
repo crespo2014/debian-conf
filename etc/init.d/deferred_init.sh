@@ -23,7 +23,7 @@ case "$1" in
     cat /proc/deferred_initcalls
     udevadm trigger
 	# log some bootchart data before close it
-	[ "$runlevel" == "S" ] || sleep 10
+	[ "$runlevel" == "S" ] || sleep 30
 	#to include dmesg inside bootchart file
 	INIT_PROCESS="yes"
 	/sbin/bootchartd stop

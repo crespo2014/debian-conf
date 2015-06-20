@@ -23,7 +23,7 @@ int main(int ac, char** av)
 {
   // Start bootchartd after checking cmd line for bootchart argument
   SysLinux::execute_c("/lib/bootchart/bootchart-collector 50");
-  //SysLinux::mount_procfs(nullptr);
+  SysLinux::mount_procfs(nullptr);
   SysLinux::mount_sysfs(nullptr);
   SysLinux::set_disk_scheduler("sda","noop");
 
