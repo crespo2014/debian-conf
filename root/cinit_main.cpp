@@ -552,15 +552,6 @@ public:
   {
     SysLinux::execute_c("/etc/init.d/acpid start");
   }
-  /*
-   * Test time needed to parse preload file
-   */
-  void preload()
-  {
-    preload_parser p;
-    p.loadFile("/var/lib/e4rat/startup.log");
-    p.preload();
-  }
 public:
   constexpr static const char* user_name = "lester";
   constexpr static const char* xauth = "/usr/bin/xauth";
