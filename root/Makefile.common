@@ -15,7 +15,7 @@
 # srcs 			all sources files
 
 OBJCOPY := objcopy
-build_dir ?= .
+build_dir ?= build
 
 all : $(targets)
 
@@ -81,7 +81,7 @@ $(build_dir)/$(1).dbg : $(addsuffix .$(1)_,$(call find-o,$($(1)_src_dir)) $(call
 $(build_dir)/$(1) : $(build_dir)/$(1).dbg
 #	$(Q)echo "$$(@F)"  
 	$(Q)$(OBJCOPY) -S $(build_dir)/$(1).dbg $(build_dir)/$(1)
-	$(Q)cd $(build_dir); $(OBJCOPY) --add-gnu-debuglink=$(1).dbg $(1)
+	$(Q)cd $(build_dir); $(OBJCOPY) --add-gnu-debuglink=$(1).dbg $(1); cd ..
 
 # alias for target name	
 $(1): $(build_dir)/$(1)
