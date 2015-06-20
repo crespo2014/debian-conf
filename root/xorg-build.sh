@@ -9,7 +9,7 @@
 BUSER=lester
 
 export XORG_PREFIX="/mnt/data/app/x86"
-export XORG_CONFIG="--prefix=$XORG_PREFIX --sysconfdir=/etc --localstatedir=/var  "
+export XORG_CONFIG="--enable-shared=no --prefix=$XORG_PREFIX --sysconfdir=/etc --localstatedir=/var  "
 #--disable-static --disable-docs
 
 # avoid including : at the beginning when teh variable is empty 
@@ -90,17 +90,26 @@ function install()
   if [ $? = 0 ]; then
     pushd $name
     ./configure $XORG_CONFIG
+    [ "$?" != "0" ] && exit
     make 
+    [ "$?" != "0" ] && exit
     make install
+    [ "$?" != "0" ] && exit
     popd	
-  fi
-	
+  fi	
+}
+
+function make_install_cd()
+{
+  make
+  [ "$?" != "0" ] && exit
+  make install
+  [ "$?" != "0" ] && exit
+  cd ..
 }
 
 install "http://dri.freedesktop.org/libdrm/libdrm-2.4.61.tar.bz2"
 install  "http://www.freedesktop.org/software/vaapi/releases/libva/libva-1.5.1.tar.bz2"
-exit 0
-
 install "http://xorg.freedesktop.org/releases/individual/util/util-macros-1.19.0.tar.bz2"
 
 http_root="http://xorg.freedesktop.org/releases/individual/proto/"
@@ -138,6 +147,10 @@ done
 files="http://xorg.freedesktop.org/releases/individual/lib/libXau-1.0.8.tar.bz2 \
  http://xorg.freedesktop.org/releases/individual/lib/libXdmcp-1.1.1.tar.bz2 \
  http://xcb.freedesktop.org/dist/xcb-proto-1.11.tar.bz2 "
+for line in $files
+do
+  install "$line"
+done
  
 extract "http://xcb.freedesktop.org/dist/libxcb-1.11.tar.bz2"
 sed -i "s/pthread-stubs//" configure 
@@ -145,6 +158,7 @@ sed -i "s/pthread-stubs//" configure
             --enable-xinput \
             --docdir='${datadir}'/doc/libxcb-1.11 
 make 
+[ "$?" != "0" ] && exit
 cd ..
 
 install  http://www.freedesktop.org/software/vaapi/releases/libva/libva-1.5.1.tar.bz2
@@ -199,8 +213,11 @@ do
     ;;
   esac
   make 
+  [ "$?" != "0" ] && exit
   make check 2>&1 | tee ../$packagedir-make_check.log
+  [ "$?" != "0" ] && exit
   make install
+  [ "$?" != "0" ] && exit
   /sbin/ldconfig
   cd ..
 done 
@@ -215,7 +232,8 @@ install http://xcb.freedesktop.org/dist/xcb-util-wm-0.4.1.tar.bz2
 extract ftp://ftp.freedesktop.org/pub/mesa/10.4.5/MesaLib-10.4.5.tar.bz2
 #patch -Np1 -i ../MesaLib-10.4.5-add_xdemos-1.patch
 
-autoreconf -f -i &&
+autoreconf -f -i 
+[ "$?" != "0" ] && exit
 ./configure CFLAGS='-O2' CXXFLAGS='-O2'    \
             --prefix=$XORG_PREFIX          \
             --sysconfdir=/etc              \
@@ -227,11 +245,17 @@ autoreconf -f -i &&
             --enable-gbm                   \
             --enable-glx-tls               \
             --with-egl-platforms="drm,x11" \
-            --with-gallium-drivers="nouveau,r300,r600,radeonsi,svga,swrast" &&
-make
-make install
+            --enable-shared=no \
+            --with-gallium-drivers="nouveau,r300,r600,radeonsi,svga,swrast"
+[ "$?" != "0" ] && exit            
+pushcd .
+make_install_cd
+popcd            
+
 make -C xdemos DEMOS_PREFIX=$XORG_PREFIX
+[ "$?" != "0" ] && exit
 make -C xdemos DEMOS_PREFIX=$XORG_PREFIX install
+[ "$?" != "0" ] && exit
 cd ..
 
 install http://xorg.freedesktop.org/archive/individual/data/xbitmaps-1.1.1.tar.bz2
@@ -292,9 +316,7 @@ do
     ;;
   esac
   ./configure $XORG_CONFIG
-  make
-  make install  
-  cd ..
+  make_install_cd
 done  
 
 install http://xorg.freedesktop.org/archive/individual/data/xcursor-themes-1.0.4.tar.bz2
@@ -349,9 +371,7 @@ ln -svfn $XORG_PREFIX/share/fonts/X11/TTF /usr/share/fonts/X11-TTF
 
 extract  http://xorg.freedesktop.org/archive/individual/data/xkeyboard-config/xkeyboard-config-2.14.tar.bz2
 ./configure $XORG_CONFIG --with-xkb-rules-symlink=xorg
-make
-make install
-cd ..
+make_install_cd
 
 extract  http://xorg.freedesktop.org/archive/individual/xserver/xorg-server-1.17.1.tar.bz2
 ./configure $XORG_CONFIG            \
@@ -360,17 +380,8 @@ extract  http://xorg.freedesktop.org/archive/individual/xserver/xorg-server-1.17
            --enable-suid-wrapper    \
            --disable-systemd-logind \
            --with-xkb-output=/var/lib/xkb
-make
-cd ..
 
-if [ 1 == 0 ]; then
-make install
-mkdir -pv /etc/X11/xorg.conf.d
-cat >> /etc/sysconfig/createfiles << "EOF"
-/tmp/.ICE-unix dir 1777 root root
-/tmp/.X11-unix dir 1777 root root
-EOF
-fi
+make_install_cd           
 
 #Device Drivers  --->
 #  Input device support --->
@@ -378,6 +389,7 @@ fi
 #    <*>   Event interface                   [CONFIG_INPUT_EVDEV]
 #    [*]   Miscellaneous devices  --->       [CONFIG_INPUT_MISC]
 #      <*>    User level driver support      [CONFIG_INPUT_UINPUT]
+
 install http://www.freedesktop.org/software/libevdev/libevdev-1.3.2.tar.xz
 install http://xorg.freedesktop.org/archive/individual/driver/xf86-input-evdev-2.9.1.tar.bz2
 install http://xorg.freedesktop.org/archive/individual/driver/xf86-input-synaptics-1.8.1.tar.bz2
@@ -389,10 +401,9 @@ sed -i -e '/__i386__/a iopl(3);' tools/vmmouse_detect.c      &&
 ./configure $XORG_CONFIG               \
             --without-hal-fdi-dir      \
             --without-hal-callouts-dir \
-            --with-udev-rules-dir=/lib/udev/rules.d &&
-make
-make install
-cd ..
+            --with-udev-rules-dir=/lib/udev/rules.d
+[ "$?" != "0" ] && exit            
+make_install_cd
 
 #Device Drivers  --->
 #  HID support  --->
@@ -401,9 +412,7 @@ cd ..
 #              <*/M> Wacom Intuos/Graphire tablet support (USB) [CONFIG_HID_WACOM]
 extract  http://downloads.sourceforge.net/linuxwacom/xf86-input-wacom-0.28.0.tar.bz2
 ./configure $XORG_CONFIG --with-systemd-unit-dir=no
-make
-make install
-cd ..
+make_install_cd
 
 install http://people.freedesktop.org/~aplattner/vdpau/libvdpau-0.9.tar.gz
 
@@ -411,9 +420,8 @@ extract  https://github.com/i-rinat/libvdpau-va-gl/releases/download/v0.3.4/libv
 mkdir build 
 cd    build
 cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$XORG_PREFIX .. &&
-make
-make install
+make_install_cd
 echo "export VDPAU_DRIVER=va_gl" >> /etc/profile.d/xorg.sh
-cd ..
+
 
 
