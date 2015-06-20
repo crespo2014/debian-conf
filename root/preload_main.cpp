@@ -53,6 +53,9 @@ int main(int ac, char** av)
   }
   preload_parser p;
   p.loadFile(fname);
+  // reduce priority
+  SysLinux::ioprio_set(IOPRIO_WHO_PROCESS, getpid(),IOPRIO_IDLE_LOWEST);
+
   if (sort)
   {
     p.Merge();

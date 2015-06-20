@@ -18,7 +18,7 @@
 #include <chrono>
 
 #include <vector>
-
+#include <time.h>
 #include <sys_linux.h>
 
 #include <stdlib.h>
@@ -30,17 +30,17 @@
 
 #define TASK_ID(x)	\
 	x(none)\
+	x(sys_fs) \
+	x(dev_fs)  \
+	x(run_fs) \
+	x(tmp_fs) \
+	x(all_fs) \
   x(acpi)\
 	x(hostname) \
 	x(deferred) \
-  x(e4rat) \
 	x(fs)\
-	x(bootchartd)\
-	x(bootchart_end)\
-	x(read_ahead)\
 	x(devfs)\
 	x(udev)\
-	x(x11)\
 	x(X)\
 	x(dev_subfs) \
 	x(udev_add)\
@@ -50,10 +50,10 @@
 	x(procps)\
 	x(xfce4)\
 	x(init_d)\
-	x(readahead)\
-	x(late_readahead)\
 	x(mountall) \
-	x(preload)\
+	x(grp_none)  /* no group */ \
+	x(grp_krn_fs) /* proc sys dev tmp run + setup directories */ \
+  x(grp_fs)     /* all fs ready home, data and ... */ \
 	x(max)\
 	
 
@@ -73,9 +73,10 @@
 #define DEPENDS_9(a,b,...)  DEPENDS_2(a,b) DEPENDS_8(a,__VA_ARGS__)
 #define DEPENDS_10(a,b,...) DEPENDS_2(a,b) DEPENDS_9(a,__VA_ARGS__)
 
-#define TASK_INFO_2(fnc,id)                 { fnc, id ## _id, none_id, none_id },
-#define TASK_INFO_3(fnc,id,parent1)         { fnc, id ## _id, parent1 ## _id, none_id } ,
-#define TASK_INFO_4(fnc,id,parent1,parent2) { fnc, id ## _id, parent1 ## _id, parent2 ## _id } ,
+#define TASK_INFO_2(fnc,id)                        { fnc, id ## _id, grp_none_id, none_id, none_id },
+#define TASK_INFO_3(fnc,id,grp_id)                 { fnc, id ## _id, grp_ ## grp_id ## _id, none_id, none_id },
+#define TASK_INFO_4(fnc,id,grp_id,parent1)         { fnc, id ## _id, grp_ ## grp_id ## _id, parent1 ## _id, none_id } ,
+#define TASK_INFO_5(fnc,id,grp_id,parent1,parent2) { fnc, id ## _id, grp_ ## grp_id ## _id, parent1 ## _id, parent2 ## _id } ,
 
 #define GET_10(fnc,n0,n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,...) fnc##n10
 #define COUNT(fnc,...) GET_10(fnc,__VA_ARGS__,10,9,8,7,6,5,4,3,2,1)
@@ -111,7 +112,8 @@ struct task_status_t
 {
   unsigned child_count;
   enum task_status status;
-  unsigned long ms;    // task spend time
+  struct timespec started;
+  struct timespec ended;    // task spend time
 };
 
 //void print_error(int r, int no)
@@ -129,8 +131,6 @@ struct task_status_t
     } \
   } while (0)
 
-#define CHECK_ZERO(fnc,msg)   if (fnc != 0) perror(msg);
-
 static const char* getTaskName(task_id id)
 {
   static const char* const names[] = { TASK_ID(TO_NAME)"" };
@@ -147,7 +147,7 @@ class linux_init
 {
 public:
   // define type to function
-  typedef void (linux_init::*thread_fnc_typ)(void);
+  typedef void (*thread_fnc_typ)(void*);
   struct task_t
   {
     thread_fnc_typ fnc;
@@ -159,6 +159,7 @@ public:
   {
     thread_fnc_typ fnc;
     task_id id;
+    task_id grp_id;
     // id of dependencies
     task_id parent_id;         // = none_id;
     task_id parent_id2;        // = none_id;
@@ -182,7 +183,7 @@ public:
   int main()
   {
     char tstr[255];
-    testrc(mount("", "/proc", "proc", MS_NOATIME | MS_NODIRATIME | MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""));
+    SysLinux::mount_procfs(nullptr);
     // mount proc check for single and exit
     bool fast = false;
     std::vector<char*> cmdline;
@@ -226,7 +227,11 @@ public:
     sigprocmask(SIG_BLOCK, &sig_mask, &oldmask);
     //signal(SIGUSR1,SIG_IGN);
 
-    memset(status, 0, sizeof(status));
+    memset(status, 0, sizeof(status));      //clear all status information
+    for (auto &st : status)
+    {
+      //st.status =
+    }
 
     // update child counter
     for (const task_info_t* it = begin; it != end; ++it)
@@ -238,15 +243,25 @@ public:
         if (it->parent_id2 != none_id)
           ++status[it->parent_id2].child_count;
       }
+      if (it->grp_id != grp_none_id)
+      {
+        status[it->grp_id].child_count++;     // also use as group counter
+        status[it->grp_id].status = waiting;
+      }
     }
     status[none_id].status = done;
 
-    std::thread t1(sthread, this);
-    std::thread t2(sthread, this);
-    //std::thread t3(sthread, this);
-    t1.join();
-    t2.join();
-    //t3.join();
+    std::list<std::thread> threads;
+
+    threads.emplace_back(sthread, this);
+    threads.emplace_back(sthread, this);
+//    threads.emplace_back(sthread, this);
+//    threads.emplace_back(sthread, this);
+
+    for (auto &it : threads)
+    {
+      it.join();
+    }
     return 0;
   }
 
@@ -266,6 +281,12 @@ public:
     if (it != nullptr)
     {
       status[it->id].status = done;
+      if (it->grp_id != grp_none_id)
+      {
+        --status[it->grp_id].child_count;
+        if (status[it->grp_id].child_count == 0)
+          status[it->grp_id].status = done;
+      }
       // put back all done task
       if (it == begin)
       {
@@ -316,30 +337,26 @@ public:
     const task_info_t* t = nullptr;
     for (t = peekTask(t); t != nullptr; t = peekTask(t))
     {
-      auto end = std::chrono::steady_clock::now();
-      //snprintf(tmp_str, sizeof(tmp_str) - 1,"[%d] S %s\n",std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time).count(), getTaskName(t->id));
-      std::cout
-      //<< 'T' << std::this_thread::get_id()
-      << " [" << std::chrono::duration_cast<std::chrono::milliseconds>(end - start_time).count() << "]" << " S " << getTaskName(t->id) << std::endl;
-      (this->*(t->fnc))();
-      std::cout << '[' << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time).count() << "] E "
-          << getTaskName(t->id) << " " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - end).count()
-          << "ms" << std::endl;
+      std::cout << " S " << getTaskName(t->id) << std::endl;
+      clock_gettime(CLOCK_MONOTONIC, &status[t->id].started);
+      t->fnc(this);
+      clock_gettime(CLOCK_MONOTONIC, &status[t->id].ended);
+      std::cout << " E " << getTaskName(t->id) << std::endl;
     }
+  }
+  static void print_statics(void* p)
+  {
+    linux_init* lnx = reinterpret_cast<linux_init*>(p);
+    for (auto *t = lnx->begin; t != lnx->end; ++t)
+    {
+      auto &st = lnx->status[t->id];
+      std::cout << getTaskName(t->id) << " " << (st.ended.tv_nsec / 1000000 + st.ended.tv_sec*1000) - (st.started.tv_nsec / 1000000 + st.started.tv_sec*1000) << " ms" << std::endl;
+    }
+
   }
   static void sthread(linux_init* lnx)
   {
     return lnx->thread();
-  }
-  inline void testrc(int)
-  {
-    //  if (r < 0)
-    //    printf("Operation failed with code %d \n",errno);
-  }
-
-  void umountproc()
-  {
-    umount("/proc");
   }
 
   // Mount home, var remount root
@@ -360,41 +377,10 @@ public:
     {
       CHECK_ZERO(mount(mnt.device, mnt.path, mnt.type, mnt.flags, mnt.data), mnt.err_msg);
     }
-    CHECK_ZERO(mkdir("/run/lock", 01777), "mkdir /run/lock");
-    CHECK_ZERO(mkdir("/run/shm", 01777), "mkdir /run/shm");
-    CHECK_ZERO(chmod("/run/shm", 01777), "chmod /run/shm");
-    CHECK_ZERO(chmod("/run/lock", 01777), "chmod /run/lock");
-    CHECK_ZERO(symlink("/run", "/var/run"), "symlink /run /var/run");
-    CHECK_ZERO(symlink("/run/lock", "/var/lock"), "symlink /run/lock /var/lock");
-    CHECK_ZERO(symlink("/run/shm", "/dev/shm"), "symlink /run/shm /dev/shm");
 
-    CHECK_ZERO(mkdir("/dev/pts", 0755), "mkdir /dev/pts");
-    CHECK_ZERO(mount("pts", "/dev/pts", "devpts", MS_SILENT | MS_NOSUID | MS_NOEXEC, "gid=5,mode=620"), "mount pts");
-    /*
-     https://wiki.debian.org/ReleaseGoals/RunDirectory
-     Stage #2: After system reboot
-
-     A tmpfs is mounted on /run
-     (Optional) A tmpfs is mounted on /run/lock if RAMLOCK is configured
-     (Optional) A tmpfs is mounted on /run/shm if RAMSHM is configured
-     (Optional) A tmpfs is mounted on /tmp if RAMTMP is configured
-     A symlink /var/run /run is created (falls back to bind mount if symlink failed)
-     A symlink /var/lock /run/lock is created (falls back to bind mount if symlink failed)
-     A symlink /dev/shm  /run/shm is created (falls back to bind mount if symlink failed)
-     */
   }
 
-//  void mountall()
-//  {
-//
-//  }
-//
-//  void mountdevsubfs()
-//  {
-//
-//  }
-
-  void procps()
+  static void procps(void*)
   {
     SysLinux::execute_c("/sbin/sysctl -q --system");
   }
@@ -404,7 +390,7 @@ public:
     FILE * pFile;
     pFile = fopen("/proc/deferred_initcalls", "r");
     if (pFile == NULL)
-      printf("Error opening file /proc/deferred_initcalls \n");
+      perror("/proc/deferred_initcalls");
     else
     {
       fclose(pFile);
@@ -414,7 +400,7 @@ public:
   /*
    * Depends on procfs
    */
-  void udev()
+  static void udev(void*)
   {
     //char tstr[255];
     struct stat buf;
@@ -446,15 +432,10 @@ public:
       fclose(pFile);
     }
 
-    SysLinux::execute_c("udevadm info --cleanup-db");   // it will be empty
-    SysLinux::execute_c("/sbin/udevd --daemon");  // move to the end be carefull with network cards
+    SysLinux::execute_c("udevadm info --cleanup-db");    // it will be empty
+    SysLinux::execute_c("/sbin/udevd --daemon");    // move to the end be carefull with network cards
     //SysLinux::execute_c("/bin/udevadm trigger --action=add");
-   // SysLinux::execute_c("/bin/udevadm settle", true);   //wait for events
-  }
-
-  void udev_trigger()
-  {
-    SysLinux::execute_c("/sbin/udevadm trigger");
+    // SysLinux::execute_c("/bin/udevadm settle", true);   //wait for events
   }
 
   // do not execute
@@ -489,10 +470,6 @@ public:
     //const char* env;
     char* cptr;
     int r;
-    mkdir("/tmp/.X11-unix", 01777);
-    chmod("/tmp/.X11-unix", 01777);
-    mkdir("/tmp/.ICE-unix", 01777);
-    chmod("/tmp/.ICE-unix", 01777);
     unsetenv(env_dbus_session);
     unsetenv(env_session_manager);
 
@@ -564,29 +541,26 @@ public:
     }
   }
 
-  void hostname()
+  static void hostname(void* p)
   {
+    linux_init* lnx = reinterpret_cast<linux_init*>(p);
     //read etc/hostname if not empty the apply otherwise use localhost
     int r;
     FILE * pFile = fopen("/etc/hostname", "r");
     if (pFile != NULL)
     {
-      r = fread(host, 1, sizeof(host), pFile);
+      r = fread(lnx->host, 1, sizeof(lnx->host), pFile);
       if (r > 0)
       {
-        host[r - 1] = 0;
+        lnx->host[r - 1] = 0;
       } else
-        strcpy(host, "localhost");
+        strcpy(lnx->host, "localhost");
       fclose(pFile);
     } else
       perror("/etc/hostname ");
-    sethostname(host, strlen(host));
+    sethostname(lnx->host, strlen(lnx->host));
   }
 
-  void e4rat_load()
-  {
-    SysLinux::execute_c("/sbin/e4rat-preload /var/lib/e4rat/startup.log", true);
-  }
   void acpi_daemon()
   {
     SysLinux::execute_c("/etc/init.d/acpid start");
@@ -626,26 +600,29 @@ public:
 
 /*
  Execution list plus dependencies.
+ procfs
+ deferred in thread
+ check cmdline parameters
+ - dev  - (udev adm a,all fs with mount all)
+ - sys,run,tmp - setup folders
+ - then X and xfce
+ - the system initialization
  */
 int main()
 {
+
   // static initialization of struct is faster than using object, the compiler will store a table and just copy over
   // using const all data will be in RO memory really fast
-  static const linux_init::task_info_t tasks[] = {
-//      TASK_INFO( &linux_init::preload, preload)    //
-      TASK_INFO( &linux_init::mountfs, fs)    //
-      TASK_INFO( &linux_init::hostname, hostname)    //
-      // TASK_INFO( &linux_init::deferred, deferred,init_d)    //
-      TASK_INFO( &linux_init::udev, udev, hostname,fs )    //
-      //TASK_INFO( &linux_init::mountall,mountall,fs, udev)    //
-      //TASK_INFO( &linux_init::mountdevsubfs, dev_subfs, udev )    //
-      TASK_INFO( &linux_init::procps, procps,udev )    //
-      //TASK_INFO( &linux_init::udev_trigger, udev_trigger,udev)    //
-      //TASK_INFO( &linux_init::acpi_daemon, acpi,e4rat,mountall)    //
-      //TASK_INFO( &linux_init::startXserver, X, hostname,acpi)    //
-      //TASK_INFO( &linux_init::startxfce4, xfce4, X )     //
-      TASK_INFO( &linux_init::init_d, init_d, procps )    //
-      };
+  static const linux_init::task_info_t tasks[] = { ///
+      { &SysLinux::mount_sysfs, sys_fs_id, grp_krn_fs_id, none_id, none_id },    //
+      { &SysLinux::mount_devfs, dev_fs_id, grp_krn_fs_id, run_fs_id, none_id },    //
+      { &SysLinux::mount_tmp, tmp_fs_id, grp_krn_fs_id, none_id, none_id },    //
+      { &SysLinux::mount_run, run_fs_id, grp_krn_fs_id, none_id, none_id },    //
+      { &SysLinux::mount_all, all_fs_id, grp_krn_fs_id, none_id, none_id },    //
+      { &linux_init::hostname, hostname_id, grp_none_id, none_id, none_id },    //
+      { &linux_init::udev, udev_id, grp_none_id, dev_fs_id, none_id },    //
+      { &linux_init::procps, procps_id, grp_none_id, udev_id, none_id },    //
+  };
   linux_init lnx(tasks, tasks + sizeof(tasks) / sizeof(*tasks));
   return lnx.main();
 }
