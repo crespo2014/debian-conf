@@ -114,7 +114,7 @@ public:
     void* ptr;
     struct stat buf;
     ::fstat(fd_, &buf);
-    ptr = mmap(nullptr, buf.st_size, PROT_WRITE | PROT_READ, MAP_SHARED, fd_, 0); // forked process will not do COW if shared
+    ptr = mmap(nullptr, buf.st_size, PROT_WRITE | PROT_READ, MAP_PRIVATE, fd_, 0); // forked process will not do COW if shared
     if (ptr == MAP_FAILED)
     {
       perror("map");

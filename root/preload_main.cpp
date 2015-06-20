@@ -23,7 +23,7 @@ int main(int ac, char** av)
 {
   // Start bootchartd after checking cmd line for bootchart argument
   SysLinux::execute_c("/lib/bootchart/bootchart-collector 50");
-  //SysLinux::mount_procfs(nullptr);
+  SysLinux::mount_procfs(nullptr);
   SysLinux::mount_sysfs(nullptr);
   SysLinux::set_disk_scheduler("sda","noop");
 
@@ -65,7 +65,6 @@ int main(int ac, char** av)
     p.UpdateBlock();
     p.WriteOut();
   }
-  p.preload(100);
   int pid = -1;       // simulate not child
   if (initfork)
   {
@@ -77,6 +76,7 @@ int main(int ac, char** av)
     std::thread thr(SysLinux::deferred_modules,nullptr);
     p.preload();
     thr.join();
+    //p.preload();
     SysLinux::set_disk_scheduler("sda","cfq");
   }
   if (pid == 0)
