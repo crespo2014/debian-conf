@@ -402,8 +402,8 @@ public:
   // execute some init script
   void init_d()
   {
-    SysLinux::execute_c("/etc/init.d/hwclock start", true);
-    SysLinux::execute_c("/etc/init.d/urandom start", true);
+    SysLinux::execute_c("/etc/init.d/hwclock start");
+    SysLinux::execute_c("/etc/init.d/urandom start");
     SysLinux::execute_c("/etc/init.d/networking start");
   }
 

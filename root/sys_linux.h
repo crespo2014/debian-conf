@@ -9,6 +9,8 @@
 #ifndef SYS_LINUX_H_
 #define SYS_LINUX_H_
 
+//TODO add X server initialization
+
 #include <vector>
 #include <cstring>
 
@@ -38,6 +40,18 @@
 
 class SysLinux
 {
+private:
+  SysLinux(){}
+  SysLinux(const SysLinux&) = delete;
+  SysLinux(const SysLinux&&) = delete;
+  SysLinux& operator = (const SysLinux& ) = delete;
+  SysLinux& operator = (const SysLinux&& ) = delete;
+  // get a singleton.
+  SysLinux& get()
+  {
+    SysLinux s;
+    return s;
+  }
 public:
   /*
    * Split element delimiter by spaces
@@ -210,6 +224,8 @@ public:
   {
     //return syscall(SYS_ioprio_set, which, who, ioprio);
   }
+private:
+  // system initialization information
 
 };
 
