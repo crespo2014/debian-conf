@@ -133,7 +133,7 @@ public:
   // mount all filesystem in fstab
   static void mount_all(void*)
   {
-    CHECK_ZERO(execute_c("/bin/mount -a"), "mount all");
+    CHECK_ZERO(execute_c("/bin/mount -a",true), "mount all");
   }
   static void mount_procfs(void*)
   {
