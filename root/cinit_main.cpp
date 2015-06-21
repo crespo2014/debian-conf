@@ -151,7 +151,6 @@ public:
     task_id id;
   };
 
-  // Using a class make brakes intialization easy
   struct task_info_t
   {
     thread_fnc_typ fnc;
@@ -161,17 +160,6 @@ public:
     task_id parent_id;         // = none_id;
     task_id parent_id2;        // = none_id;
   };
-  // Mount point details
-  struct mount_point_t
-  {
-    const char* device;
-    const char* path;
-    const char* type;
-    unsigned long int flags;
-    const void* data;
-    const char* err_msg;
-  };
-
   /*
    * Main fucntion as main entry point
    * mount proc and keep it, the application is enable only if fastboot kernel argument is supplied
@@ -213,7 +201,7 @@ public:
     if (!fast)
     {
       printf("Fastboot aborted\n");
-     // return -1;
+      // return -1;
     }
     // block SIGUSR1 on main thread
     sigset_t sig_mask;
@@ -333,55 +321,35 @@ public:
     return it;
   }
 
-  // thread function
-  void thread()
-  {
-    //char tstr[255];
-    const task_info_t* t = nullptr;
-    for (t = peekTask(t); t != nullptr; t = peekTask(t))
-    {
-      std::cout << " S " << getTaskName(t->id) << std::endl;
-      clock_gettime(CLOCK_MONOTONIC, &status[t->id].started);
-      t->fnc(this);
-      clock_gettime(CLOCK_MONOTONIC, &status[t->id].ended);
-//      std::cout << " E " << getTaskName(t->id)
-//          << " (" << (status[t->id].started.tv_nsec / 1000000 + status[t->id].started.tv_sec*1000)
-//          << " - " << (status[t->id].ended.tv_nsec / 1000000 + status[t->id].ended.tv_sec*1000) << std::endl;
-      std::cout << " E " << getTaskName(t->id)
-                << " " << (status[t->id].ended.tv_nsec / 1000000 + status[t->id].ended.tv_sec*1000) -
-                (status[t->id].started.tv_nsec / 1000000 + status[t->id].started.tv_sec*1000) << " ms" << std::endl;
-    }
-  }
   static void print_statics(void* p)
   {
     linux_init* lnx = reinterpret_cast<linux_init*>(p);
     for (auto *t = lnx->begin; t != lnx->end; ++t)
     {
       auto &st = lnx->status[t->id];
-      std::cout << getTaskName(t->id) << " " << (st.ended.tv_nsec / 1000000 + st.ended.tv_sec*1000) - (st.started.tv_nsec / 1000000 + st.started.tv_sec*1000) << " ms" << std::endl;
+      std::cout << getTaskName(t->id) << " "
+          << (st.ended.tv_nsec / 1000000 + st.ended.tv_sec * 1000) - (st.started.tv_nsec / 1000000 + st.started.tv_sec * 1000) << " ms" << std::endl;
     }
 
   }
   static void sthread(linux_init* lnx)
   {
-    return lnx->thread();
+    const task_info_t* t = nullptr;
+    for (t = lnx->peekTask(t); t != nullptr; t = lnx->peekTask(t))
+    {
+      std::cout << " S " << getTaskName(t->id) << std::endl;
+      clock_gettime(CLOCK_MONOTONIC, &lnx->status[t->id].started);
+      t->fnc(lnx);
+      clock_gettime(CLOCK_MONOTONIC, &lnx->status[t->id].ended);
+      std::cout << " E " << getTaskName(t->id) << " "
+          << (lnx->status[t->id].ended.tv_nsec / 1000000 + lnx->status[t->id].ended.tv_sec * 1000)
+           - (lnx->status[t->id].started.tv_nsec / 1000000 + lnx->status[t->id].started.tv_sec * 1000) << " ms" << std::endl;
+    }
   }
 
   static void procps(void*)
   {
     SysLinux::execute_c("/sbin/sysctl -q --system");
-  }
-
-  void deferred()
-  {
-    FILE * pFile;
-    pFile = fopen("/proc/deferred_initcalls", "r");
-    if (pFile == NULL)
-      perror("/proc/deferred_initcalls");
-    else
-    {
-      fclose(pFile);
-    }
   }
 
   /*
@@ -419,7 +387,7 @@ public:
       fclose(pFile);
     }
 
-    SysLinux::execute_c("udevadm info --cleanup-db");    // it will be empty
+   // SysLinux::execute_c("udevadm info --cleanup-db");    // it will be empty
     SysLinux::execute_c("/sbin/udevd --daemon");    // move to the end be carefull with network cards
     //SysLinux::execute_c("/bin/udevadm trigger --action=add");
     // SysLinux::execute_c("/bin/udevadm settle", true);   //wait for events
@@ -591,17 +559,17 @@ int main()
 
   // static initialization of struct is faster than using object, the compiler will store a table and just copy over
   // using const all data will be in RO memory really fast
-  static const linux_init::task_info_t tasks[] = { ///
+  static const linux_init::task_info_t tasks[] = {    ///
       { &SysLinux::mount_root, root_fs_id, grp_krn_fs_id, none_id, none_id },    //
-      { &SysLinux::mount_sysfs, sys_fs_id, grp_krn_fs_id, none_id, none_id },    //
-      { &SysLinux::mount_devfs, dev_fs_id, grp_krn_fs_id, run_fs_id, none_id },    //
-      { &SysLinux::mount_tmp, tmp_fs_id, grp_krn_fs_id, none_id, none_id },    //
-      { &SysLinux::mount_run, run_fs_id, grp_krn_fs_id, none_id, none_id },    //
-      { &SysLinux::mount_all, all_fs_id, grp_krn_fs_id, dev_fs_id, none_id },    //
-      { &linux_init::hostname, hostname_id, grp_none_id, none_id, none_id },    //
-      { &linux_init::udev, udev_id, grp_none_id, dev_fs_id, none_id },    //
-      { &linux_init::procps, procps_id, grp_none_id, udev_id, none_id },    //
-  };
+          { &SysLinux::mount_sysfs, sys_fs_id, grp_krn_fs_id, none_id, none_id },    //
+          { &SysLinux::mount_devfs, dev_fs_id, grp_krn_fs_id, run_fs_id, none_id },    //
+          { &SysLinux::mount_tmp, tmp_fs_id, grp_krn_fs_id, none_id, none_id },    //
+          { &SysLinux::mount_run, run_fs_id, grp_krn_fs_id, none_id, none_id },    //
+          { &SysLinux::mount_all, all_fs_id, grp_krn_fs_id, dev_fs_id, none_id },    //
+          { &linux_init::hostname, hostname_id, grp_none_id, none_id, none_id },    //
+          { &linux_init::udev, udev_id, grp_none_id, dev_fs_id, none_id },    //
+          { &linux_init::procps, procps_id, grp_none_id, udev_id, none_id },    //
+      };
   linux_init lnx(tasks, tasks + sizeof(tasks) / sizeof(*tasks));
   return lnx.main();
 }

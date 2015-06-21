@@ -22,11 +22,12 @@
 int main(int ac, char** av)
 {
   bool bootchartd = false;
+  bool cinit = false;
   char tstr[255];
   SysLinux::mount_procfs(nullptr);
   SysLinux::mount_sysfs(nullptr);
   int fd;
-  CHECK_NOT((fd = open("/proc/cmdline", O_RDONLY)),-1,"/proc/cmdline");
+  CHECK_NOT((fd = open("/proc/cmdline", O_RDONLY)), -1, "/proc/cmdline");
   if (fd > 0)
   {
     std::vector<char*> cmdline;
@@ -39,7 +40,10 @@ int main(int ac, char** av)
     SysLinux::split(tstr, cmdline);
     for (auto p : cmdline)
     {
-      if (strcmp(p, "bootchart") == 0)
+      if (strcmp(p, "cinit") == 0)
+      {
+        cinit = true;
+      } else if (strcmp(p, "bootchart") == 0)
       {
         bootchartd = true;
       } else if (strcmp(p, "single") == 0)
@@ -51,8 +55,10 @@ int main(int ac, char** av)
   }
   if (bootchartd)
     SysLinux::execute_c("/lib/bootchart/bootchart-collector 50");
+  if (cinit)
+    setenv("CINIT","1",true);   // avoid run level S from starting
 
-  //SysLinux::set_disk_scheduler("sda","noop");
+//SysLinux::set_disk_scheduler("sda","noop");
 
   const char *fname = "/var/lib/e4rat/startup.log";
   const char *init_app = "/sbin/init";
@@ -84,7 +90,7 @@ int main(int ac, char** av)
   preload_parser p;
   p.loadFile(fname);
   // reduce priority
-  SysLinux::ioprio_set(IOPRIO_WHO_PROCESS, getpid(), IOPRIO_IDLE_LOWEST);
+  //SysLinux::ioprio_set(IOPRIO_WHO_PROCESS, getpid(), IOPRIO_IDLE_LOWEST);
 
   if (sort)
   {
@@ -97,19 +103,19 @@ int main(int ac, char** av)
   {
     pid = fork();
   }
-  // Call deferred and preload if (child process or parent process without child)
+// Call deferred and preload if (child process or parent process without child)
   if (pid == 0 || pid == -1)    //child or fail
   {
     std::thread thr(SysLinux::deferred_modules, nullptr);
     p.preload();
     thr.join();
     //p.preload();
-    SysLinux::set_disk_scheduler("sda", "cfq");
+    //SysLinux::set_disk_scheduler("sda", "cfq");
   }
   if (pid == 0)
     _exit(0);     // end child
 
-  // we definitly call init
+// we definitly call init
   if (initfork)
   {
     char * arg[] = { const_cast<char*>(init_app), nullptr };
