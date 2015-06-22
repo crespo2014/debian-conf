@@ -16,17 +16,25 @@
 #include <mutex>
 #include <thread>
 #include <chrono>
-
 #include <vector>
 #include <time.h>
 #include <sys_linux.h>
-
 #include <stdlib.h>
 #include <stdio.h>
-
 #include <string.h>
 
+#include <tasks.h>
 #include <preload.h>
+
+#define EXIT(fnc,cnd) do \
+  { \
+    int r = fnc;  \
+    if (r cnd) \
+    { \
+      printf("operation %s failed errno %d",TO_STRING(fnc),errno); \
+      exit(-1); \
+    } \
+  } while (0)
 
 #define TASK_ID(x)	\
 	x(none)\
@@ -93,258 +101,14 @@ typedef enum
   TASK_ID(TO_ID)
 } task_id;
 
-enum task_status
-{
-  disable = 0,    //
-  waiting,    //
-  running,    //
-  done,
-};
-
-/*
- * This is the dynamic data of the task
- */
-struct task_status_t
-{
-  unsigned grp_ref;
-  unsigned child_count;
-  enum task_status status;
-  struct timespec started;
-  struct timespec ended;    // task spend time
-};
-
-#define EXIT(fnc,cnd) do \
-  { \
-    int r = fnc;  \
-    if (r cnd) \
-    { \
-      printf("operation %s failed errno %d",TO_STRING(fnc),errno); \
-      exit(-1); \
-    } \
-  } while (0)
-
 static const char* getTaskName(task_id id)
 {
-  static const char* const names[] = { TASK_ID(TO_NAME)"" };
+  static const char* const names[] =
+  { TASK_ID(TO_NAME)"" };
   if (id >= sizeof(names) / sizeof(*names))
     return "";
   return names[id];
 }
-
-class linux_init
-{
-public:
-  // define type to function
-  typedef void (*thread_fnc_typ)(void*);
-  struct task_t
-  {
-    thread_fnc_typ fnc;
-    task_id id;
-  };
-
-  struct task_info_t
-  {
-    thread_fnc_typ fnc;
-    task_id id;
-    task_id grp_id;
-    // id of dependencies
-    task_id parent_id;         // = none_id;
-    task_id parent_id2;        // = none_id;
-  };
-  /*
-   * Main fucntion as main entry point
-   * mount proc and keep it, the application is enable only if fastboot kernel argument is supplied
-   * single will disable fastboot
-   */
-  int main()
-  {
-    char tstr[255];
-    SysLinux::mount_procfs(nullptr);
-    // mount proc check for single and exit
-    bool fast = false;
-    std::vector<char*> cmdline;
-    cmdline.reserve(15);
-    *tstr = 0;
-    auto fd = open("/proc/cmdline", O_RDONLY);
-    if (fd > 0)
-    {
-      int r = read(fd, tstr, sizeof(tstr) - 1);
-      if (r > 0)
-        tstr[r - 1] = 0;     // remove ending \n
-      close(fd);
-      SysLinux::split(tstr, cmdline);
-      for (auto p : cmdline)
-      {
-        if (strcmp(p, "cinit") == 0)
-        {
-          fast = true;
-        } else if (strcmp(p, "single") == 0)
-        {
-          fast = false;
-          break;
-        }
-
-      }
-    } else
-    {
-      printf("failed to open /proc/cmdline");
-    }
-    if (!fast)
-    {
-      printf("Fastboot aborted\n");
-      // return -1;
-    }
-    // block SIGUSR1 on main thread
-    sigset_t sig_mask;
-    sigset_t oldmask;
-
-    sigemptyset(&sig_mask);
-    sigaddset(&sig_mask, SIGUSR1);
-    sigprocmask(SIG_BLOCK, &sig_mask, &oldmask);
-    //signal(SIGUSR1,SIG_IGN);
-
-    memset(status, 0, sizeof(status));      //clear all status information
-    for (auto &st : status)
-    {
-      //st.status =
-    }
-
-    // update child counter
-    for (const task_info_t* it = begin; it != end; ++it)
-    {
-      status[it->id].status = waiting;
-      if (it->parent_id != none_id)
-      {
-        ++status[it->parent_id].child_count;
-        if (it->parent_id2 != none_id)
-          ++status[it->parent_id2].child_count;
-      }
-      if (it->grp_id != grp_none_id)
-      {
-        status[it->grp_id].grp_ref++;     // also use as group counter
-        status[it->grp_id].status = waiting;
-      }
-    }
-    status[none_id].status = done;
-    status[grp_none_id].status = done;
-
-    std::list<std::thread> threads;
-
-    threads.emplace_back(sthread, this);
-    threads.emplace_back(sthread, this);
-    threads.emplace_back(sthread, this);
-//    threads.emplace_back(sthread, this);
-
-    for (auto &it : threads)
-    {
-      it.join();
-    }
-    return 0;
-  }
-
-  // class methods
-  linux_init(const task_info_t* begin, const task_info_t* end) :
-      begin(begin), end(end)
-  {
-
-  }
-
-  // Peek a new task from list , mark the incoming task as done
-  const task_info_t* peekTask(const task_info_t* it)
-  {
-    bool towait;    // if true means wait for completion, false return current task or null
-    bool notify = false;
-    std::unique_lock<std::mutex> lock(mtx);
-    if (it != nullptr)
-    {
-      status[it->id].status = done;
-      if (it->grp_id != grp_none_id)
-      {
-        --status[it->grp_id].grp_ref;
-        if (status[it->grp_id].grp_ref == 0)
-        {
-          if (status[it->grp_id].child_count > 1)
-            notify = true;    // more than one task has been release
-          status[it->grp_id].status = done;
-        }
-      }
-      // put back all done task
-      if (it == begin)
-      {
-        while (begin != end && status[begin->id].status == done)
-          ++begin;
-      }
-      if (status[it->id].child_count > 1)
-        notify = true;    // more than one task has been release
-    }
-    for (;;)
-    {
-      towait = false;    // no task to waiting for
-      for (it = begin; it != end; ++it)
-      {
-        // find any ready task
-        if (status[it->id].status == waiting)
-        {
-          if (status[it->parent_id].status == done && status[it->parent_id2].status == done)
-          {
-            status[it->id].status = running;
-            break;
-          }
-          towait = true;
-        }
-      }
-      if (it != end)
-        break;     // get out for ;;
-      // we got nothing
-      if (towait)    // wait and try again
-      {
-        std::cout << 'W' << std::endl;
-        cond_var.wait(lock);
-      } else
-      {
-        it = nullptr;    // we done here
-        notify = true;
-        break;    // get out for ;;
-      }
-    }    // for ;; loop
-    if (notify)
-      cond_var.notify_all();    // more than one task has been release
-    return it;
-  }
-
-  static void print_statics(void* p)
-  {
-    linux_init* lnx = reinterpret_cast<linux_init*>(p);
-    for (auto *t = lnx->begin; t != lnx->end; ++t)
-    {
-      auto &st = lnx->status[t->id];
-      std::cout << getTaskName(t->id) << " "
-          << (st.ended.tv_nsec / 1000000 + st.ended.tv_sec * 1000) - (st.started.tv_nsec / 1000000 + st.started.tv_sec * 1000) << " ms" << std::endl;
-    }
-
-  }
-  static void sthread(linux_init* lnx)
-  {
-    const task_info_t* t = nullptr;
-    for (t = lnx->peekTask(t); t != nullptr; t = lnx->peekTask(t))
-    {
-      std::cout << " S " << getTaskName(t->id) << std::endl;
-      clock_gettime(CLOCK_MONOTONIC, &lnx->status[t->id].started);
-      t->fnc(lnx);
-      clock_gettime(CLOCK_MONOTONIC, &lnx->status[t->id].ended);
-      std::cout << " E " << getTaskName(t->id) << " "
-          << (lnx->status[t->id].ended.tv_nsec / 1000000 + lnx->status[t->id].ended.tv_sec * 1000)
-           - (lnx->status[t->id].started.tv_nsec / 1000000 + lnx->status[t->id].started.tv_sec * 1000) << " ms" << std::endl;
-    }
-  }
-
-public:
-  std::mutex mtx;
-  std::condition_variable cond_var;
-  const task_info_t* begin = nullptr, * const end = nullptr;
-  // status of all tasks
-  struct task_status_t status[task_id::max_id];
-};
 
 /*
  Execution list plus dependencies.
@@ -358,10 +122,49 @@ public:
  */
 int main()
 {
+  char tstr[255];
+  SysLinux::mount_procfs(nullptr);
+  // mount proc check for single and exit
+  bool fast = false;
+  std::vector<char*> cmdline;
+  cmdline.reserve(15);
+  *tstr = 0;
+  auto fd = open("/proc/cmdline", O_RDONLY);
+  if (fd > 0)
+  {
+    int r = read(fd, tstr, sizeof(tstr) - 1);
+    if (r > 0)
+      tstr[r - 1] = 0;     // remove ending \n
+    close(fd);
+    SysLinux::split(tstr, cmdline);
+    for (auto p : cmdline)
+    {
+      if (strcmp(p, "cinit") == 0)
+      {
+        fast = true;
+      }
+      else if (strcmp(p, "single") == 0)
+      {
+        fast = false;
+        break;
+      }
+
+    }
+  }
+  else
+  {
+    printf("failed to open /proc/cmdline");
+  }
+  if (!fast)
+  {
+    printf("Fastboot aborted\n");
+    return -1;
+  }
 
   // static initialization of struct is faster than using object, the compiler will store a table and just copy over
   // using const all data will be in RO memory really fast
-  static const linux_init::task_info_t tasks[] = {    ///
+  static const linux_init::task_info_t tasks[] =
+  {    ///
       { &SysLinux::mount_root, root_fs_id, grp_krn_fs_id, none_id, none_id },    //
           { &SysLinux::mount_sysfs, sys_fs_id, grp_krn_fs_id, none_id, none_id },    //
           { &SysLinux::mount_devfs, dev_fs_id, grp_krn_fs_id, run_fs_id, none_id },    //
@@ -372,6 +175,7 @@ int main()
           { &SysLinux::udev, udev_id, grp_none_id, dev_fs_id, none_id },    //
           { &SysLinux::procps, procps_id, grp_none_id, udev_id, none_id },    //
       };
-  linux_init lnx(tasks, tasks + sizeof(tasks) / sizeof(*tasks));
-  return lnx.main();
+  Task<task_id> tasks(tasks, tasks + sizeof(tasks) / sizeof(*tasks),getTaskName);
+  tasks.start(4);
+  return 0;
 }

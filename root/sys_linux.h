@@ -303,7 +303,7 @@ public:
     }
 
     // SysLinux::execute_c("udevadm info --cleanup-db");    // it will be empty
-    SysLinux::execute_c("/sbin/udevd --daemon");    // move to the end be carefull with network cards
+    SysLinux::execute_c("/sbin/udevd --daemon",true);    // move to the end be carefull with network cards
     //SysLinux::execute_c("/bin/udevadm trigger --action=add");
     // SysLinux::execute_c("/bin/udevadm settle", true);   //wait for events
   }
@@ -311,15 +311,16 @@ public:
   // do not execute
   static void udev_finish()
   {
-    SysLinux::execute_c("/lib/udev/udev-finish");
+    SysLinux::execute_c("/lib/udev/udev-finish",true);
   }
 
   // execute some init script
   static void init_d()
   {
-    SysLinux::execute_c("/etc/init.d/hwclock start");
-    SysLinux::execute_c("/etc/init.d/urandom start");
-    SysLinux::execute_c("/etc/init.d/networking start");
+    //todo list files in /etc/rcS/ and run everything except for a block list of script that we are not run
+    SysLinux::execute_c("/etc/init.d/hwclock start",true);
+    SysLinux::execute_c("/etc/init.d/urandom start",true);
+    SysLinux::execute_c("/etc/init.d/networking start",true);
   }
   /*
    startxfc4 script c++ translation
@@ -434,7 +435,7 @@ public:
 
   static void acpi_daemon(void*)
   {
-    SysLinux::execute_c("/etc/init.d/acpid start");
+    SysLinux::execute_c("/etc/init.d/acpid start",true);
   }
 private:
   // system initialization information
