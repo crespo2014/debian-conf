@@ -25,6 +25,7 @@ int main(int ac, char** av)
   bool bootchartd = false;
   bool cinit = false;
   bool single = false;
+  bool initfork = (getpid() == 1);
   char tstr[255];
   SysLinux::mount_procfs(nullptr);
   SysLinux::mount_sysfs(nullptr);
@@ -55,7 +56,8 @@ int main(int ac, char** av)
       }
     }
   }
-  if (single)
+  // single user mode with fork
+  if (single && initfork)
   {
     char * arg[] = { const_cast<char*>(init_app), nullptr };
     execv(init_app, arg);
@@ -69,7 +71,6 @@ int main(int ac, char** av)
 
   const char *fname = "/var/lib/e4rat/startup.log";
 
-  bool initfork = (getpid() == 1);
   bool sort = false;
   int it = 0;
   ++it;
@@ -98,7 +99,6 @@ int main(int ac, char** av)
   p.loadFile(fname);
   // reduce priority
   //SysLinux::ioprio_set(IOPRIO_WHO_PROCESS, getpid(), IOPRIO_IDLE_LOWEST);
-
   if (sort)
   {
     p.Merge();
@@ -106,6 +106,7 @@ int main(int ac, char** av)
     p.WriteOut();
   }
   int pid = -1;       // simulate not child
+  p.preload(100);
   if (initfork)
   {
     pid = fork();
@@ -113,9 +114,7 @@ int main(int ac, char** av)
 // Call deferred and preload if (child process or parent process without child)
   if (pid == 0 || pid == -1)    //child or fail
   {
-    std::thread thr(SysLinux::deferred_modules, nullptr);
     p.preload();
-    thr.join();
     //p.preload();
     //SysLinux::set_disk_scheduler("sda", "cfq");
   }

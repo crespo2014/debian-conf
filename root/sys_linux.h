@@ -24,6 +24,10 @@
 #include <sys/ptrace.h>
 #include <asm/unistd.h>
 #include <linux/sched.h>
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 //#include <linux/ioprio.h>
 //#include <ext2fs/ext2fs.h>
 //#include <blkid/blkid.h>
@@ -149,7 +153,7 @@ public:
     if (nofork)
     {
       execv(argv[0], (char* const *) argv);
-      _exit (EXIT_FAILURE);
+      _exit(EXIT_FAILURE);
     }
     int status = 0;
     pid_t pid = fork();
@@ -166,7 +170,7 @@ public:
     {
       // child
       execv(argv[0], (char* const *) argv);
-      _exit (EXIT_FAILURE);
+      _exit(EXIT_FAILURE);
     }
     return status;
   }
@@ -243,12 +247,21 @@ public:
     {
       sprintf(tstr, "%s\n", scheduler);
       write(fd, tstr, strlen(tstr));
-    }
-    perror(tstr);
+      close(fd);
+    } else
+      perror(tstr);
   }
-  static void set_cpu_governor(const char*)
+  static void set_cpu_governor(const char* gov)
   {
-
+    char tstr[255];
+    auto fd = open("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor", O_WRONLY);
+    if (fd > 0)
+    {
+      sprintf(tstr, "%s\n", gov);
+      write(fd, tstr, strlen(tstr));
+      close(fd);
+    } else
+      perror(tstr);
   }
   static inline void ioprio_set(int, int, int)
   {
@@ -264,7 +277,15 @@ public:
   }
   static void procps(void*)
   {
-    SysLinux::execute_c("/sbin/sysctl -q --system");
+    SysLinux::execute_c("/sbin/sysctl -q --system", true);
+  }
+  static void slim(void*)
+  {
+    SysLinux::execute_c("/etc/init.d/slim start", true);
+  }
+  static void dbus(void*)
+  {
+    SysLinux::execute_c("/etc/init.d/dbus start", true);
   }
 
   /*
@@ -295,7 +316,7 @@ public:
     pFile = fopen("/sys/kernel/uevent_helper", "w");
     if (pFile == NULL)
     {
-      printf("Error opening file /sys/kernel/uevent_helper \n");
+      perror("/sys/kernel/uevent_helper");
     } else
     {
       fwrite("", 0, 0, pFile);
@@ -303,7 +324,7 @@ public:
     }
 
     // SysLinux::execute_c("udevadm info --cleanup-db");    // it will be empty
-    SysLinux::execute_c("/sbin/udevd --daemon",true);    // move to the end be carefull with network cards
+    SysLinux::execute_c("/sbin/udevd --daemon", true);    // move to the end be carefull with network cards
     //SysLinux::execute_c("/bin/udevadm trigger --action=add");
     // SysLinux::execute_c("/bin/udevadm settle", true);   //wait for events
   }
@@ -311,16 +332,20 @@ public:
   // do not execute
   static void udev_finish()
   {
-    SysLinux::execute_c("/lib/udev/udev-finish",true);
+    // SysLinux::execute_c("/lib/udev/udev-finish",true);
   }
 
   // execute some init script
   static void init_d()
   {
     //todo list files in /etc/rcS/ and run everything except for a block list of script that we are not run
-    SysLinux::execute_c("/etc/init.d/hwclock start",true);
-    SysLinux::execute_c("/etc/init.d/urandom start",true);
-    SysLinux::execute_c("/etc/init.d/networking start",true);
+    SysLinux::execute_c("/etc/init.d/keyboard-setup start", true);
+    SysLinux::execute_c("/etc/init.d/kbd start", true);
+    SysLinux::execute_c("/etc/init.d/console-setup start", true);
+    SysLinux::execute_c("/lib/udev/udev-finish", true);
+    SysLinux::execute_c("/etc/init.d/hwclock start", true);
+    SysLinux::execute_c("/etc/init.d/urandom start", true);
+    SysLinux::execute_c("/etc/init.d/networking start", true);
   }
   /*
    startxfc4 script c++ translation
@@ -435,7 +460,7 @@ public:
 
   static void acpi_daemon(void*)
   {
-    SysLinux::execute_c("/etc/init.d/acpid start",true);
+    SysLinux::execute_c("/etc/init.d/acpid start", true);
   }
 private:
   // system initialization information
