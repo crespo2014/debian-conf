@@ -2,7 +2,7 @@
 #
 # http://www.linuxfromscratch.org/blfs/view/7.7/x/x7driver.html
 #
-# apt-get install autoconf make cmake pkg-config  libperl-dev libgtk2.0-dev intltool libsysfs-dev libudev-dev llvm
+# apt-get install autoconf make cmake pkg-config  libperl-dev libgtk2.0-dev intltool libsysfs-dev libudev-dev llvm libpciaccess-dev
 #[ -d xorg-src ] || mkdir xorg-src
 #cd xorg-src
 
