@@ -8,7 +8,7 @@
 #/bin/mount -t proc /proc -n -o noatime,nodiratime,nodev,noexec,nosuid
 #mknod kmsg c 1 11
 
-/root/build/cinit > /var/log/kmsg
+/root/build/cinit 
 [ "$?" = "0" ] && exit 0
 
 exec /etc/init.d/rc S
