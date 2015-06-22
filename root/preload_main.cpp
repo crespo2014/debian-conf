@@ -143,6 +143,7 @@ int main(int ac, char** av)
   p.loadFile(fname);
   if (cinit && initfork)
   {
+    setenv("CINIT", "1", true);    // avoid run level S from starting
     std::thread t([&](){ p.preload();});
 
     static const Tasks<task_id>::task_info_t tasks[] = {    ///
