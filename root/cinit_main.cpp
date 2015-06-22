@@ -15,32 +15,6 @@
 #include <preload.h>
 
 
-#define TASK_ID(x)	\
-	x(none)\
-	x(root_fs) \
-	x(sys_fs) \
-	x(dev_fs)  \
-	x(run_fs) \
-	x(tmp_fs) \
-	x(all_fs) \
-  x(acpi)\
-	x(hostname) \
-	x(deferred) \
-	x(udev)\
-	x(X)\
-	x(dev_subfs) \
-	x(udev_trigger)\
-	x(dbus)\
-	x(procps)\
-	x(xfce4)\
-	x(slim) \
-	x(init_d)\
-	x(grp_none)  /* no group */ \
-	x(grp_krn_fs) /* proc sys dev tmp run + setup directories */ \
-  x(grp_fs)     /* all fs ready home, data and ... */ \
-	x(max)\
-	
-
 #define TO_STRING(id)                 #id
 #define TO_NAME(id)               TO_STRING(id),
 #define TO_ID(id)                 id ## _id,
@@ -76,19 +50,8 @@
 
 #define TASK_DATA(...)
 
-typedef enum
-{
-  TASK_ID(TO_ID)
-} task_id;
 
-static const char* getTaskName(task_id id)
-{
-  static const char* const names[] =
-  { TASK_ID(TO_NAME)"" };
-  if (id >= sizeof(names) / sizeof(*names))
-    return "";
-  return names[id];
-}
+
 
 /*
  Execution list plus dependencies.
@@ -102,27 +65,10 @@ static const char* getTaskName(task_id id)
  */
 int main()
 {
-  SysLinux::mount_procfs(nullptr);
+  //SysLinux::mount_procfs(nullptr);
 
   // static initialization of struct is faster than using object, the compiler will store a table and just copy over
   // using const all data will be in RO memory really fast
-  static const Tasks<task_id>::task_info_t tasks[] =
-  {    ///
-      { &SysLinux::deferred_modules, deferred_id, grp_none_id, none_id, none_id },    //
-      { &SysLinux::mount_root, root_fs_id, grp_krn_fs_id, none_id, none_id },    //
-          { &SysLinux::mount_sysfs, sys_fs_id, grp_krn_fs_id, none_id, none_id },    //
-          { &SysLinux::mount_devfs, dev_fs_id, grp_krn_fs_id, run_fs_id, none_id },    //
-          { &SysLinux::mount_tmp, tmp_fs_id, grp_krn_fs_id, none_id, none_id },    //
-          { &SysLinux::mount_run, run_fs_id, grp_krn_fs_id, none_id, none_id },    //
-          { &SysLinux::mount_all, all_fs_id, grp_krn_fs_id, dev_fs_id, none_id },    //
-          { &SysLinux::hostname_s, hostname_id, grp_none_id, none_id, none_id },    //
-          { &SysLinux::udev, udev_id, grp_none_id, dev_fs_id, none_id },    //
-          { &SysLinux::acpi_daemon, acpi_id, grp_none_id, all_fs_id, none_id },    //
-          { &SysLinux::dbus, dbus_id, grp_none_id, all_fs_id, none_id },    //
-          { &SysLinux::slim, slim_id, grp_none_id, dbus_id, acpi_id },    //
-          { &SysLinux::procps, procps_id, grp_none_id, udev_id, none_id },    //
-      };
-  Tasks<task_id> scheduler(tasks, tasks + sizeof(tasks) / sizeof(*tasks),&getTaskName);
-  scheduler.start(4);
-  return 0;
+
+  return -1;
 }
