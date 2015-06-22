@@ -111,18 +111,19 @@ private:
   const task_info_t* peekTask(const task_info_t* it)
   {
     bool towait;    // if true means wait for completion, false return current task or null
-    bool notify = false;
+    // bool notify = false;
+    bool child_count = 0; // how many child to wakeup
     std::unique_lock < std::mutex > lock(mtx);
     if (it != nullptr)
     {
       status[it->id].status = done;
+      child_count += status[it->id].child_count;
       if (it->grp_id != grp_none_id)
       {
         --status[it->grp_id].grp_ref;
         if (status[it->grp_id].grp_ref == 0)
         {
-          if (status[it->grp_id].child_count > 1)
-            notify = true;    // more than one task has been release
+          child_count += status[it->grp_id].child_count;
           status[it->grp_id].status = done;
         }
       }
@@ -162,12 +163,23 @@ private:
       else
       {
         it = nullptr;    // we done here
-        notify = true;
+        child_count = 3;  // wake_up all task because we done
         break;    // get out for ;;
       }
     }    // for ;; loop
-    if (notify)
-      cond_var.notify_all();    // more than one task has been release
+    /*
+     * Actions to take when tasks are release
+     * 1 - nothing we already pick this task
+     * 2 - One thread need to wake up to pick the second task
+     * 3..n - All thread need to wake up to pick 2 task
+     */
+    if (child_count != 0)
+    {
+      if (child_count > 2)
+        cond_var.notify_all();
+      else if (child_count == 2)
+        cond_var.notify_one();
+    }
     return it;
   }
 
