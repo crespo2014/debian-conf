@@ -26,16 +26,6 @@
 #include <tasks.h>
 #include <preload.h>
 
-#define EXIT(fnc,cnd) do \
-  { \
-    int r = fnc;  \
-    if (r cnd) \
-    { \
-      printf("operation %s failed errno %d",TO_STRING(fnc),errno); \
-      exit(-1); \
-    } \
-  } while (0)
-
 #define TASK_ID(x)	\
 	x(none)\
 	x(root_fs) \
@@ -44,7 +34,7 @@
 	x(run_fs) \
 	x(tmp_fs) \
 	x(all_fs) \
-  x(acpi)\
+    x(acpi)\
 	x(hostname) \
 	x(deferred) \
 	x(udev)\
@@ -57,7 +47,7 @@
 	x(init_d)\
 	x(grp_none)  /* no group */ \
 	x(grp_krn_fs) /* proc sys dev tmp run + setup directories */ \
-  x(grp_fs)     /* all fs ready home, data and ... */ \
+    x(grp_fs)     /* all fs ready home, data and ... */ \
 	x(max)\
 	
 
@@ -163,7 +153,7 @@ int main()
 
   // static initialization of struct is faster than using object, the compiler will store a table and just copy over
   // using const all data will be in RO memory really fast
-  static const linux_init::task_info_t tasks[] =
+  static const Tasks<task_id>::task_info_t tasks[] =
   {    ///
       { &SysLinux::mount_root, root_fs_id, grp_krn_fs_id, none_id, none_id },    //
           { &SysLinux::mount_sysfs, sys_fs_id, grp_krn_fs_id, none_id, none_id },    //
@@ -175,7 +165,7 @@ int main()
           { &SysLinux::udev, udev_id, grp_none_id, dev_fs_id, none_id },    //
           { &SysLinux::procps, procps_id, grp_none_id, udev_id, none_id },    //
       };
-  Task<task_id> tasks(tasks, tasks + sizeof(tasks) / sizeof(*tasks),getTaskName);
-  tasks.start(4);
+  Tasks<task_id> scheduler(tasks, tasks + sizeof(tasks) / sizeof(*tasks),&getTaskName);
+  scheduler.start(4);
   return 0;
 }

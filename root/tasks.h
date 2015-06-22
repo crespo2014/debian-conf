@@ -10,18 +10,31 @@
 #ifndef ROOT_TASKS_H_
 #define ROOT_TASKS_H_
 
+#include <condition_variable>
+#include <mutex>
+#include <iostream>
+#include <list>
+#include <signal.h>
+
+
+
+
 template<class ID>
 class Tasks
 {
 public:
-  typedef const char* (*get_task_name_fnc_t)(void*);      ///< get task name function prototype
   typedef void (*task_fnc_t)(void*);                      ///< task function prototype
+  typedef const char* (*get_task_name_fnc_t)(ID);      ///< get task name function prototype
   // task static data
-  struct task_t
-  {
-    task_fnc_t fnc;
-    ID id;
-  };
+   struct task_info_t
+   {
+     task_fnc_t fnc;
+     ID id;
+     ID grp_id;
+     // id of dependencies
+     ID parent_id;         // = none_id;
+     ID parent_id2;        // = none_id;
+   };
   //ctor
   Tasks(const task_info_t* begin, const task_info_t* end, get_task_name_fnc_t get_name_fnc) :
       begin(begin), end(end), getTaskName(get_name_fnc)
@@ -31,20 +44,20 @@ public:
     for (const task_info_t* it = begin; it != end; ++it)
     {
       status[it->id].status = waiting;
-      if (it->parent_id != none_id)
+      if (it->parent_id != ID::none_id)
       {
         ++status[it->parent_id].child_count;
-        if (it->parent_id2 != none_id)
+        if (it->parent_id2 != ID::none_id)
           ++status[it->parent_id2].child_count;
       }
-      if (it->grp_id != grp_none_id)
+      if (it->grp_id != ID::grp_none_id)
       {
         status[it->grp_id].grp_ref++;     // also use as group counter
         status[it->grp_id].status = waiting;
       }
     }
-    status[none_id].status = done;
-    status[grp_none_id].status = done;
+    status[ID::none_id].status = done;
+    status[ID::grp_none_id].status = done;
 
     // to support X server notifycation
     // block SIGUSR1 on main thread
@@ -90,17 +103,6 @@ private:
     struct timespec ended;    // task spend time
   };
 
-  // task dynamic data
-  struct task_info_t
-  {
-    //task_fnc_t fnc;
-    ID id;
-    ID grp_id;
-    // id of dependencies
-    ID parent_id;         // = none_id;
-    ID parent_id2;        // = none_id;
-  };
-
   // disable ctor
   Tasks(const Tasks&) = delete;
   Tasks(const Tasks&&) = delete;
@@ -111,14 +113,13 @@ private:
   const task_info_t* peekTask(const task_info_t* it)
   {
     bool towait;    // if true means wait for completion, false return current task or null
-    // bool notify = false;
     bool child_count = 0; // how many child to wakeup
     std::unique_lock < std::mutex > lock(mtx);
     if (it != nullptr)
     {
       status[it->id].status = done;
       child_count += status[it->id].child_count;
-      if (it->grp_id != grp_none_id)
+      if (it->grp_id != ID::grp_none_id)
       {
         --status[it->grp_id].grp_ref;
         if (status[it->grp_id].grp_ref == 0)
@@ -133,8 +134,6 @@ private:
         while (begin != end && status[begin->id].status == done)
           ++begin;
       }
-      if (status[it->id].child_count > 1)
-        notify = true;    // more than one task has been release
     }
     for (;;)
     {
@@ -183,9 +182,9 @@ private:
     return it;
   }
 
-  static void print_statics(void* p)
+  void print_statics(void* p)
   {
-    linux_init* lnx = reinterpret_cast<linux_init*>(p);
+	  Tasks* lnx = reinterpret_cast<Tasks*>(p);
     for (auto *t = lnx->begin; t != lnx->end; ++t)
     {
       auto &st = lnx->status[t->id];
@@ -193,16 +192,16 @@ private:
     }
 
   }
-  static void sthread(linux_init* lnx)
+  static void sthread(Tasks* lnx)
   {
     const task_info_t* t = nullptr;
     for (t = lnx->peekTask(t); t != nullptr; t = lnx->peekTask(t))
     {
-      std::cout << " S " << getTaskName(t->id) << std::endl;
+      std::cout << " S " << lnx->getTaskName(t->id) << std::endl;
       clock_gettime(CLOCK_MONOTONIC, &lnx->status[t->id].started);
       t->fnc(lnx);
       clock_gettime(CLOCK_MONOTONIC, &lnx->status[t->id].ended);
-      std::cout << " E " << getTaskName(t->id) << " " << (lnx->status[t->id].ended.tv_nsec / 1000000 + lnx->status[t->id].ended.tv_sec * 1000) - (lnx->status[t->id].started.tv_nsec / 1000000 + lnx->status[t->id].started.tv_sec * 1000) << " ms"
+      std::cout << " E " << lnx->getTaskName(t->id) << " " << (lnx->status[t->id].ended.tv_nsec / 1000000 + lnx->status[t->id].ended.tv_sec * 1000) - (lnx->status[t->id].started.tv_nsec / 1000000 + lnx->status[t->id].started.tv_sec * 1000) << " ms"
           << std::endl;
     }
   }
