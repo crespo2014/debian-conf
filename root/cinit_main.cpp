@@ -136,9 +136,9 @@ static const char* getTaskName(task_id id)
   return names[id];
 }
 
-static char srv_auth_file[] = "/tmp/.server.auth.XXXXXX";
-static char usr_auth_file[] = "/tmp/.user.auth.XXXXXX";
-static char mcookie[40];
+//static char srv_auth_file[] = "/tmp/.server.auth.XXXXXX";
+//static char usr_auth_file[] = "/tmp/.user.auth.XXXXXX";
+//static char mcookie[40];
 
 class linux_init
 {
@@ -347,201 +347,12 @@ public:
     }
   }
 
-  static void procps(void*)
-  {
-    SysLinux::execute_c("/sbin/sysctl -q --system");
-  }
-
-  /*
-   * Depends on procfs
-   */
-  static void udev(void*)
-  {
-    //char tstr[255];
-    struct stat buf;
-
-    // When udev starts, your real /dev is bind mounted to /.dev
-
-    // If kernel boot with udev mounted and .udev folder then move to run before mount udev
-    /* strcpy(tstr,"/bin/mv /dev/.udev/ /run/udev/");
-     execute(tstr,true);
-     */
-
-    if (stat("/sbin/MAKEDEV", &buf) == 0)
-    {
-      symlink("/dev/MAKEDEV", "/sbin/MAKEDEV");
-    } else
-    {
-      symlink("/dev/MAKEDEV", "/bin/true");
-    }
-
-    FILE * pFile;
-
-    pFile = fopen("/sys/kernel/uevent_helper", "w");
-    if (pFile == NULL)
-    {
-      printf("Error opening file /sys/kernel/uevent_helper \n");
-    } else
-    {
-      fwrite("", 0, 0, pFile);
-      fclose(pFile);
-    }
-
-   // SysLinux::execute_c("udevadm info --cleanup-db");    // it will be empty
-    SysLinux::execute_c("/sbin/udevd --daemon");    // move to the end be carefull with network cards
-    //SysLinux::execute_c("/bin/udevadm trigger --action=add");
-    // SysLinux::execute_c("/bin/udevadm settle", true);   //wait for events
-  }
-
-  // do not execute
-  void udev_finish()
-  {
-    SysLinux::execute_c("/lib/udev/udev-finish");
-  }
-
-  // execute some init script
-  void init_d()
-  {
-    SysLinux::execute_c("/etc/init.d/hwclock start");
-    SysLinux::execute_c("/etc/init.d/urandom start");
-    SysLinux::execute_c("/etc/init.d/networking start");
-  }
-
-  /*
-   startxfc4 script c++ translation
-   */
-
-  void startxfce4()
-  {
-    char tmp_str[255];
-    snprintf(tmp_str, sizeof(tmp_str) - 1, "/bin/su -l -c 'export %s=%s;export %s=:%d;exec /usr/bin/startxfce4' lester", env_authority, usr_auth_file,
-        env_display, x_display_id);
-    SysLinux::execute(tmp_str, false);
-  }
-
-  void startXserver()
-  {
-    char tmp_str[255];
-    //const char* env;
-    char* cptr;
-    int r;
-    unsetenv(env_dbus_session);
-    unsetenv(env_session_manager);
-
-    int auth_file_fd = mkstemp(srv_auth_file);    // create file	file has to be delete when everything is done, but for just one x server keep it in tmp is ok
-    if (auth_file_fd != -1)
-    {
-      close(auth_file_fd);
-    }
-    // call xauth to add display 0 and cookie add :0 . xxxxxx
-    auto fd = popen("/usr/bin/mcookie", "r");
-    r = fread(mcookie, 1, sizeof(mcookie) - 1, fd);
-    if (r > 0)
-      mcookie[r] = 0;
-    pclose(fd);
-
-    // Server auth file
-    snprintf(tmp_str, sizeof(tmp_str) - 1, "/usr/bin/xauth -q -f %s add :%d . %s", srv_auth_file, x_display_id, mcookie);
-    SysLinux::execute(tmp_str);
-
-    // Client auth file
-    auth_file_fd = mkstemp(usr_auth_file);
-    if (auth_file_fd != -1)
-    {
-      close(auth_file_fd);
-    }
-
-    snprintf(tmp_str, sizeof(tmp_str) - 1, "/usr/bin/xauth -q -f %s add :%d . %s", usr_auth_file, x_display_id, mcookie);
-    SysLinux::execute(tmp_str);
-    EXIT(chown(usr_auth_file, 1000, 1000), == -1);    // change owner to main user
-
-    // Start X server and wait for it
-    sigset_t sig_mask;
-    sigset_t oldmask;
-
-    sigemptyset(&sig_mask);
-    sigaddset(&sig_mask, SIGUSR1);
-    pthread_sigmask(SIG_BLOCK, &sig_mask, &oldmask);
-    struct timespec sig_timeout = { 15, 0 };    // 5sec
-
-    snprintf(tmp_str, sizeof(tmp_str) - 1, "/etc/X11/xorg.conf.%s", host);
-    r = access(tmp_str, F_OK);
-
-    //-terminate -quiet
-    cptr = tmp_str;
-    cptr += snprintf(cptr, tmp_str + sizeof(tmp_str) - cptr - 1, "/usr/bin/X :%d ", x_display_id);
-    if (r == 0)
-      cptr += snprintf(cptr, tmp_str + sizeof(tmp_str) - cptr - 1, " -config /etc/X11/xorg.conf.%s", host);
-
-    snprintf(cptr, tmp_str + sizeof(tmp_str) - cptr - 1, "  -audit 0 -logfile /dev/kmsg -nolisten tcp -auth %s vt0%d", srv_auth_file, x_vt_id);
-
-    /* start x server and wait for signal */
-    auto pid = fork();
-    if (pid == 0)
-    {
-      // child
-      /*
-       * reset signal mask and set the X server sigchld to SIG_IGN, that's the
-       * magic to make X send the parent the signal.
-       */
-      //sigprocmask(SIG_SETMASK, &oldmask, nullptr);
-      signal(SIGUSR1, SIG_IGN);
-      SysLinux::execute(tmp_str, false, true);
-    }
-    // wait for signal become pending, only blocked signal can be pending, otherwise the signal will be generated
-    r = sigtimedwait(&sig_mask, nullptr, &sig_timeout);
-    if (r != SIGUSR1)
-    {
-      printf("Error waiting for X server");
-    }
-  }
-
-  static void hostname(void* p)
-  {
-    linux_init* lnx = reinterpret_cast<linux_init*>(p);
-    //read etc/hostname if not empty the apply otherwise use localhost
-    int r;
-    FILE * pFile = fopen("/etc/hostname", "r");
-    if (pFile != NULL)
-    {
-      r = fread(lnx->host, 1, sizeof(lnx->host), pFile);
-      if (r > 0)
-      {
-        lnx->host[r - 1] = 0;
-      } else
-        strcpy(lnx->host, "localhost");
-      fclose(pFile);
-    } else
-      perror("/etc/hostname ");
-    sethostname(lnx->host, strlen(lnx->host));
-  }
-
-  void acpi_daemon()
-  {
-    SysLinux::execute_c("/etc/init.d/acpid start");
-  }
 public:
-  constexpr static const char* user_name = "lester";
-  constexpr static const char* xauth = "/usr/bin/xauth";
-  constexpr static const char* X = "/usr/bin/X";
-
-  constexpr static const char* Xclient = "/usr/bin/xfce4";
-  constexpr static const char* home = "/home/lester";
-  constexpr static const char* env_mcookie = "init_mcookie";
-  constexpr static const char* env_dbus_session = "DBUS_SESSION_BUS_ADDRESS";
-  constexpr static const char* env_session_manager = "SESSION_MANAGER";
-  constexpr static const char* env_authority = "XAUTHORITY";
-  constexpr static const char* env_display = "DISPLAY";
-  constexpr static const unsigned x_display_id = 1;
-  constexpr static const unsigned x_vt_id = 8;
-
-  const std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now();
   std::mutex mtx;
   std::condition_variable cond_var;
   const task_info_t* begin = nullptr, * const end = nullptr;
   // status of all tasks
   struct task_status_t status[task_id::max_id];
-  char host[100];    // Host name
 };
 
 /*
@@ -566,9 +377,9 @@ int main()
           { &SysLinux::mount_tmp, tmp_fs_id, grp_krn_fs_id, none_id, none_id },    //
           { &SysLinux::mount_run, run_fs_id, grp_krn_fs_id, none_id, none_id },    //
           { &SysLinux::mount_all, all_fs_id, grp_krn_fs_id, dev_fs_id, none_id },    //
-          { &linux_init::hostname, hostname_id, grp_none_id, none_id, none_id },    //
-          { &linux_init::udev, udev_id, grp_none_id, dev_fs_id, none_id },    //
-          { &linux_init::procps, procps_id, grp_none_id, udev_id, none_id },    //
+          { &SysLinux::hostname_s, hostname_id, grp_none_id, none_id, none_id },    //
+          { &SysLinux::udev, udev_id, grp_none_id, dev_fs_id, none_id },    //
+          { &SysLinux::procps, procps_id, grp_none_id, udev_id, none_id },    //
       };
   linux_init lnx(tasks, tasks + sizeof(tasks) / sizeof(*tasks));
   return lnx.main();

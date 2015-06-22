@@ -21,8 +21,10 @@
 
 int main(int ac, char** av)
 {
+  constexpr const char * const init_app = "/sbin/init";
   bool bootchartd = false;
   bool cinit = false;
+  bool single = false;
   char tstr[255];
   SysLinux::mount_procfs(nullptr);
   SysLinux::mount_sysfs(nullptr);
@@ -48,10 +50,15 @@ int main(int ac, char** av)
         bootchartd = true;
       } else if (strcmp(p, "single") == 0)
       {
-        //fast = false;
+        single = false;
         break;
       }
     }
+  }
+  if (single)
+  {
+    char * arg[] = { const_cast<char*>(init_app), nullptr };
+    execv(init_app, arg);
   }
   if (bootchartd)
     SysLinux::execute_c("/lib/bootchart/bootchart-collector 50");
@@ -61,7 +68,7 @@ int main(int ac, char** av)
 //SysLinux::set_disk_scheduler("sda","noop");
 
   const char *fname = "/var/lib/e4rat/startup.log";
-  const char *init_app = "/sbin/init";
+
   bool initfork = (getpid() == 1);
   bool sort = false;
   int it = 0;
