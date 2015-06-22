@@ -8,7 +8,11 @@
 #/bin/mount -t proc /proc -n -o noatime,nodiratime,nodev,noexec,nosuid
 #mknod kmsg c 1 11
 
-/root/build/cinit 
-[ "$?" = "0" ] && exit 0
+cinit=$(grep -wo cinit /proc/cmdline)
+
+if [ "$cinit" != "" ]; then
+ /root/build/cinit 
+ [ "$?" = "0" ] && exit 0
+fi
 
 exec /etc/init.d/rc S

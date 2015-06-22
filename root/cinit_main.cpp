@@ -114,42 +114,6 @@ int main()
 {
   char tstr[255];
   SysLinux::mount_procfs(nullptr);
-  // mount proc check for single and exit
-  bool fast = false;
-  std::vector<char*> cmdline;
-  cmdline.reserve(15);
-  *tstr = 0;
-  auto fd = open("/proc/cmdline", O_RDONLY);
-  if (fd > 0)
-  {
-    int r = read(fd, tstr, sizeof(tstr) - 1);
-    if (r > 0)
-      tstr[r - 1] = 0;     // remove ending \n
-    close(fd);
-    SysLinux::split(tstr, cmdline);
-    for (auto p : cmdline)
-    {
-      if (strcmp(p, "cinit") == 0)
-      {
-        fast = true;
-      }
-      else if (strcmp(p, "single") == 0)
-      {
-        fast = false;
-        break;
-      }
-
-    }
-  }
-  else
-  {
-    printf("failed to open /proc/cmdline");
-  }
-  if (!fast)
-  {
-    printf("Fastboot aborted\n");
-    return -1;
-  }
 
   // static initialization of struct is faster than using object, the compiler will store a table and just copy over
   // using const all data will be in RO memory really fast
