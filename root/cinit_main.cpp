@@ -113,11 +113,6 @@ struct task_status_t
   struct timespec ended;    // task spend time
 };
 
-//void print_error(int r, int no)
-//{
-//
-//}
-
 #define EXIT(fnc,cnd) do \
   { \
     int r = fnc;  \
@@ -135,10 +130,6 @@ static const char* getTaskName(task_id id)
     return "";
   return names[id];
 }
-
-//static char srv_auth_file[] = "/tmp/.server.auth.XXXXXX";
-//static char usr_auth_file[] = "/tmp/.user.auth.XXXXXX";
-//static char mcookie[40];
 
 class linux_init
 {
