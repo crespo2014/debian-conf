@@ -14,12 +14,12 @@ PATH=/sbin:/bin
 
 case "$1" in
   start|"")
+    (sleep 30;INIT_PROCESS="yes"; /sbin/bootchartd stop;) &
     single=$(grep -wo single /proc/cmdline)
     cinit=$(grep -wo cinit /proc/cmdline)
     [ "$single" == "" ] && [ "$cinit" != "" ] && exit
     cat /proc/deferred_initcalls
     udevadm trigger
-    (sleep 30;INIT_PROCESS="yes"; /sbin/bootchartd stop;) &
 	;;
   restart|reload|force-reload)
 	;;
