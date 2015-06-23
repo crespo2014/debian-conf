@@ -147,18 +147,18 @@ int main(int ac, char** av)
     std::thread t([&](){ p.preload();});
 
     static const Tasks<task_id>::task_info_t tasks[] = {    ///
-        { &SysLinux::deferred_modules, deferred_id, grp_none_id, none_id, none_id },    //
+        { &SysLinux::deferred_modules, deferred_id, grp_none_id, slim_id, none_id },    //
             { &SysLinux::mount_root, root_fs_id, grp_krn_fs_id, none_id, none_id },    //
             { &SysLinux::mount_sysfs, sys_fs_id, grp_krn_fs_id, none_id, none_id },    //
             { &SysLinux::mount_devfs, dev_fs_id, grp_krn_fs_id, run_fs_id, none_id },    //
             { &SysLinux::mount_tmp, tmp_fs_id, grp_krn_fs_id, none_id, none_id },    //
             { &SysLinux::mount_run, run_fs_id, grp_krn_fs_id, none_id, none_id },    //
             { &SysLinux::mount_all, all_fs_id, grp_krn_fs_id, dev_fs_id, none_id },    //
-            { &SysLinux::hostname_s, hostname_id, grp_none_id, none_id, none_id },    //
+            { &SysLinux::hostname_s, hostname_id, grp_krn_fs_id, none_id, none_id },    //
             { &SysLinux::udev, udev_id, grp_none_id, dev_fs_id, none_id },    //
-            { &SysLinux::acpi_daemon, acpi_id, grp_none_id, all_fs_id, none_id },    //
-            { &SysLinux::dbus, dbus_id, grp_none_id, all_fs_id, none_id },    //
-            { &SysLinux::slim, slim_id, grp_none_id, dbus_id, acpi_id },    //
+            { &SysLinux::acpi_daemon, acpi_id, grp_none_id, grp_krn_fs_id, none_id },    //
+            { &SysLinux::dbus, dbus_id, grp_none_id, grp_krn_fs_id, none_id },    //
+            { &SysLinux::slim, slim_id, grp_none_id, grp_krn_fs_id, none_id },    //
             { &SysLinux::procps, procps_id, grp_none_id, udev_id, none_id },    //
         };
     Tasks<task_id> scheduler(tasks, tasks + sizeof(tasks) / sizeof(*tasks), &getTaskName);
@@ -174,7 +174,7 @@ int main(int ac, char** av)
     p.WriteOut();
   }
   int pid = -1;       // simulate not child
-  p.preload(100);
+  //p.preload(100);
   if (initfork)
   {
     pid = fork();
@@ -182,7 +182,7 @@ int main(int ac, char** av)
 // Call deferred and preload if (child process or parent process without child)
   if (pid == 0 || pid == -1)    //child or fail
   {
-    p.preload();
+    //p.preload();
     //p.preload();
     //SysLinux::set_disk_scheduler("sda", "cfq");
   }
