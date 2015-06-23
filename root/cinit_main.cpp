@@ -10,46 +10,10 @@
 
  */
 
-#include <mutex>
-#include <iostream>
-#include <condition_variable>
-#include <mutex>
-#include <thread>
-#include <chrono>
-#include <vector>
-#include <time.h>
 #include <sys_linux.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-
 #include <tasks.h>
 #include <preload.h>
 
-#define TASK_ID(x)	\
-	x(none)\
-	x(root_fs) \
-	x(sys_fs) \
-	x(dev_fs)  \
-	x(run_fs) \
-	x(tmp_fs) \
-	x(all_fs) \
-    x(acpi)\
-	x(hostname) \
-	x(deferred) \
-	x(udev)\
-	x(X)\
-	x(dev_subfs) \
-	x(udev_trigger)\
-	x(dbus)\
-	x(procps)\
-	x(xfce4)\
-	x(init_d)\
-	x(grp_none)  /* no group */ \
-	x(grp_krn_fs) /* proc sys dev tmp run + setup directories */ \
-    x(grp_fs)     /* all fs ready home, data and ... */ \
-	x(max)\
-	
 
 #define TO_STRING(id)                 #id
 #define TO_NAME(id)               TO_STRING(id),
@@ -86,19 +50,8 @@
 
 #define TASK_DATA(...)
 
-typedef enum
-{
-  TASK_ID(TO_ID)
-} task_id;
 
-static const char* getTaskName(task_id id)
-{
-  static const char* const names[] =
-  { TASK_ID(TO_NAME)"" };
-  if (id >= sizeof(names) / sizeof(*names))
-    return "";
-  return names[id];
-}
+
 
 /*
  Execution list plus dependencies.
@@ -112,60 +65,10 @@ static const char* getTaskName(task_id id)
  */
 int main()
 {
-  char tstr[255];
-  SysLinux::mount_procfs(nullptr);
-  // mount proc check for single and exit
-  bool fast = false;
-  std::vector<char*> cmdline;
-  cmdline.reserve(15);
-  *tstr = 0;
-  auto fd = open("/proc/cmdline", O_RDONLY);
-  if (fd > 0)
-  {
-    int r = read(fd, tstr, sizeof(tstr) - 1);
-    if (r > 0)
-      tstr[r - 1] = 0;     // remove ending \n
-    close(fd);
-    SysLinux::split(tstr, cmdline);
-    for (auto p : cmdline)
-    {
-      if (strcmp(p, "cinit") == 0)
-      {
-        fast = true;
-      }
-      else if (strcmp(p, "single") == 0)
-      {
-        fast = false;
-        break;
-      }
-
-    }
-  }
-  else
-  {
-    printf("failed to open /proc/cmdline");
-  }
-  if (!fast)
-  {
-    printf("Fastboot aborted\n");
-    return -1;
-  }
+  //SysLinux::mount_procfs(nullptr);
 
   // static initialization of struct is faster than using object, the compiler will store a table and just copy over
   // using const all data will be in RO memory really fast
-  static const Tasks<task_id>::task_info_t tasks[] =
-  {    ///
-      { &SysLinux::mount_root, root_fs_id, grp_krn_fs_id, none_id, none_id },    //
-          { &SysLinux::mount_sysfs, sys_fs_id, grp_krn_fs_id, none_id, none_id },    //
-          { &SysLinux::mount_devfs, dev_fs_id, grp_krn_fs_id, run_fs_id, none_id },    //
-          { &SysLinux::mount_tmp, tmp_fs_id, grp_krn_fs_id, none_id, none_id },    //
-          { &SysLinux::mount_run, run_fs_id, grp_krn_fs_id, none_id, none_id },    //
-          { &SysLinux::mount_all, all_fs_id, grp_krn_fs_id, dev_fs_id, none_id },    //
-          { &SysLinux::hostname_s, hostname_id, grp_none_id, none_id, none_id },    //
-          { &SysLinux::udev, udev_id, grp_none_id, dev_fs_id, none_id },    //
-          { &SysLinux::procps, procps_id, grp_none_id, udev_id, none_id },    //
-      };
-  Tasks<task_id> scheduler(tasks, tasks + sizeof(tasks) / sizeof(*tasks),&getTaskName);
-  scheduler.start(4);
-  return 0;
+
+  return -1;
 }

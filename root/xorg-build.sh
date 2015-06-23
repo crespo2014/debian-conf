@@ -147,6 +147,9 @@ for line in $files
 do
   install "$http_root/$line"
 done
+fi
+if [ "$JUMP_TO" == "lib2" -o "$JUMP_TO" == "" ]; then  
+JUMP_TO=
 
 files="http://xorg.freedesktop.org/releases/individual/lib/libXau-1.0.8.tar.bz2 \
  http://xorg.freedesktop.org/releases/individual/lib/libXdmcp-1.1.1.tar.bz2 \

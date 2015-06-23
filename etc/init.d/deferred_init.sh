@@ -1,8 +1,8 @@
 #! /bin/bash
 ### BEGIN INIT INFO
 # Provides:			modules          
-# Required-Start:       $all		
-# Required-Stop:
+# Required-Start:       bootlogs		
+# Required-Stop:	
 # Should-Start:      
 # Default-Start:	S 1 2 3 4 5  
 # Default-Stop:
@@ -23,10 +23,9 @@ case "$1" in
     cat /proc/deferred_initcalls
     udevadm trigger
 	# log some bootchart data before close it
-	[ "$runlevel" == "S" ] || sleep 30
-	#to include dmesg inside bootchart file
-	INIT_PROCESS="yes"
-	/sbin/bootchartd stop
+	if [ "$runlevel" != "S" ]; then
+	 (sleep 30;INIT_PROCESS="yes"; /sbin/bootchartd stop;) &
+        fi
 	;;
   restart|reload|force-reload)
 	;;

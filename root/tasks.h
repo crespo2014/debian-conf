@@ -15,6 +15,7 @@
 #include <iostream>
 #include <list>
 #include <signal.h>
+#include <thread>
 
 
 
@@ -113,7 +114,7 @@ private:
   const task_info_t* peekTask(const task_info_t* it)
   {
     bool towait;    // if true means wait for completion, false return current task or null
-    bool child_count = 0; // how many child to wakeup
+    unsigned child_count = 0; // how many child to wakeup
     std::unique_lock < std::mutex > lock(mtx);
     if (it != nullptr)
     {

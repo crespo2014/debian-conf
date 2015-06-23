@@ -3,7 +3,7 @@ build_dir := build
 src_dirs := 
 srcs := cinit_main.cpp test.cpp preload_main.cpp
 
-targets := cinit mtest preload cinit_s preload_s
+targets := preload preload_s
 
 #-finput-charset=ascii
 
