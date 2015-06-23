@@ -15,17 +15,10 @@ PATH=/sbin:/bin
 case "$1" in
   start|"")
     single=$(grep -wo single /proc/cmdline)
-    if [ "$runlevel" == "S" ] && [ "$single" == "" ]; then
-    	exit
-    fi
-	#give some time to display manager
-	#[ "$runlevel" == "S" ] || sleep 10
+    [ "$single" == "" ] && exit
     cat /proc/deferred_initcalls
     udevadm trigger
-	# log some bootchart data before close it
-	if [ "$runlevel" != "S" ]; then
-	 (sleep 30;INIT_PROCESS="yes"; /sbin/bootchartd stop;) &
-        fi
+    (sleep 30;INIT_PROCESS="yes"; /sbin/bootchartd stop;) &
 	;;
   restart|reload|force-reload)
 	;;
