@@ -48,11 +48,9 @@ typedef enum
   TASK_ID(TO_ID)
 } task_id;
 
-
 static const char* getTaskName(task_id id)
 {
-  static const char* const names[] =
-  { TASK_ID(TO_NAME)"" };
+  static const char* const names[] = { TASK_ID(TO_NAME)"" };
   if (id >= sizeof(names) / sizeof(*names))
     return "";
   return names[id];
@@ -75,43 +73,69 @@ int main(int ac, char** av)
   bool sort = false;
   bool initfork = (getpid() == 1);
   char tstr[255];
-  SysLinux::mount_procfs(nullptr);
-  SysLinux::mount_sysfs(nullptr);
-  int fd;
-  CHECK_NOT((fd = open("/proc/cmdline", O_RDONLY)), -1, "/proc/cmdline");
-  if (fd > 0)
+  if (initfork)
   {
-    std::vector<char*> cmdline;
-    cmdline.reserve(15);
-    *tstr = 0;
-    int r = read(fd, tstr, sizeof(tstr) - 1);
-    if (r > 0)
-      tstr[r - 1] = 0;     // remove ending \n
-    close(fd);
-    SysLinux::split(tstr, cmdline);
-    for (auto p : cmdline)
+    SysLinux::mount_procfs(nullptr);
+    SysLinux::mount_sysfs(nullptr);
+    int fd;
+    CHECK_NOT((fd = open("/proc/cmdline", O_RDONLY)), -1, "/proc/cmdline");
+    if (fd > 0)
     {
-      if (strcmp(p, "bootchart") == 0)
+      std::vector<char*> cmdline;
+      cmdline.reserve(15);
+      *tstr = 0;
+      int r = read(fd, tstr, sizeof(tstr) - 1);
+      if (r > 0)
+        tstr[r - 1] = 0;     // remove ending \n
+      close(fd);
+      SysLinux::split(tstr, cmdline);
+      for (auto p : cmdline)
       {
-        bootchartd = true;
-      } else if (strcmp(p, "single") == 0)
-      {
-        single = false;
-        break;
+        if (strcmp(p, "bootchart") == 0)
+        {
+          bootchartd = true;
+        } else if (strcmp(p, "single") == 0)
+        {
+          single = false;
+          break;
+        }
       }
     }
-  }
-  // single user mode with fork
-  if (single && initfork)
-  {
-    char * arg[] = { const_cast<char*>(init_app), nullptr };
-    execv(init_app, arg);
-  }
-  if (bootchartd)
-    SysLinux::execute_c("/lib/bootchart/bootchart-collector 50");
+    // single user mode
+    if (single)
+    {
+      SysLinux::execute_c(init_app, false, false);
+    }
+    if (bootchartd)
+      SysLinux::execute_c("/lib/bootchart/bootchart-collector 50");
 
-  setenv("CINIT", "1", true);    // avoid run level S from starting
+    SysLinux::execute_c("cat /proc/deferred_initcalls", false);
+    SysLinux::execute_c(av[0], false);    // by default preload load all files
 
+    setenv("CINIT", "1", true);    // avoid run level S from starting
+    // Start system scripts
+    static const Tasks<task_id>::task_info_t tasks[] = {    ///
+                                                            //{ &SysLinux::deferred_modules, deferred_id, grp_none_id, slim_id, none_id },    //
+        { &SysLinux::mount_root, root_fs_id, grp_krn_fs_id, none_id, none_id },    //
+            { &SysLinux::mount_sysfs, sys_fs_id, grp_krn_fs_id, none_id, none_id },    //
+            { &SysLinux::mount_devfs, dev_fs_id, grp_krn_fs_id, run_fs_id, none_id },    //
+            { &SysLinux::mount_tmp, tmp_fs_id, grp_krn_fs_id, none_id, none_id },    //
+            { &SysLinux::mount_run, run_fs_id, grp_krn_fs_id, none_id, none_id },    //
+            { &SysLinux::mount_all, all_fs_id, grp_krn_fs_id, dev_fs_id, none_id },    //
+            { &SysLinux::hostname_s, hostname_id, grp_krn_fs_id, none_id, none_id },    //
+            { &SysLinux::udev, udev_id, grp_none_id, dev_fs_id, none_id },    //
+            { &SysLinux::acpi_daemon, acpi_id, grp_none_id, grp_krn_fs_id, none_id },    //
+            { &SysLinux::dbus, dbus_id, grp_none_id, grp_krn_fs_id, none_id },    //
+            { &SysLinux::slim, slim_id, grp_none_id, grp_krn_fs_id, none_id },    //
+            { &SysLinux::procps, procps_id, grp_none_id, udev_id, none_id },    //
+        };
+    Tasks<task_id> scheduler(tasks, tasks + sizeof(tasks) / sizeof(*tasks), &getTaskName);
+    scheduler.start(4);
+    SysLinux::execute_c("/bin/udevadm trigger");
+    SysLinux::execute_c(init_app, false, false);
+    _exit(0);
+  }
+  // running outside init. we sort or load the file
   int it = 0;
   ++it;
   while (it < ac)
@@ -135,44 +159,7 @@ int main(int ac, char** av)
     }
     ++it;
   }
-  // This application has been call from kernel
-  if (initfork)
-  {
-    int pid = fork();   // fork for preload
-    if (pid == 0)
-    {
-      setpriority(PRIO_PROCESS,getpid(),15);
-      SysLinux::ioprio_set(IOPRIO_WHO_PROCESS, getpid(), IOPRIO_IDLE_LOWEST);
-      SysLinux::execute_c("cat /proc/deferred_initcalls",false);
-      preload_parser p;
-      p.readahead("/var/lib/e4rat/startup.log");
-      //SysLinux::set_disk_scheduler("sda","noop");
-      //
-      _exit(0);
-    }
 
-    // Start system scripts
-    static const Tasks<task_id>::task_info_t tasks[] =
-    {    ///
-        //{ &SysLinux::deferred_modules, deferred_id, grp_none_id, slim_id, none_id },    //
-            { &SysLinux::mount_root, root_fs_id, grp_krn_fs_id, none_id, none_id },    //
-            { &SysLinux::mount_sysfs, sys_fs_id, grp_krn_fs_id, none_id, none_id },    //
-            { &SysLinux::mount_devfs, dev_fs_id, grp_krn_fs_id, run_fs_id, none_id },    //
-            { &SysLinux::mount_tmp, tmp_fs_id, grp_krn_fs_id, none_id, none_id },    //
-            { &SysLinux::mount_run, run_fs_id, grp_krn_fs_id, none_id, none_id },    //
-            { &SysLinux::mount_all, all_fs_id, grp_krn_fs_id, dev_fs_id, none_id },    //
-            { &SysLinux::hostname_s, hostname_id, grp_krn_fs_id, none_id, none_id },    //
-            { &SysLinux::udev, udev_id, grp_none_id, dev_fs_id, none_id },    //
-            { &SysLinux::acpi_daemon, acpi_id, grp_none_id, grp_krn_fs_id, none_id },    //
-            { &SysLinux::dbus, dbus_id, grp_none_id, grp_krn_fs_id, none_id },    //
-            { &SysLinux::slim, slim_id, grp_none_id, grp_krn_fs_id, none_id },    //
-            { &SysLinux::procps, procps_id, grp_none_id, udev_id, none_id },    //
-        };
-    Tasks<task_id> scheduler(tasks, tasks + sizeof(tasks) / sizeof(*tasks), &getTaskName);
-    scheduler.start(4);
-    SysLinux::execute_c("/bin/udevadm trigger");
-    SysLinux::execute_c(init_app,false,false);
-  }
   if (sort)
   {
     preload_parser p;
@@ -180,6 +167,12 @@ int main(int ac, char** av)
     p.Merge();
     p.UpdateBlock();
     p.WriteOut();
+  } else
+  {
+    setpriority(PRIO_PROCESS, getpid(), 5);
+    SysLinux::ioprio_set(IOPRIO_WHO_PROCESS, getpid(), IOPRIO_IDLE_LOWEST);
+    preload_parser p;
+    p.readahead("/var/lib/e4rat/startup.log");
   }
   return 0;
 }
