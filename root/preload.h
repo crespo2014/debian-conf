@@ -194,6 +194,40 @@ public:
     }
     return 0;
   }
+  /*
+   * Load list of file and do read ahead per each file while parsing the list
+   */
+	void readahead(const char* fname)
+	{
+		file.open(fname, 0, S_IRUSR);
+		if (file)
+		{
+			m = file.getFullMap();
+			if (m)
+			{
+				blk_s = reinterpret_cast<char*>(m.begin());
+				blk_e = reinterpret_cast<char*>(m.end());
+				dt_e = blk_s;    // when data end.
+				dt_s = blk_s;
+				const char *dt;
+				while (nextToken(' ') != nullptr && nextToken(' ') != nullptr
+						&& (dt = nextToken('\n')) != nullptr)
+				{
+					int fd = open(it.fd->path, O_RDONLY | O_NOFOLLOW);
+					if (fd > 0)
+					{
+						struct stat buf;
+						::fstat(fd, &buf);
+						posix_fadvise(fd, 0, buf.st_size, POSIX_FADV_WILLNEED);
+						::readahead(fd, 0, buf.st_size);
+						close(fd);
+					}
+					else
+						++fail_count;
+				}
+			}
+		}
+	}
   void processBlock()
   {
     // preallocated block base on file size.
@@ -296,50 +330,6 @@ public:
     ++dt_e;
     return dt_s;
   }
-
-  // load 1000 items and then fork the process
-  // fork() only copies the calling thread, any mutex hold by other threads are going to be lock forever if it was the state
-  // use _exit to finish the forked process
-  // http://www.linuxprogrammingblog.com/threads-and-fork-think-twice-before-using-them
-
-  /*
-   * Load until top elements
-   */
-  void preload(unsigned top = 0)
-  {
-    if (top == 0 || top > file_desc_count_)
-      top = file_desc_count_;
-
-    auto &v = *it.list;
-    while (file_desc_idx < top)
-    {
-      if (it.fd == v.end())
-      {
-        ++it.list;
-        v = *it.list;
-        it.fd = v.begin();
-      }
-      //printf("%d %lld %s\n",pfile_desc.dev,pfile_desc.inode,pfile_desc.path);
-      int fd = open(it.fd->path, O_RDONLY | O_NOFOLLOW);
-      if (fd > 0)
-      {
-        struct stat buf;
-        ::fstat(fd, &buf);
-        posix_fadvise(fd, 0, buf.st_size, POSIX_FADV_WILLNEED);
-        readahead(fd, 0, buf.st_size);
-
-        close(fd);
-      } else
-        ++fail_count;
-      ++it.fd;
-      ++file_desc_idx;
-    }
-  }
-
-  // todo in the main thread we load 1000 files, then fork to keep application running, NOK
-  // preload will be a separate application we call it and wait
-
-  // we load 1000 at begining then later a thread will do the rest. after fs or at the same time.
 
   // Find the stating block of each file
   // we need cap_sysrawio

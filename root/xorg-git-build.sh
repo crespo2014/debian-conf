@@ -86,7 +86,7 @@ function make_install_cd()
 ## the freedesktop git server
 GFDR="git://git.freedesktop.org/git"
 
-done="\
+modules="\
 $GFDR/xorg/proto/fontsproto \
 $GFDR/xorg/proto/x11proto \
 $GFDR/xorg/proto/xextproto \
@@ -107,9 +107,6 @@ $GFDR/xorg/proto/evieproto \
 $GFDR/xorg/proto/kbproto \
 $GFDR/xorg/proto/fixesproto \
 $GFDR/xcb/proto \
-"
-
-modules="\
 $GFDR/xcb/pthread-stubs \
 $GFDR/xcb/libxcb \
 $GFDR/xorg/lib/libXext \
@@ -151,7 +148,7 @@ echo "Building modules"
 for line in $modules
 do
   extract "$line"
-  ./autogen.sh --prefix=$XORG_PREFIX && make && su -c "make install"
+  ./autogen.sh --prefix=$XORG_PREFIX --enable-shared=no && make && su -c "make install"
   [ "$?" != "0" ] && exit
   cd ..
 done
@@ -161,7 +158,7 @@ fi
 if [ "$GOTO" == "" -o "$GOTO" == "G2" ]; then
 GOTO=
   extract git://git.freedesktop.org/git/mesa/drm
-  ./autogen.sh --prefix=$XORG_PREFIX &&
+  ./autogen.sh --prefix=$XORG_PREFIX --enable-shared=no &&
   make &&
   make -C linux-core && 
   su -c "make install"
@@ -172,7 +169,7 @@ if [ "$GOTO" == "" -o "$GOTO" == "G3" ]; then
 GOTO=
 #--disable-static --enable-static
   extract git://git.freedesktop.org/git/mesa/mesa 
-  ./autogen.sh --prefix=$XORG_PREFIX --sysconfdir=/etc --localstatedir=/var --with-driver=dri --disable-glut --with-state-trackers="egl dri" &&
+  ./autogen.sh --prefix=$XORG_PREFIX --sysconfdir=/etc --localstatedir=/var --with-driver=dri --disable-glut --enable-static --disable-share--with-state-trackers="egl dri" &&
   make && su -c "make install"
   [ "$?" != "0" ] && exit
   su -c "mkdir -p $XORG_PREFIX/bin" &&  su -c "install -m755 progs/xdemos/{glxinfo,glxgears} $XORG_PREFIX/bin/"

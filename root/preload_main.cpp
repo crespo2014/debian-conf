@@ -68,7 +68,6 @@ int main(int ac, char** av)
   constexpr const char * const init_app = "/sbin/init";
   const char *fname = "/var/lib/e4rat/startup.log";
   bool bootchartd = false;
-  bool preload = false;
   bool single = false;
   bool sort = false;
   bool initfork = (getpid() == 1);
@@ -141,10 +140,9 @@ int main(int ac, char** av)
     {
       // child
       preload_parser p;
+      p.readahead("/var/lib/e4rat/startup.log");
       //SysLinux::set_disk_scheduler("sda","noop");
       //SysLinux::ioprio_set(IOPRIO_WHO_PROCESS, getpid(), IOPRIO_IDLE_LOWEST);
-      p.loadFile("/var/lib/e4rat/startup.log");   // TODO onfly load plus low priority
-      p.preload();
       _exit(0);
     }
     // Start system scripts
