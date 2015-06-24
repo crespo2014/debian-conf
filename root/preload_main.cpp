@@ -170,6 +170,7 @@ int main(int ac, char** av)
         };
     Tasks<task_id> scheduler(tasks, tasks + sizeof(tasks) / sizeof(*tasks), &getTaskName);
     scheduler.start(4);
+    SysLinux::execute_c("/bin/udevadm trigger");
     SysLinux::execute_c(init_app,false,false);
   }
   if (sort)
