@@ -163,13 +163,6 @@ private:
   unsigned long file_desc_count_ = 0;    // how many file descriptors in total
   unsigned long file_desc_idx = 0;      // current or last file being loaded - for stage
   std::list<std::vector<struct file_desc_t>> file_desc_;    //TODO switch to some unique_ptr with size, we do not reallocated memory again, we create a new vector.
-  // current position being load
-  struct
-  {
-    std::list<std::vector<struct file_desc_t>>::iterator list;
-    std::vector<struct file_desc_t>::iterator fd;
-  } it;
-
 public:
   int loadFile(const char* fname)
   {
@@ -187,11 +180,6 @@ public:
       }
     }
     file_desc_idx = 0;
-    if (file_desc_count_ != 0)
-    {
-      it.list = file_desc_.begin();
-      it.fd = (*it.list).begin();    // to be fill by the first call
-    }
     return 0;
   }
   /*
@@ -213,7 +201,7 @@ public:
 				while (nextToken(' ') != nullptr && nextToken(' ') != nullptr
 						&& (dt = nextToken('\n')) != nullptr)
 				{
-					int fd = open(it.fd->path, O_RDONLY | O_NOFOLLOW);
+					int fd = open(dt, O_RDONLY | O_NOFOLLOW);
 					if (fd > 0)
 					{
 						struct stat buf;
