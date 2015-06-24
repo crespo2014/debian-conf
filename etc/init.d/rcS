@@ -5,8 +5,6 @@
 # Call all S??* scripts in /etc/rcS.d/ in numerical/alphabetical order
 #
 
-cinit=$(grep -wo cinit /proc/cmdline)
-
-[ "$cinit" != "" ] && exit 0
+[ "$CINIT" != "" ] && exit 0
 
 exec /etc/init.d/rc S

@@ -108,7 +108,7 @@ int main(int ac, char** av)
       SysLinux::execute_arg({init_app}, false, false);
     }
     if (bootchartd)
-      SysLinux::execute_arg({"/lib/bootchart/bootchart-collector","50"});
+      SysLinux::execute_arg({"/lib/bootchart/bootchart-collector","50"},false);
 
     SysLinux::execute_arg({av[0],"init"},false);    // by default preload load all files
 
@@ -164,7 +164,7 @@ int main(int ac, char** av)
   }
   if (init) // called by himself at init
   {
-    setpriority(PRIO_PROCESS, getpid(), 5);
+    setpriority(PRIO_PROCESS, getpid(), 10);
     preload_parser p;
     std::thread t([&]{p.readahead(fname);});
     SysLinux::execute_arg({"/bin/cat","/proc/deferred_initcalls"});
