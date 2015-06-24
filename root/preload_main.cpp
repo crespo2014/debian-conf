@@ -62,6 +62,9 @@ int main(int ac, char** av)
   }
   if (bootchartd)
     SysLinux::execute_c("/lib/bootchart/bootchart-collector 50");
+
+
+
   if (cinit)
     setenv("CINIT","1",true);   // avoid run level S from starting
 
@@ -94,13 +97,22 @@ int main(int ac, char** av)
     }
     ++it;
   }
-  preload_parser p;
-  p.loadFile(fname);
-  // reduce priority
-  //SysLinux::ioprio_set(IOPRIO_WHO_PROCESS, getpid(), IOPRIO_IDLE_LOWEST);
 
+  // Start preload
+  int pid = fork();
+  if (pid == 0)
+  {
+    // child
+    preload_parser p;
+    //SysLinux::ioprio_set(IOPRIO_WHO_PROCESS, getpid(), IOPRIO_IDLE_LOWEST);
+    p.loadFile("/var/lib/e4rat/startup.log");   // TODO onfly load plus low priority
+    p.preload();
+    _exit(0);
+  }
   if (sort)
   {
+    preload_parser p;
+    p.loadFile(fname);
     p.Merge();
     p.UpdateBlock();
     p.WriteOut();
