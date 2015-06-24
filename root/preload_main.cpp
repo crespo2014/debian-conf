@@ -159,7 +159,6 @@ int main(int ac, char** av)
     }
     ++it;
   }
-
   if (sort)
   {
     preload_parser p;
