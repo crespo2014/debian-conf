@@ -8,7 +8,52 @@
 #include <iostream>
 #include <thread>
 #include "sys_linux.h"
+#include "tasks.h"
 #include "preload.h"
+
+#define TASK_ID(x)  \
+  x(none)\
+  x(root_fs) \
+  x(sys_fs) \
+  x(dev_fs)  \
+  x(run_fs) \
+  x(tmp_fs) \
+  x(all_fs) \
+  x(acpi)\
+  x(hostname) \
+  x(deferred) \
+  x(udev)\
+  x(X)\
+  x(dev_subfs) \
+  x(udev_trigger)\
+  x(dbus)\
+  x(procps)\
+  x(xfce4)\
+  x(slim) \
+  x(init_d)\
+  x(grp_none)  /* no group */ \
+  x(grp_krn_fs) /* proc sys dev tmp run + setup directories */ \
+  x(grp_fs)     /* all fs ready home, data and ... */ \
+  x(max)\
+
+#define TO_STRING(id)                 #id
+#define TO_NAME(id)               TO_STRING(id),
+#define TO_ID(id)                 id ## _id,
+
+typedef enum
+{
+  TASK_ID(TO_ID)
+} task_id;
+
+
+static const char* getTaskName(task_id id)
+{
+  static const char* const names[] =
+  { TASK_ID(TO_NAME)"" };
+  if (id >= sizeof(names) / sizeof(*names))
+    return "";
+  return names[id];
+}
 
 /*
  * usage
@@ -18,13 +63,15 @@
  * file <file>      // use this file
  *
  */
-
 int main(int ac, char** av)
 {
   constexpr const char * const init_app = "/sbin/init";
+  const char *fname = "/var/lib/e4rat/startup.log";
   bool bootchartd = false;
-  bool cinit = false;
+  bool preload = false;
   bool single = false;
+  bool sort = false;
+  bool initfork = (getpid() == 1);
   char tstr[255];
   SysLinux::mount_procfs(nullptr);
   SysLinux::mount_sysfs(nullptr);
@@ -42,10 +89,7 @@ int main(int ac, char** av)
     SysLinux::split(tstr, cmdline);
     for (auto p : cmdline)
     {
-      if (strcmp(p, "cinit") == 0)
-      {
-        cinit = true;
-      } else if (strcmp(p, "bootchart") == 0)
+      if (strcmp(p, "bootchart") == 0)
       {
         bootchartd = true;
       } else if (strcmp(p, "single") == 0)
@@ -55,7 +99,8 @@ int main(int ac, char** av)
       }
     }
   }
-  if (single)
+  // single user mode with fork
+  if (single && initfork)
   {
     char * arg[] = { const_cast<char*>(init_app), nullptr };
     execv(init_app, arg);
@@ -63,17 +108,8 @@ int main(int ac, char** av)
   if (bootchartd)
     SysLinux::execute_c("/lib/bootchart/bootchart-collector 50");
 
+  setenv("CINIT", "1", true);    // avoid run level S from starting
 
-
-  if (cinit)
-    setenv("CINIT","1",true);   // avoid run level S from starting
-
-//SysLinux::set_disk_scheduler("sda","noop");
-
-  const char *fname = "/var/lib/e4rat/startup.log";
-
-  bool initfork = (getpid() == 1);
-  bool sort = false;
   int it = 0;
   ++it;
   while (it < ac)
@@ -97,17 +133,40 @@ int main(int ac, char** av)
     }
     ++it;
   }
-
-  // Start preload
-  int pid = fork();
-  if (pid == 0)
+  // This application has been call from kernel
+  if (initfork)
   {
-    // child
-    preload_parser p;
-    //SysLinux::ioprio_set(IOPRIO_WHO_PROCESS, getpid(), IOPRIO_IDLE_LOWEST);
-    p.loadFile("/var/lib/e4rat/startup.log");   // TODO onfly load plus low priority
-    p.preload();
-    _exit(0);
+    int pid = fork();   // fork for preload
+    if (pid == 0)
+    {
+      // child
+      preload_parser p;
+      //SysLinux::set_disk_scheduler("sda","noop");
+      //SysLinux::ioprio_set(IOPRIO_WHO_PROCESS, getpid(), IOPRIO_IDLE_LOWEST);
+      p.loadFile("/var/lib/e4rat/startup.log");   // TODO onfly load plus low priority
+      p.preload();
+      _exit(0);
+    }
+    // Start system scripts
+    static const Tasks<task_id>::task_info_t tasks[] =
+    {    ///
+        { &SysLinux::deferred_modules, deferred_id, grp_none_id, slim_id, none_id },    //
+            { &SysLinux::mount_root, root_fs_id, grp_krn_fs_id, none_id, none_id },    //
+            { &SysLinux::mount_sysfs, sys_fs_id, grp_krn_fs_id, none_id, none_id },    //
+            { &SysLinux::mount_devfs, dev_fs_id, grp_krn_fs_id, run_fs_id, none_id },    //
+            { &SysLinux::mount_tmp, tmp_fs_id, grp_krn_fs_id, none_id, none_id },    //
+            { &SysLinux::mount_run, run_fs_id, grp_krn_fs_id, none_id, none_id },    //
+            { &SysLinux::mount_all, all_fs_id, grp_krn_fs_id, dev_fs_id, none_id },    //
+            { &SysLinux::hostname_s, hostname_id, grp_krn_fs_id, none_id, none_id },    //
+            { &SysLinux::udev, udev_id, grp_none_id, dev_fs_id, none_id },    //
+            { &SysLinux::acpi_daemon, acpi_id, grp_none_id, grp_krn_fs_id, none_id },    //
+            { &SysLinux::dbus, dbus_id, grp_none_id, grp_krn_fs_id, none_id },    //
+            { &SysLinux::slim, slim_id, grp_none_id, grp_krn_fs_id, none_id },    //
+            { &SysLinux::procps, procps_id, grp_none_id, udev_id, none_id },    //
+        };
+    Tasks<task_id> scheduler(tasks, tasks + sizeof(tasks) / sizeof(*tasks), &getTaskName);
+    scheduler.start(4);
+    SysLinux::execute_c(init_app,false,false);
   }
   if (sort)
   {
@@ -116,29 +175,6 @@ int main(int ac, char** av)
     p.Merge();
     p.UpdateBlock();
     p.WriteOut();
-  }
-  int pid = -1;       // simulate not child
-  if (initfork)
-  {
-    pid = fork();
-  }
-// Call deferred and preload if (child process or parent process without child)
-  if (pid == 0 || pid == -1)    //child or fail
-  {
-    std::thread thr(SysLinux::deferred_modules, nullptr);
-    p.preload();
-    thr.join();
-    //p.preload();
-    //SysLinux::set_disk_scheduler("sda", "cfq");
-  }
-  if (pid == 0)
-    _exit(0);     // end child
-
-// we definitly call init
-  if (initfork)
-  {
-    char * arg[] = { const_cast<char*>(init_app), nullptr };
-    execv(init_app, arg);
   }
   return 0;
 }

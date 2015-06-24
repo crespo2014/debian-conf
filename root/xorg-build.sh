@@ -2,7 +2,7 @@
 #
 # http://www.linuxfromscratch.org/blfs/view/7.7/x/x7driver.html
 #
-# apt-get install autoconf make cmake pkg-config  libperl-dev libgtk2.0-dev intltool libsysfs-dev libudev-dev llvm
+# apt-get install autoconf make cmake pkg-config  libperl-dev libgtk2.0-dev intltool libsysfs-dev libudev-dev llvm libpciaccess-dev
 #[ -d xorg-src ] || mkdir xorg-src
 #cd xorg-src
 
@@ -36,7 +36,7 @@ LIBRARY_PATH=${LIBRARY_PATH}$XORG_PREFIX/lib
 C_INCLUDE_PATH=${C_INCLUDE_PATH}$XORG_PREFIX/include         
 CPLUS_INCLUDE_PATH=${CPLUS_INCLUDE_PATH}$XORG_PREFIX/include         
 
-ACLOCAL='aclocal -I $XORG_PREFIX/share/aclocal'
+ACLOCAL="aclocal -I $XORG_PREFIX/share/aclocal"
 export PATH PKG_CONFIG_PATH ACLOCAL LIBRARY_PATH C_INCLUDE_PATH CPLUS_INCLUDE_PATH	
 
 if [ 1 = 0 ]; then	
@@ -147,6 +147,9 @@ for line in $files
 do
   install "$http_root/$line"
 done
+fi
+if [ "$JUMP_TO" == "lib2" -o "$JUMP_TO" == "" ]; then  
+JUMP_TO=
 
 files="http://xorg.freedesktop.org/releases/individual/lib/libXau-1.0.8.tar.bz2 \
  http://xorg.freedesktop.org/releases/individual/lib/libXdmcp-1.1.1.tar.bz2 \

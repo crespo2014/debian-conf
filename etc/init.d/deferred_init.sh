@@ -1,8 +1,8 @@
 #! /bin/bash
 ### BEGIN INIT INFO
 # Provides:			modules          
-# Required-Start:       $all		
-# Required-Stop:
+# Required-Start:       bootlogs		
+# Required-Stop:	
 # Should-Start:      
 # Default-Start:	S 1 2 3 4 5  
 # Default-Stop:
@@ -14,19 +14,12 @@ PATH=/sbin:/bin
 
 case "$1" in
   start|"")
+    (sleep 30;INIT_PROCESS="yes"; /sbin/bootchartd stop;) &
     single=$(grep -wo single /proc/cmdline)
-    if [ "$runlevel" == "S" ] && [ "$single" == "" ]; then
-    	exit
-    fi
-	#give some time to display manager
-	#[ "$runlevel" == "S" ] || sleep 10
+    cinit=$(grep -wo cinit /proc/cmdline)
+    [ "$single" == "" ] && [ "$cinit" != "" ] && exit
     cat /proc/deferred_initcalls
     udevadm trigger
-	# log some bootchart data before close it
-	[ "$runlevel" == "S" ] || sleep 30
-	#to include dmesg inside bootchart file
-	INIT_PROCESS="yes"
-	/sbin/bootchartd stop
 	;;
   restart|reload|force-reload)
 	;;
