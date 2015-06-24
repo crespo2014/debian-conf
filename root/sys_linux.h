@@ -24,6 +24,7 @@
 #include <sys/ptrace.h>
 #include <asm/unistd.h>
 #include <linux/sched.h>
+//#include <linux/syscalls.h>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -221,14 +222,19 @@ public:
   }
   static void deferred_modules(void*)
   {
-    FILE * pFile;
-    pFile = fopen("/proc/deferred_initcalls", "r");
-    if (pFile == NULL)
-      perror("/proc/deferred_initcalls");
-    else
+    const char* f = "/proc/deferred_initcalls";
+    char name[30];
+    int ret;
+    auto fd = open(f, O_RDONLY);
+    if (fd > 0)
     {
-      fclose(pFile);
-    }
+      while ((ret = read(fd, name, sizeof(name))) > 0)
+      {
+        name[ret] = 0;
+      }
+      close(fd);
+    } else
+      perror(f);
   }
   static void start_udev(void*)
   {

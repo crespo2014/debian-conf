@@ -10,6 +10,9 @@
 #include "sys_linux.h"
 #include "tasks.h"
 #include "preload.h"
+#include <pthread.h>
+#include <sys/time.h>
+#include <sys/resource.h>
 
 #define TASK_ID(x)  \
   x(none)\
@@ -138,17 +141,20 @@ int main(int ac, char** av)
     int pid = fork();   // fork for preload
     if (pid == 0)
     {
-      // child
+      setpriority(PRIO_PROCESS,getpid(),15);
+      SysLinux::ioprio_set(IOPRIO_WHO_PROCESS, getpid(), IOPRIO_IDLE_LOWEST);
+      SysLinux::execute_c("cat /proc/deferred_initcalls",false);
       preload_parser p;
       p.readahead("/var/lib/e4rat/startup.log");
       //SysLinux::set_disk_scheduler("sda","noop");
-      //SysLinux::ioprio_set(IOPRIO_WHO_PROCESS, getpid(), IOPRIO_IDLE_LOWEST);
+      //
       _exit(0);
     }
+
     // Start system scripts
     static const Tasks<task_id>::task_info_t tasks[] =
     {    ///
-        { &SysLinux::deferred_modules, deferred_id, grp_none_id, slim_id, none_id },    //
+        //{ &SysLinux::deferred_modules, deferred_id, grp_none_id, slim_id, none_id },    //
             { &SysLinux::mount_root, root_fs_id, grp_krn_fs_id, none_id, none_id },    //
             { &SysLinux::mount_sysfs, sys_fs_id, grp_krn_fs_id, none_id, none_id },    //
             { &SysLinux::mount_devfs, dev_fs_id, grp_krn_fs_id, run_fs_id, none_id },    //
