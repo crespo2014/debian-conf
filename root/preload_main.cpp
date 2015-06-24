@@ -62,6 +62,7 @@ static const char* getTaskName(task_id id)
  * sort <filename>  // load the file, sort it and write to console
  * load <file>      // load the file
  * file <file>      // use this file
+ * deferred         // do deferred calls
  *
  */
 int main(int ac, char** av)
@@ -101,21 +102,19 @@ int main(int ac, char** av)
         }
       }
     }
-    // single user mode
+    // single user mode, start init
     if (single)
     {
-      SysLinux::execute_c(init_app, false, false);
+      SysLinux::execute_arg({init_app}, false, false);
     }
     if (bootchartd)
-      SysLinux::execute_c("/lib/bootchart/bootchart-collector 50");
+      SysLinux::execute_arg({"/lib/bootchart/bootchart-collector","50"});
 
-    SysLinux::execute_c("cat /proc/deferred_initcalls", false);
-    SysLinux::execute_c(av[0], false);    // by default preload load all files
+    SysLinux::execute_arg({av[0],"init"},false);    // by default preload load all files
 
     setenv("CINIT", "1", true);    // avoid run level S from starting
     // Start system scripts
     static const Tasks<task_id>::task_info_t tasks[] = {    ///
-                                                            //{ &SysLinux::deferred_modules, deferred_id, grp_none_id, slim_id, none_id },    //
         { &SysLinux::mount_root, root_fs_id, grp_krn_fs_id, none_id, none_id },    //
             { &SysLinux::mount_sysfs, sys_fs_id, grp_krn_fs_id, none_id, none_id },    //
             { &SysLinux::mount_devfs, dev_fs_id, grp_krn_fs_id, run_fs_id, none_id },    //
@@ -131,11 +130,12 @@ int main(int ac, char** av)
         };
     Tasks<task_id> scheduler(tasks, tasks + sizeof(tasks) / sizeof(*tasks), &getTaskName);
     scheduler.start(4);
-    SysLinux::execute_c("/bin/udevadm trigger");
-    SysLinux::execute_c(init_app, false, false);
+    // start init application
+    SysLinux::execute_arg({init_app}, false, false);
     _exit(0);
   }
   // running outside init. we sort or load the file
+  bool init = false;
   int it = 0;
   ++it;
   while (it < ac)
@@ -156,8 +156,20 @@ int main(int ac, char** av)
       ++it;
       if (it < ac)
         fname = av[it];
+    } else if (strcmp(av[it], "init") == 0)
+    {
+      init = true;
     }
     ++it;
+  }
+  if (init) // called by himself at init
+  {
+    setpriority(PRIO_PROCESS, getpid(), 5);
+    preload_parser p;
+    std::thread t([&]{p.readahead(fname);});
+    SysLinux::execute_arg({"/bin/cat","/proc/deferred_initcalls"});
+    SysLinux::execute_arg({"/bin/udevadm","trigger"});
+    t.join();
   }
   if (sort)
   {
@@ -166,12 +178,6 @@ int main(int ac, char** av)
     p.Merge();
     p.UpdateBlock();
     p.WriteOut();
-  } else
-  {
-    setpriority(PRIO_PROCESS, getpid(), 5);
-    SysLinux::ioprio_set(IOPRIO_WHO_PROCESS, getpid(), IOPRIO_IDLE_LOWEST);
-    preload_parser p;
-    p.readahead("/var/lib/e4rat/startup.log");
   }
   return 0;
 }

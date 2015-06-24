@@ -130,24 +130,42 @@ public:
    * wait if true wait for command to finish
    * no fork the current process
    */
-  static int execute(char* cmd, bool wait = true, bool nofork = false)
+  static int execute(char* cmd, bool wait = true, bool fork = true)
   {
     std::vector<char*> arg;
     arg.reserve(10);
     split(cmd, arg);
     arg.push_back(nullptr);
-    return launch(wait, arg.data(), nofork);
+    return launch(wait, arg.data(), !fork);
   }
   /*
    * Execute command from const char*
    */
-  static int execute_c(const char* ccmd, bool wait = false, bool fork = true)
+//  static int execute_c(const char* ccmd, bool wait = false, bool fork = true)
+//  {
+//    char cmd[512];
+//    strcpy(cmd, ccmd);
+//    return SysLinux::execute(cmd, wait, !fork);
+//  }
+  static int execute_arg(std::initializer_list<const char*> list,bool wait = true,bool fork = true)
   {
-    char cmd[512];
-    strcpy(cmd, ccmd);
-    return SysLinux::execute(cmd, wait, !fork);
+    // max arguments are 20, i don want to use malloc after fork
+    const char* arg[20];
+    const char** p = arg;
+    if (list.size() > 19)
+    {
+      printf("too many arguments");
+      return -1;
+    }
+    for( const char* elem : list )
+    {
+      (*p) = elem;
+      ++p;
+    }
+    (*p) = nullptr;
+    return launch(wait,const_cast<char * const *>(arg),!fork);
+    return 0;
   }
-
   // do not forget (char*) nullptr as last argument
   static int launch(bool wait, char * const * argv, bool nofork = false)
   {
@@ -182,7 +200,7 @@ public:
   // mount all filesystem in fstab
   static void mount_all(void*)
   {
-    CHECK_ZERO(execute_c("/bin/mount -a", true), "mount all");
+    CHECK_ZERO(execute_arg({"/bin/mount","-a"}, true), "mount all");
   }
   static void mount_procfs(void*)
   {
@@ -238,7 +256,7 @@ public:
   }
   static void start_udev(void*)
   {
-    execute_c("/etc/init.d/udev start", true);
+    execute_arg({"/etc/init.d/udev","start"});
     /*
      *  symlink("/dev/MAKEDEV", "/bin/true");
      *   SysLinux::execute_c("/sbin/udevd --daemon");  // move to the end be carefull with network cards
@@ -283,15 +301,15 @@ public:
   }
   static void procps(void*)
   {
-    SysLinux::execute_c("/sbin/sysctl -q --system", true);
+    SysLinux::execute_arg({"/sbin/sysctl","-q","--system"}, true);
   }
   static void slim(void*)
   {
-    SysLinux::execute_c("/etc/init.d/slim start", true);
+    SysLinux::execute_arg({"/etc/init.d/slim","start"}, true);
   }
   static void dbus(void*)
   {
-    SysLinux::execute_c("/etc/init.d/dbus start", true);
+    SysLinux::execute_arg({"/etc/init.d/dbus","start"}, true);
   }
 
   /*
@@ -330,7 +348,7 @@ public:
     }
 
     // SysLinux::execute_c("udevadm info --cleanup-db");    // it will be empty
-    SysLinux::execute_c("/sbin/udevd --daemon", true);    // move to the end be carefull with network cards
+    SysLinux::execute_arg({"/sbin/udevd","--daemon"});    // move to the end be carefull with network cards
     //SysLinux::execute_c("/bin/udevadm trigger --action=add");
     // SysLinux::execute_c("/bin/udevadm settle", true);   //wait for events
   }
@@ -345,13 +363,13 @@ public:
   static void init_d()
   {
     //todo list files in /etc/rcS/ and run everything except for a block list of script that we are not run
-    SysLinux::execute_c("/etc/init.d/keyboard-setup start", true);
-    SysLinux::execute_c("/etc/init.d/kbd start", true);
-    SysLinux::execute_c("/etc/init.d/console-setup start", true);
-    SysLinux::execute_c("/lib/udev/udev-finish", true);
-    SysLinux::execute_c("/etc/init.d/hwclock start", true);
-    SysLinux::execute_c("/etc/init.d/urandom start", true);
-    SysLinux::execute_c("/etc/init.d/networking start", true);
+    SysLinux::execute_arg({"/etc/init.d/keyboard-setup","start"});
+    SysLinux::execute_arg({"/etc/init.d/kbd","start"});
+    SysLinux::execute_arg({"/etc/init.d/console-setup","start"});
+    SysLinux::execute_arg({"/lib/udev/udev-finish"});
+    SysLinux::execute_arg({"/etc/init.d/hwclock","start"});
+    SysLinux::execute_arg({"/etc/init.d/urandom","start"});
+    SysLinux::execute_arg({"/etc/init.d/networking","start"});
   }
   /*
    startxfc4 script c++ translation
@@ -431,7 +449,7 @@ public:
        */
       //sigprocmask(SIG_SETMASK, &oldmask, nullptr);
       signal(SIGUSR1, SIG_IGN);
-      SysLinux::execute(tmp_str, false, true);
+      SysLinux::execute(tmp_str, false, false);
     }
     // wait for signal become pending, only blocked signal can be pending, otherwise the signal will be generated
     r = sigtimedwait(&sig_mask, nullptr, &sig_timeout);
@@ -466,7 +484,7 @@ public:
 
   static void acpi_daemon(void*)
   {
-    SysLinux::execute_c("/etc/init.d/acpid start", true);
+    SysLinux::execute_arg({"/etc/init.d/acpid","start"}, true);
   }
 private:
   // system initialization information
