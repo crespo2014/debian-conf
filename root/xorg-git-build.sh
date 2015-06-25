@@ -1,14 +1,23 @@
 #!/bin/bash
 
-# apt-get install autoconf make cmake pkg-config  libperl-dev libgtk2.0-dev intltool libsysfs-dev libudev-dev llvm libpciaccess-dev
-# libtool bison flex python-mako
+/bin/true apt-get install autoconf make cmake pkg-config  libperl-dev libgtk2.0-dev \
+intltool \
+libsysfs-dev \
+libudev-dev \
+llvm \
+libpciaccess-dev \
+libtool \
+bison \
+flex \
+python-mako \
+libxshmfence-dev
 
 # http://www.mesa3d.org/autoconf.html
 
 GOTO=$1
 
 export XORG_PREFIX="/mnt/data/app/x86"
-export XORG_CONFIG="--enable-shared=no --prefix=$XORG_PREFIX --sysconfdir=/etc --localstatedir=/var  "
+export XORG_CONFIG="--disable-manpages --enable-shared=no --prefix=$XORG_PREFIX --sysconfdir=/etc --localstatedir=/var  "
 
 export ACLOCAL="aclocal -I $XORG_PREFIX/share/aclocal"
 
@@ -151,19 +160,27 @@ echo "Building modules"
 for line in $modules
 do
   extract "$line"
-  ./autogen.sh --prefix=$XORG_PREFIX --enable-shared=no && make && su -c "make install"
+  ./autogen.sh            \
+  --prefix=$XORG_PREFIX   \
+  --enable-static=yes     \
+  --enable-devel-docs=no  \
+  --enable-shared=yes && 
+  make && 
+  su -c "make install"
   [ "$?" != "0" ] && exit
   cd ..
 done
 fi
 
 #/usr/src/linux-headers-`uname -r` &&
+# --with-kernel-source
+# make -C /usr/src/linux-headers-`uname -r` && 
+
 if [ "$GOTO" == "" -o "$GOTO" == "G2" ]; then
 GOTO=
   extract git://git.freedesktop.org/git/mesa/drm
-  ./autogen.sh --prefix=$XORG_PREFIX --enable-shared=no &&
+  ./autogen.sh --prefix=$XORG_PREFIX --disable-manpages --enable-shared=no --disable-freedreno --disable-intel --disable-radeon --disable-vmwgfx --enable-udev &&
   make &&
-  make -C linux-core && 
   su -c "make install"
   [ "$?" != "0" ] && exit  
 fi
@@ -172,13 +189,56 @@ if [ "$GOTO" == "" -o "$GOTO" == "G3" ]; then
 GOTO=
 #--disable-static --enable-static
   extract git://git.freedesktop.org/git/mesa/mesa 
-  ./autogen.sh --prefix=$XORG_PREFIX --sysconfdir=/etc --localstatedir=/var --with-driver=dri --disable-glut --enable-static --disable-share--with-state-trackers="egl dri" &&
-  make && su -c "make install"
+/bin/true ./autogen.sh                            \
+      --prefix=$NVD                       \
+     --enable-texture-float              \
+      --enable-gles1                      \
+      --enable-gles2                      \
+      --enable-glx                        \
+      --enable-egl                        \
+      --enable-gallium-egl                \
+      --enable-gallium-llvm               \
+      --enable-shared-glapi               \
+      --enable-gbm                        \
+      --enable-glx-tls                    \
+      --enable-dri                        \
+      --enable-osmesa                     \
+      --with-egl-platforms=x11,drm        \
+      --with-gallium-drivers=nouveau      \
+      --with-dri-drivers=nouveau          \
+      --enable-vdpau
+
+/bin/true   --enable-static           \
+  --disable-share           \
+  --disable-static		   \
+  --with-driver=dri        \
+  
+  ./autogen.sh             \
+  --prefix=$XORG_PREFIX    \
+  --sysconfdir=/etc        \
+  --localstatedir=/var     \
+  --disable-glut           \
+  --disable-manpages       \
+  --disable-freedreno      \
+  --disable-intel          \
+  --disable-radeon         \
+  --disable-vmwgfx         \
+  --disable-share           \
+  --with-state-trackers="egl dri" &&
+  make && 
+  su -c "make install"
   [ "$?" != "0" ] && exit
   su -c "mkdir -p $XORG_PREFIX/bin" &&  su -c "install -m755 progs/xdemos/{glxinfo,glxgears} $XORG_PREFIX/bin/"
   [ "$?" != "0" ] && exit
   cd ..
 fi
+
+
+# git clone git://people.freedesktop.org/~aplattner/libvdpau
+#$ cd libvdpau/
+#$./autogen.sh --prefix=$NVD
+#$ make
+#$ make install
 
 if [ "$GOTO" == "" -o "$GOTO" == "G4" ]; then
 GOTO=
