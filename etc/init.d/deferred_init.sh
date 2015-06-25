@@ -14,7 +14,7 @@ PATH=/sbin:/bin
 
 case "$1" in
   start|"")
-    (sleep 5;cat /proc/deferred_initcalls;udevadm trigger;sleep 30;INIT_PROCESS="yes"; /sbin/bootchartd stop;) &
+    (sleep 5;cat /proc/deferred_initcalls;udevadm trigger;sleep 15;INIT_PROCESS="yes"; /sbin/bootchartd stop;) &
 	;;
   restart|reload|force-reload)
 	;;
