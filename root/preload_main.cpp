@@ -108,8 +108,6 @@ int main(int ac, char** av)
     if (bootchartd)
       SysLinux::execute_arg({"/lib/bootchart/bootchart-collector","50"},false);
 
-    SysLinux::execute_arg({av[0],"init"},false);    // by default preload load all files
-
     setenv("CINIT", "1", true);    // avoid run level S from starting
     // Start system scripts
     static const Tasks<task_id>::task_info_t tasks[] = {    //
