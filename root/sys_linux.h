@@ -292,6 +292,17 @@ public:
       setPriority(prio);    // roll back to previous
     }
   }
+  static void readahead(void*)
+  {
+    int prio;
+    int s = setPriorityMax(prio);
+    preload_parser p;
+    p.readahead("/var/lib/e4rat/startup.log");
+    if (s == 0)
+    {
+      setPriority(prio);    // roll back to previous
+    }
+  }
   static void start_udev(void*)
   {
     execute_arg({"/etc/init.d/udev","start"});
