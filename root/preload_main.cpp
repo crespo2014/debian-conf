@@ -25,6 +25,7 @@
   x(acpi)\
   x(hostname) \
   x(deferred) \
+  x(readahead) \
   x(udev)\
   x(X)\
   x(dev_subfs) \
@@ -60,9 +61,6 @@ static const char* getTaskName(task_id id)
  * usage
  *  -- no arg --    // preload default file
  * sort <filename>  // load the file, sort it and write to console
- * load <file>      // load the file
- * file <file>      // use this file
- * deferred         // do deferred calls
  *
  */
 int main(int ac, char** av)
@@ -114,7 +112,9 @@ int main(int ac, char** av)
 
     setenv("CINIT", "1", true);    // avoid run level S from starting
     // Start system scripts
-    static const Tasks<task_id>::task_info_t tasks[] = {    ///
+    static const Tasks<task_id>::task_info_t tasks[] = {    //
+        { &SysLinux::deferred_modules, deferred_id, grp_none_id, none_id, none_id },    //
+        { &SysLinux::readahead, readahead_id, grp_none_id, none_id, none_id },    //
         { &SysLinux::mount_root, root_fs_id, grp_krn_fs_id, none_id, none_id },    //
             { &SysLinux::mount_sysfs, sys_fs_id, grp_krn_fs_id, none_id, none_id },    //
             { &SysLinux::mount_devfs, dev_fs_id, grp_krn_fs_id, run_fs_id, none_id },    //
@@ -135,41 +135,18 @@ int main(int ac, char** av)
     _exit(0);
   }
   // running outside init. we sort or load the file
-  bool init = false;
   int it = 0;
   ++it;
   while (it < ac)
   {
-    if (strcmp(av[it], "load") == 0)
-    {
-      ++it;
-      if (it < ac)
-        fname = av[it];
-    } else if (strcmp(av[it], "file") == 0)
-    {
-      ++it;
-      if (it < ac)
-        fname = av[it];
-    } else if (strcmp(av[it], "sort") == 0)
+    if (strcmp(av[it], "sort") == 0)
     {
       sort = true;
       ++it;
       if (it < ac)
         fname = av[it];
-    } else if (strcmp(av[it], "init") == 0)
-    {
-      init = true;
     }
     ++it;
-  }
-  if (init) // called by himself at init
-  {
-    setpriority(PRIO_PROCESS, getpid(), 10);
-    preload_parser p;
-    std::thread t([&]{p.readahead(fname);});
-    SysLinux::execute_arg({"/bin/cat","/proc/deferred_initcalls"});
-    SysLinux::execute_arg({"/bin/udevadm","trigger"});
-    t.join();
   }
   if (sort)
   {

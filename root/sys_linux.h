@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <sched.h>
+#include "preload.h"
 //#include <linux/ioprio.h>
 //#include <ext2fs/ext2fs.h>
 //#include <blkid/blkid.h>
@@ -291,6 +292,7 @@ public:
     {
       setPriority(prio);    // roll back to previous
     }
+    SysLinux::execute_arg({"/bin/udevadm","trigger"},true);
   }
   static void readahead(void*)
   {
@@ -305,7 +307,7 @@ public:
   }
   static void start_udev(void*)
   {
-    execute_arg({"/etc/init.d/udev","start"});
+    execute_arg({"/etc/init.d/udev","start"},true);
     /*
      *  symlink("/dev/MAKEDEV", "/bin/true");
      *   SysLinux::execute_c("/sbin/udevd --daemon");  // move to the end be carefull with network cards
@@ -397,7 +399,7 @@ public:
     }
 
     // SysLinux::execute_c("udevadm info --cleanup-db");    // it will be empty
-    SysLinux::execute_arg({"/sbin/udevd","--daemon"});    // move to the end be carefull with network cards
+    SysLinux::execute_arg({"/sbin/udevd","--daemon"},true);    // move to the end be carefull with network cards
     //SysLinux::execute_c("/bin/udevadm trigger --action=add");
     // SysLinux::execute_c("/bin/udevadm settle", true);   //wait for events
   }

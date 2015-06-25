@@ -7,16 +7,32 @@
 
 #include "sys_linux.h"
 #include "preload.h"
+#include "tasks.h"
 
+typedef enum
+{
+  none_id,
+  deferred_id,
+  readahead_id,
+  grp_none_id,
+  max_id,
+} task_id;
+
+static const char* getTaskName(task_id )
+{
+  return "";
+}
 
 int main()
 {
-  SysLinux::execute_arg({"/bin/cat","/proc/deferred_initcalls",";"});
-  SysLinux::execute_arg({"/bin/bash","(ls / ; ls /home)"});
-  int pid = fork();
-  if (pid == 0)
-  {
-    SysLinux::execute_arg({"/bin/ls","/"},false,false);
-  }
+  // Start system scripts
+      static const Tasks<task_id>::task_info_t tasks[] = {    //
+          { &SysLinux::deferred_modules, deferred_id, grp_none_id, none_id, none_id },    //
+         // { &SysLinux::readahead, readahead_id, grp_none_id, none_id, none_id },    //
+
+          };
+      Tasks<task_id> scheduler(tasks, tasks + sizeof(tasks) / sizeof(*tasks), &getTaskName);
+      scheduler.start(4);
+
 }
 
