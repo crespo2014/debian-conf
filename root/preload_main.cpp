@@ -74,6 +74,8 @@ int main(int ac, char** av)
   char tstr[255];
   if (initfork)
   {
+    if (freopen("/var/log/kmsg","w",stdout) == nullptr)
+      perror("/var/log/kmsg");
     SysLinux::mount_procfs(nullptr);
     SysLinux::mount_sysfs(nullptr);
     int fd;
@@ -111,7 +113,7 @@ int main(int ac, char** av)
     setenv("CINIT", "1", true);    // avoid run level S from starting
     // Start system scripts
     static const Tasks<task_id>::task_info_t tasks[] = {    //
-        { &SysLinux::deferred_modules, deferred_id, grp_none_id, none_id, none_id },    //
+        { &SysLinux::deferred_modules, deferred_id, grp_none_id, all_fs_id, none_id },    //
         { &SysLinux::readahead, readahead_id, grp_none_id, none_id, none_id },    //
         { &SysLinux::mount_root, root_fs_id, grp_krn_fs_id, none_id, none_id },    //
             { &SysLinux::mount_sysfs, sys_fs_id, grp_krn_fs_id, none_id, none_id },    //
@@ -120,7 +122,7 @@ int main(int ac, char** av)
             { &SysLinux::mount_run, run_fs_id, grp_krn_fs_id, none_id, none_id },    //
             { &SysLinux::mount_all, all_fs_id, grp_krn_fs_id, dev_fs_id, none_id },    //
             { &SysLinux::hostname_s, hostname_id, grp_krn_fs_id, none_id, none_id },    //
-            { &SysLinux::udev, udev_id, grp_none_id, dev_fs_id, none_id },    //
+            { &SysLinux::udev, udev_id, grp_none_id, deferred_id,none_id },    //
             { &SysLinux::acpi_daemon, acpi_id, grp_none_id, grp_krn_fs_id, none_id },    //
             { &SysLinux::dbus, dbus_id, grp_none_id, grp_krn_fs_id, none_id },    //
             { &SysLinux::slim, slim_id, grp_none_id, grp_krn_fs_id, none_id },    //
