@@ -141,7 +141,7 @@ int main(int ac, char** av)
     int pid = fork();   // fork for preload
     if (pid == 0)
     {
-      setpriority(PRIO_PROCESS,getpid(),15);
+      setpriority(PRIO_PROCESS,getpid(),5);
       SysLinux::ioprio_set(IOPRIO_WHO_PROCESS, getpid(), IOPRIO_IDLE_LOWEST);
       SysLinux::execute_c("cat /proc/deferred_initcalls",false);
       preload_parser p;
