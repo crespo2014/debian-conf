@@ -537,6 +537,21 @@ public:
   {
     SysLinux::execute_arg({"/etc/init.d/acpid","start"}, true);
   }
+
+  static void session_manager(void*)
+  {
+    /*
+    start session manager using console-kit ck-launch-session
+    root   /usr/sbin/console-kit-daemon --no-daemon
+    root   /usr/lib/policykit-1/polkitd --no-debug
+    lester /usr/bin/ck-launch-session /usr/bin/dbus-launch --exit-with-session x-session-manager
+    lester /usr/bin/ssh-agent /usr/bin/ck-launch-session /usr/bin/dbus-launch --exit-with-session
+    lester /bin/sh /etc/xdg/xfce4/xinitrc -- /etc/X11/xinit/xserverrc
+
+    dbus-send --system --print-reply --dest="org.freedesktop.ConsoleKit" /org/freedesktop/ConsoleKit/Manager org.freedesktop.ConsoleKit.Manager.Stop
+    Error org.freedesktop.ConsoleKit.Manager.NotPrivileged: Not Authorized
+    */
+  }
 private:
   // system initialization information
   constexpr static const char* user_name = "lester";

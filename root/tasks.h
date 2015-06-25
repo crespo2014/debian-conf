@@ -70,8 +70,9 @@ public:
     sigprocmask(SIG_BLOCK, &sig_mask, &oldmask);
   }
   // Start execution of task using thread_max threads
-  void start(unsigned thread_max)
+  void start(unsigned thread_max,void* thread_data)
   {
+    user_param = thread_data;
     std::list < std::thread > threads;
     for (; thread_max > 0; --thread_max)
     {
@@ -200,7 +201,7 @@ private:
     {
       std::cout << " S " << lnx->getTaskName(t->id) << std::endl;
       clock_gettime(CLOCK_MONOTONIC, &lnx->status[t->id].started);
-      t->fnc(lnx);
+      t->fnc(lnx->user_param);
       clock_gettime(CLOCK_MONOTONIC, &lnx->status[t->id].ended);
       std::cout << " E " << lnx->getTaskName(t->id) << " " << (lnx->status[t->id].ended.tv_nsec / 1000000 + lnx->status[t->id].ended.tv_sec * 1000) - (lnx->status[t->id].started.tv_nsec / 1000000 + lnx->status[t->id].started.tv_sec * 1000) << " ms"
           << std::endl;
@@ -212,6 +213,7 @@ private:
   const task_info_t* begin = nullptr, * const end = nullptr;
   struct task_status_t status[ID::max_id];
   get_task_name_fnc_t& getTaskName;
+  void *user_param = nullptr;
 };
 
 #endif /* ROOT_TASKS_H_ */

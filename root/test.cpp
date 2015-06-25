@@ -32,7 +32,7 @@ int main()
 
           };
       Tasks<task_id> scheduler(tasks, tasks + sizeof(tasks) / sizeof(*tasks), &getTaskName);
-      scheduler.start(4);
+      scheduler.start(4,nullptr);
 
 }
 

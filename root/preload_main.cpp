@@ -127,7 +127,7 @@ int main(int ac, char** av)
             { &SysLinux::procps, procps_id, grp_none_id, udev_id, none_id },    //
         };
     Tasks<task_id> scheduler(tasks, tasks + sizeof(tasks) / sizeof(*tasks), &getTaskName);
-    scheduler.start(4);
+    scheduler.start(4,nullptr);
     // start init application
     SysLinux::execute_arg({init_app}, false, false);
     _exit(0);
