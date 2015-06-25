@@ -46,10 +46,12 @@ function extract()
 {
   url=$1
   fname=${url##*/}
-  name=${fname}
-  [ -d $name ] || git clone --depth 1 "$1"
+  [ -d $fname ] || git clone --depth 1 "$1" 
   [ $? != 0 ] && echo "Failed to get repo $1" && exit
-  cd $name
+  cd $fname
+  tag=$(git tag | tail -n 1)
+  tag=${tag##* }  
+  [ "$tag" != "" ] && echo "Checking out branch $tag" && git checkout $tag
   git pull
   [ $? != 0 ] && echo "Git pull $1 failed " && exit 
   return 0
@@ -60,6 +62,7 @@ function extract()
 # $2 extra autogen options
 # $3 extra make options
 # $4 extra commands after installs
+
 function install_autogen()
 {
   extract $1
