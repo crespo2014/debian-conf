@@ -225,17 +225,29 @@ public:
   static void mount_run(void*)
   {
     CHECK_ZERO(mount("run", "/run", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""), "mount /run ");
-    CHECK_ZERO(mkdir("/run/lock", 01777), "mkdir /run/lock");
-    CHECK_ZERO(mkdir("/run/shm", 01777), "mkdir /run/shm");
-    CHECK_ZERO(chmod("/run/shm", 01777), "chmod /run/shm");
-    CHECK_ZERO(chmod("/run/lock", 01777), "chmod /run/lock");
-    CHECK_ZERO(symlink("/run", "/var/run"), "symlink /run /var/run");
-    CHECK_ZERO(symlink("/run/lock", "/var/lock"), "symlink /run/lock /var/lock");
-    CHECK_ZERO(symlink("/run/shm", "/dev/shm"), "symlink /run/shm /dev/shm");    // depends on dev_fs
   }
   static void mount_tmp(void*)
   {
     CHECK_ZERO(mount("tmp", "/tmp", "tmpfs", MS_NODEV | MS_NOEXEC | MS_SILENT | MS_NOSUID, ""), "mount /tmp");
+  }
+
+  static void setup_fs(void*) /* depends on all krn fs or ram fs */
+  {
+    struct stat sb;
+    CHECK_ZERO(mkdir("/run/lock", 01777), "mkdir /run/lock");
+    CHECK_ZERO(mkdir("/run/shm", 01777), "mkdir /run/shm");
+    CHECK_ZERO(chmod("/run/shm", 01777), "chmod /run/shm");
+    CHECK_ZERO(chmod("/run/lock", 01777), "chmod /run/lock");
+    if (stat("/var/run", &sb) != 0)
+    {
+      CHECK_ZERO(symlink("/run", "/var/run"), "symlink /run /var/run");
+    }
+    if (stat("/var/lock", &sb) != 0)
+    {
+      CHECK_ZERO(symlink("/run/lock", "/var/lock"), "symlink /run/lock /var/lock");
+    }
+    CHECK_ZERO(symlink("/run/shm", "/dev/shm"), "symlink /run/shm /dev/shm");    // depends on dev_fs
+    //X11
     mkdir("/tmp/.X11-unix", 01777);
     chmod("/tmp/.X11-unix", 01777);
     mkdir("/tmp/.ICE-unix", 01777);
@@ -283,6 +295,7 @@ public:
     {
       while ((ret = read(fd, name, sizeof(name))) > 0)
       {
+        usleep(10);
         //name[ret] = 0;
       }
       close(fd);
