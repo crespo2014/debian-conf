@@ -24,11 +24,13 @@
 #include <sys/ptrace.h>
 #include <asm/unistd.h>
 #include <linux/sched.h>
+ #include <pthread.h>
 //#include <linux/syscalls.h>
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <sched.h>
 //#include <linux/ioprio.h>
 //#include <ext2fs/ext2fs.h>
 //#include <blkid/blkid.h>
@@ -238,21 +240,57 @@ public:
     mkdir("/tmp/.ICE-unix", 01777);
     chmod("/tmp/.ICE-unix", 01777);
   }
+  // Set max priority for the current thread and return the old one, return value 0 means  everything was ok
+  static int setPriorityMax(int& old)
+  {
+    int policy, s;
+    struct sched_param param;
+    s = pthread_getschedparam(pthread_self(), &policy, &param);
+    if (s == 0)
+    {
+      old = param.sched_priority;
+      pthread_setschedprio(pthread_self(),sched_get_priority_max(policy));
+    }
+    return s;
+  }
+  static int setPriorityMin(int& old)
+  {
+    int policy, s;
+    struct sched_param param;
+    s = pthread_getschedparam(pthread_self(), &policy, &param);
+    if (s == 0)
+    {
+      old = param.sched_priority;
+      pthread_setschedprio(pthread_self(),sched_get_priority_min(policy));
+    }
+    return s;
+  }
+  static int setPriority(int prio)
+  {
+    return pthread_setschedprio(pthread_self(),prio);
+  }
+
   static void deferred_modules(void*)
   {
     const char* f = "/proc/deferred_initcalls";
     char name[30];
     int ret;
+    int prio;
+    int s = setPriorityMin(prio);
     auto fd = open(f, O_RDONLY);
     if (fd > 0)
     {
       while ((ret = read(fd, name, sizeof(name))) > 0)
       {
-        name[ret] = 0;
+        //name[ret] = 0;
       }
       close(fd);
     } else
       perror(f);
+    if (s == 0)
+    {
+      setPriority(prio);    // roll back to previous
+    }
   }
   static void start_udev(void*)
   {
