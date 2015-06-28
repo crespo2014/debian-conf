@@ -80,9 +80,8 @@ int main(int ac, char** av)
       perror("/var/log/kmsg");
     if (freopen("/var/log/kmsg","w",stderr) == nullptr)
       perror("/var/log/kmsg");
- //   SysLinux::execute_arg({"/bin/ls","-la","/dev"}, true);
     SysLinux::mount_procfs(nullptr);
-    //SysLinux::mount_sysfs(nullptr);
+    //SysLinux::execute_arg({"/bin/cat","/proc/deferred_initcalls"}, false);
     int fd;
     CHECK_NOT((fd = open("/proc/cmdline", O_RDONLY)), -1, "/proc/cmdline");
     if (fd > 0)
