@@ -36,6 +36,7 @@
   x(xfce4)\
   x(slim) \
   x(init_d)\
+  x(grp_desktop) \
   x(grp_none)  /* no group */ \
   x(grp_krn_fs) /* proc sys dev tmp run */ \
   x(grp_all_fs) /* all fs has been set up, any applcation can run now */ \
@@ -125,7 +126,7 @@ int main(int ac, char** av)
         { &SysLinux::mount_tmp, tmp_fs_id, grp_krn_fs_id, none_id, none_id },    //
         { &SysLinux::mount_run, run_fs_id, grp_krn_fs_id, none_id, none_id },    //
 
-        { &SysLinux::deferred_modules, deferred_id, grp_none_id, udev_id, none_id },    //
+        { &SysLinux::deferred_modules, deferred_id, grp_all_fs_id, none_id,none_id },    //
 
         { &SysLinux::hostname_s, hostname_id, grp_all_fs_id, none_id, none_id },    //
         { &SysLinux::mount_all, all_fs_id, grp_all_fs_id, dev_fs_id, none_id },    //
@@ -134,12 +135,12 @@ int main(int ac, char** av)
 
         { &SysLinux::acpi_daemon, acpi_id, grp_none_id, grp_all_fs_id, none_id },    //
         { &SysLinux::dbus, dbus_id, grp_none_id, grp_all_fs_id, none_id },    //
-//        { &SysLinux::startX_s, X_id, grp_none_id, grp_all_fs_id, none_id },    //
-//        { &SysLinux::startXfce_s, xfce4_id, grp_none_id, X_id, none_id },    //
-        { &SysLinux::slim, slim_id, grp_none_id, acpi_id, dbus_id },    //
+        //{ &SysLinux::startX_s, X_id, grp_desktop_id, acpi_id, dbus_id},    //
+        //{ &SysLinux::startXfce_s, xfce4_id, grp_desktop_id, X_id, none_id },    //
+        { &SysLinux::slim, slim_id, grp_desktop_id, acpi_id, dbus_id },    //
 
         { &SysLinux::procps, procps_id, grp_none_id, deferred_id, none_id },    // last to do
-        { &SysLinux::init_d, init_d_id, grp_none_id, grp_all_fs_id,deferred_id  },
+        { &SysLinux::init_d, init_d_id, grp_none_id, grp_all_fs_id,grp_desktop_id  },
 
         };
     Tasks<task_id> scheduler(tasks, tasks + sizeof(tasks) / sizeof(*tasks), &getTaskName);
