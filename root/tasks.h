@@ -163,6 +163,7 @@ private:
       }
       else
       {
+        std::cout << "done" << std::endl;
         it = nullptr;    // we done here
         child_count = 3;  // wake_up all task because we done
         break;    // get out for ;;
