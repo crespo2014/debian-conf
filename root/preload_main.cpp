@@ -78,6 +78,9 @@ int main(int ac, char** av)
   {
     if (freopen("/var/log/kmsg","w",stdout) == nullptr)
       perror("/var/log/kmsg");
+    if (freopen("/var/log/kmsg","w",stderr) == nullptr)
+      perror("/var/log/kmsg");
+    SysLinux::execute_arg({"/bin/ls","-lai"}, true);
     SysLinux::mount_procfs(nullptr);
     //SysLinux::mount_sysfs(nullptr);
     int fd;
