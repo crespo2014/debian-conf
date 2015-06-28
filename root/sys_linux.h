@@ -247,6 +247,9 @@ public:
     chmod("/tmp/.X11-unix", 01777);
     mkdir("/tmp/.ICE-unix", 01777);
     chmod("/tmp/.ICE-unix", 01777);
+    //initctl
+    CHECK_ZERO(mknod("/run/initctl",S_IRUSR | S_IWUSR | S_IFIFO,0),"/run/initctl");
+
   }
   // Set max priority for the current thread and return the old one, return value 0 means  everything was ok
   static int setPriorityMax(int& old)
@@ -300,7 +303,6 @@ public:
     {
       setPriority(prio);    // roll back to previous
     }
-    SysLinux::execute_arg({"/bin/udevadm","trigger","--action=add"},true);
     SysLinux::execute_arg({"/bin/udevadm","trigger"},true);
   }
   static void readahead(void*)
