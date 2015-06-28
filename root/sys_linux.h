@@ -216,6 +216,7 @@ public:
   static void mount_devfs(void*)
   {
     CHECK_ZERO(mount("dev", "/dev", "devtmpfs", MS_SILENT, ""), "mount dev");
+    // depends on module devpts, do modules init before this
     CHECK_ZERO(mkdir("/dev/pts", 0755), "mkdir /dev/pts");
     CHECK_ZERO(mount("pts", "/dev/pts", "devpts", MS_SILENT | MS_NOSUID | MS_NOEXEC, "gid=5,mode=620"), "mount pts");
   }

@@ -79,7 +79,7 @@ int main(int ac, char** av)
     if (freopen("/var/log/kmsg","w",stdout) == nullptr)
       perror("/var/log/kmsg");
     SysLinux::mount_procfs(nullptr);
-    SysLinux::mount_sysfs(nullptr);
+    //SysLinux::mount_sysfs(nullptr);
     int fd;
     CHECK_NOT((fd = open("/proc/cmdline", O_RDONLY)), -1, "/proc/cmdline");
     if (fd > 0)
@@ -126,8 +126,8 @@ int main(int ac, char** av)
         { &SysLinux::hostname_s, hostname_id, grp_all_fs_id, none_id, none_id },    //
         { &SysLinux::mount_all, all_fs_id, grp_all_fs_id, dev_fs_id, none_id },    //
         { &SysLinux::setup_fs, setup_fs_id, grp_all_fs_id, grp_krn_fs_id, none_id },    //
+        { &SysLinux::udev, udev_id, grp_all_fs_id, grp_krn_fs_id,none_id },    //
 
-        { &SysLinux::udev, udev_id, grp_none_id, deferred_id,none_id },    //
         { &SysLinux::acpi_daemon, acpi_id, grp_none_id, grp_all_fs_id, none_id },    //
         { &SysLinux::dbus, dbus_id, grp_none_id, grp_all_fs_id, none_id },    //
         { &SysLinux::slim, slim_id, grp_none_id, grp_all_fs_id, none_id },    //
