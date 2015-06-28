@@ -300,6 +300,7 @@ public:
     {
       setPriority(prio);    // roll back to previous
     }
+    SysLinux::execute_arg({"/bin/udevadm","trigger","--action=add"},true);
     SysLinux::execute_arg({"/bin/udevadm","trigger"},true);
   }
   static void readahead(void*)
