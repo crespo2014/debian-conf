@@ -414,7 +414,7 @@ public:
 
     // SysLinux::execute_c("udevadm info --cleanup-db");    // it will be empty
     SysLinux::execute_arg({"/sbin/udevd","--daemon"},true);    // move to the end be carefull with network cards
-    //SysLinux::execute_c("/bin/udevadm trigger --action=add");
+    SysLinux::execute_arg({"/bin/udevadm","trigger","--action=add"},true);
     // SysLinux::execute_c("/bin/udevadm settle", true);   //wait for events
   }
 
