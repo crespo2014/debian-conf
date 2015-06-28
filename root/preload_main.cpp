@@ -80,7 +80,7 @@ int main(int ac, char** av)
       perror("/var/log/kmsg");
     if (freopen("/var/log/kmsg","w",stderr) == nullptr)
       perror("/var/log/kmsg");
-    SysLinux::execute_arg({"/bin/ls","-lai"}, true);
+ //   SysLinux::execute_arg({"/bin/ls","-la","/dev"}, true);
     SysLinux::mount_procfs(nullptr);
     //SysLinux::mount_sysfs(nullptr);
     int fd;
@@ -134,7 +134,7 @@ int main(int ac, char** av)
         { &SysLinux::acpi_daemon, acpi_id, grp_none_id, grp_all_fs_id, none_id },    //
         { &SysLinux::dbus, dbus_id, grp_none_id, grp_all_fs_id, none_id },    //
         { &SysLinux::slim, slim_id, grp_none_id, grp_all_fs_id, none_id },    //
-        { &SysLinux::deferred_modules, deferred_id, grp_none_id, slim_id, none_id },    //
+        { &SysLinux::deferred_modules, deferred_id, grp_none_id, udev_id, none_id },    //
         { &SysLinux::procps, procps_id, grp_none_id, udev_id, none_id },    //
         };
     Tasks<task_id> scheduler(tasks, tasks + sizeof(tasks) / sizeof(*tasks), &getTaskName);
