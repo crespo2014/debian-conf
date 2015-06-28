@@ -118,12 +118,14 @@ int main(int ac, char** av)
     // Start system scripts
     static const Tasks<task_id>::task_info_t tasks[] = {    //
 
-        { &SysLinux::readahead, readahead_id, grp_none_id, none_id, none_id },    //
+        { &SysLinux::readahead, readahead_id, grp_none_id, all_fs_id, none_id },    //
         { &SysLinux::mount_root, root_fs_id, grp_krn_fs_id, none_id, none_id },    //
         { &SysLinux::mount_sysfs, sys_fs_id, grp_krn_fs_id, none_id, none_id },    //
         { &SysLinux::mount_devfs, dev_fs_id, grp_krn_fs_id, none_id, none_id },    //
         { &SysLinux::mount_tmp, tmp_fs_id, grp_krn_fs_id, none_id, none_id },    //
         { &SysLinux::mount_run, run_fs_id, grp_krn_fs_id, none_id, none_id },    //
+
+        { &SysLinux::deferred_modules, deferred_id, grp_none_id, grp_krn_fs_id, none_id },    //
 
         { &SysLinux::hostname_s, hostname_id, grp_all_fs_id, none_id, none_id },    //
         { &SysLinux::mount_all, all_fs_id, grp_all_fs_id, dev_fs_id, none_id },    //
@@ -135,8 +137,8 @@ int main(int ac, char** av)
         { &SysLinux::startX_s, X_id, grp_none_id, grp_all_fs_id, none_id },    //
         { &SysLinux::startXfce_s, xfce4_id, grp_none_id, X_id, none_id },    //
         //{ &SysLinux::slim, slim_id, grp_none_id, grp_all_fs_id, none_id },    //
-        { &SysLinux::deferred_modules, deferred_id, grp_none_id, udev_id, none_id },    //
-        { &SysLinux::procps, procps_id, grp_none_id, udev_id, none_id },    //
+
+        { &SysLinux::procps, procps_id, grp_none_id, xfce4_id, none_id },    // last to do
         };
     Tasks<task_id> scheduler(tasks, tasks + sizeof(tasks) / sizeof(*tasks), &getTaskName);
     scheduler.start(5,nullptr);

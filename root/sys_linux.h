@@ -144,12 +144,6 @@ public:
   /*
    * Execute command from const char*
    */
-//  static int execute_c(const char* ccmd, bool wait = false, bool fork = true)
-//  {
-//    char cmd[512];
-//    strcpy(cmd, ccmd);
-//    return SysLinux::execute(cmd, wait, !fork);
-//  }
   static int execute_arg(std::initializer_list<const char*> list,bool wait = true,bool fork = true)
   {
     // max arguments are 20, i don want to use malloc after fork
