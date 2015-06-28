@@ -248,7 +248,7 @@ public:
     mkdir("/tmp/.ICE-unix", 01777);
     chmod("/tmp/.ICE-unix", 01777);
     //initctl
-    CHECK_ZERO(mknod("/run/initctl",S_IRUSR | S_IWUSR | S_IFIFO,0),"/run/initctl");
+    //CHECK_ZERO(mknod("/run/initctl",S_IRUSR | S_IWUSR | S_IFIFO,0),"/run/initctl");
 
   }
   // Set max priority for the current thread and return the old one, return value 0 means  everything was ok
@@ -422,16 +422,16 @@ public:
   }
 
   // execute some init script
-  static void init_d()
+  static void init_d(void *)
   {
     //todo list files in /etc/rcS/ and run everything except for a block list of script that we are not run
-    SysLinux::execute_arg({"/etc/init.d/keyboard-setup","start"});
-    SysLinux::execute_arg({"/etc/init.d/kbd","start"});
-    SysLinux::execute_arg({"/etc/init.d/console-setup","start"});
-    SysLinux::execute_arg({"/lib/udev/udev-finish"});
-    SysLinux::execute_arg({"/etc/init.d/hwclock","start"});
-    SysLinux::execute_arg({"/etc/init.d/urandom","start"});
-    SysLinux::execute_arg({"/etc/init.d/networking","start"});
+    SysLinux::execute_arg({"/etc/init.d/keyboard-setup","start"},true);
+    SysLinux::execute_arg({"/etc/init.d/hwclock","start"},true);
+    SysLinux::execute_arg({"/etc/init.d/kbd","start"},true);
+    SysLinux::execute_arg({"/etc/init.d/console-setup","start"},true);
+    SysLinux::execute_arg({"/lib/udev/udev-finish"},true);
+    SysLinux::execute_arg({"/etc/init.d/urandom","start"},true);
+    SysLinux::execute_arg({"/etc/init.d/networking","start"},true);
   }
   /*
    startxfc4 script c++ translation

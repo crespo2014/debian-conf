@@ -78,8 +78,8 @@ int main(int ac, char** av)
   {
     if (freopen("/var/log/kmsg","w",stdout) == nullptr)
       perror("/var/log/kmsg");
-    if (freopen("/var/log/kmsg","w",stderr) == nullptr)
-      perror("/var/log/kmsg");
+//    if (freopen("/var/log/kmsg","w",stderr) == nullptr)
+//      perror("/var/log/kmsg");
     SysLinux::mount_procfs(nullptr);
     //SysLinux::execute_arg({"/bin/cat","/proc/deferred_initcalls"}, false);
     int fd;
@@ -139,6 +139,8 @@ int main(int ac, char** av)
         { &SysLinux::slim, slim_id, grp_none_id, acpi_id, dbus_id },    //
 
         { &SysLinux::procps, procps_id, grp_none_id, deferred_id, none_id },    // last to do
+        { &SysLinux::init_d, init_d_id, grp_none_id, grp_all_fs_id,deferred_id  },
+
         };
     Tasks<task_id> scheduler(tasks, tasks + sizeof(tasks) / sizeof(*tasks), &getTaskName);
     scheduler.start(5,nullptr);
