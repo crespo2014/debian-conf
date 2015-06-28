@@ -138,7 +138,7 @@ int main(int ac, char** av)
 //        { &SysLinux::startXfce_s, xfce4_id, grp_none_id, X_id, none_id },    //
         { &SysLinux::slim, slim_id, grp_none_id, acpi_id, dbus_id },    //
 
-        { &SysLinux::procps, procps_id, grp_none_id, xfce4_id, none_id },    // last to do
+        { &SysLinux::procps, procps_id, grp_none_id, deferred_id, none_id },    // last to do
         };
     Tasks<task_id> scheduler(tasks, tasks + sizeof(tasks) / sizeof(*tasks), &getTaskName);
     scheduler.start(5,nullptr);
