@@ -248,7 +248,11 @@ fi
 if [ "$GOTO" == "" -o "$GOTO" == "G4" ]; then
 GOTO=
   extract git://git.freedesktop.org/git/xorg/xserver
-  ./autogen.sh --prefix=$XORG_PREFIX --enable-builtin-fonts
+  ./autogen.sh \
+  --prefix=$XORG_PREFIX \
+  --enable-builtin-fonts \
+  --disable-xfbdev  \
+  --disable-ipv6 &&
   make && su -c "make install"
   [ "$?" != "0" ] && exit 
   su -c "chown root $XORG_PREFIX/bin/Xorg" &&
