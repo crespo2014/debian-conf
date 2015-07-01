@@ -10,7 +10,8 @@ libtool \
 bison \
 flex \
 python-mako \
-libxshmfence-dev
+libxshmfence-dev \
+libgcrypt11-dev
 
 # http://www.mesa3d.org/autoconf.html
 
@@ -55,13 +56,17 @@ function extract()
 {
   url=$1
   fname=${url##*/}
-  [ -d $fname ] || git clone --depth 1 "$1" 
+  [ -d $fname ] || git clone --depth 1 "$1" $fname
   [ $? != 0 ] && echo "Failed to get repo $1" && exit
   cd $fname
   tag=$(git tag | tail -n 1)
   tag=${tag##* }  
-  [ "$tag" != "" ] && echo "Checking out branch $tag" && git checkout $tag
-  git pull
+  if [ "$tag" != "" ]; then
+    echo "Checking out branch $tag"
+    git checkout $tag
+  else
+   git pull
+  fi
   [ $? != 0 ] && echo "Git pull $1 failed " && exit 
   return 0
 }
