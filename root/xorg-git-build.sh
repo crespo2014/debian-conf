@@ -11,6 +11,7 @@ bison \
 flex \
 python-mako \
 libxshmfence-dev \
+valgrind \
 libgcrypt11-dev
 
 # http://www.mesa3d.org/autoconf.html
