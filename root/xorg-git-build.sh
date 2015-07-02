@@ -234,7 +234,8 @@ GOTO=
   make && 
   su -c "make install"
   [ "$?" != "0" ] && exit
-  su -c "mkdir -p $XORG_PREFIX/bin" &&  su -c "install -m755 progs/xdemos/{glxinfo,glxgears} $XORG_PREFIX/bin/"
+  su -c "mkdir -p $XORG_PREFIX/bin"
+  #&&  su -c "install -m755 progs/xdemos/{glxinfo,glxgears} $XORG_PREFIX/bin/"
   [ "$?" != "0" ] && exit
   cd ..
 fi
