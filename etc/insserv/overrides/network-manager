@@ -1,12 +1,12 @@
 #! /bin/sh
 ### BEGIN INIT INFO
 # Provides:          network-manager
-# Required-Start:    dbus $desktop
-# Required-Stop:     dbus $desktop
+# Required-Start:    dbus 
+# Required-Stop:     dbus 
 # Should-Start:	     $syslog
 # Should-Stop:       $syslog
-# Default-Start:     2 3 4 5
-# Default-Stop:      0 1 6
+# Default-Start:     1 2 3 4 5
+# Default-Stop:      0 6
 # Short-Description: network connection manager
 # Description:       Daemon for automatically switching network 
 #		     connections to the best available connection.

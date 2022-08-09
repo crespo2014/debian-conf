@@ -1,7 +1,7 @@
 #! /bin/sh
 ### BEGIN INIT INFO
 # Provides:          mountnfs
-# Required-Start:    $network
+# Required-Start:    $network network-manager
 # Required-Stop:
 # Should-Start:      $network $portmap nfs-common  udev-mtab
 # Default-Start:     
